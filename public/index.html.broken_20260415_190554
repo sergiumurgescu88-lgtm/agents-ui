@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<meta name="theme-color" content="#0a0a0f"/>
+<title>Vibe Buddy — DaRomania AI</title>
+<style>
+:root {
+  --bg:      #0a0a0f;
+  --bg2:     #111118;
+  --bg3:     #18181f;
+  --border:  #222230;
+  --text:    #e8e9f0;
+  --muted:   #6b6c80;
+  --accent:  #6366f1;
+  --accent2: #818cf8;
+
+  /* MODE COLORS */
+  --green:   #22d3a0;
+  --green2:  #4ade80;
+  --purple:  #a855f7;
+  --purple2: #c084fc;
+  --orange:  #f97316;
+  --orange2: #fb923c;
+  --red:     #ef4444;
+  --red2:    #f87171;
+  --redlight:#ff6b6b;
+  --redlight2:#ff8e8e;
+  --blue:    #3b82f6;
+  --blue2:   #60a5fa;
+  --red:     #ef4444;
+  --amber:   #f59e0b;
+
+  --code-bg: #0d1117;
+  --radius:  12px;
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* ── MODES ── */
+body.mode-coding    { --accent:var(--green);    --accent2:var(--green2);    }
+body.mode-marketing { --accent:var(--orange);   --accent2:var(--orange2);   }
+body.mode-business  { --accent:var(--red);      --accent2:var(--red2);      }
+body.mode-sidehustle{ --accent:var(--redlight); --accent2:var(--redlight2); }
+body.mode-chat      { --accent:var(--purple);   --accent2:var(--purple2);   }
+body.mode-lock      { --accent:var(--amber);    --accent2:var(--amber);     }
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;font-size:15px;}
+
+#app{display:flex;flex-direction:column;height:100%;height:100dvh;max-width:700px;margin:0 auto;}
+
+/* ── HEADER ── */
+#header{
+  flex-shrink:0;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  padding:0 14px;
+  padding-top:var(--safe-top);
+  display:flex;align-items:center;gap:10px;
+  min-height:56px;
+  transition:border-color .4s;
+  position:relative;
+  overflow:hidden;
+}
+
+/* glow line sub header care se schimbă cu modul */
+#header::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:var(--accent);opacity:0.6;
+  transition:background .4s;
+}
+
+#buddy-avatar{
+  width:38px;height:38px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;flex-shrink:0;transition:all .4s;
+}
+body.mode-coding   #buddy-avatar{border-radius:6px;font-size:15px;}
+body.mode-marketing #buddy-avatar{border-radius:50%;}
+
+#header-info{flex:1;min-width:0;}
+#buddy-name{
+  font-size:14px;font-weight:700;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:color .4s;color:var(--accent2);
+}
+body.mode-coding   #buddy-name{font-family:'Courier New',monospace;}
+body.mode-marketing #buddy-name{letter-spacing:.04em;}
+
+#mode-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10px;font-weight:700;letter-spacing:.06em;
+  padding:2px 8px;border-radius:20px;margin-top:2px;
+  border:1px solid var(--accent);
+  background:rgba(0,0,0,.3);color:var(--accent2);
+  transition:all .4s;
+}
+#mode-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Action counter */
+#action-counter{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px;
+}
+#action-bar{
+  width:60px;height:3px;background:var(--border);border-radius:3px;overflow:hidden;
+}
+#action-fill{
+  height:100%;background:var(--accent);border-radius:3px;
+  transition:width .4s ease, background .4s;
+}
+#action-text{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;}
+
+/* ── CTX BANNER ── */
+#ctx-banner{
+  flex-shrink:0;display:none;
+  align-items:center;gap:8px;
+  padding:7px 14px;
+  background:rgba(99,102,241,.08);
+  border-bottom:1px solid rgba(99,102,241,.15);
+  font-size:12px;color:var(--accent2);
+}
+#ctx-banner.show{display:flex;}
+.ctx-tag{
+  background:rgba(99,102,241,.15);
+  padding:1px 8px;border-radius:20px;font-size:11px;font-weight:700;
+}
+
+/* ── MESSAGES ── */
+#messages{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  padding:14px 12px 8px;
+  display:flex;flex-direction:column;gap:14px;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  scroll-behavior:smooth;
+}
+
+.msg{display:flex;gap:8px;max-width:94%;animation:fadeUp .18s ease-out;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse;align-self:flex-end;}
+.msg.assistant{align-self:flex-start;}
+
+.msg-av{
+  width:30px;height:30px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;flex-shrink:0;margin-top:2px;
+  transition:background .4s;
+}
+.msg.user .msg-av{background:rgba(99,102,241,.2);}
+.msg.assistant .msg-av{background:var(--bg3);}
+
+.msg.mode-coding   .msg-av{background:rgba(34,211,160,.12);}
+.msg.mode-marketing .msg-av{background:rgba(168,85,247,.12);}
+.msg.mode-lock      .msg-av{background:rgba(245,158,11,.12);}
+
+.msg-body{min-width:0;}
+
+.msg-bubble{
+  padding:10px 14px;border-radius:14px;
+  font-size:14px;line-height:1.6;word-break:break-word;
+}
+.msg.user .msg-bubble{
+  background:var(--accent);color:#fff;
+  border-bottom-right-radius:4px;
+  transition:background .4s;
+}
+.msg.assistant .msg-bubble{
+  background:var(--bg3);border:1px solid var(--border);
+  border-bottom-left-radius:4px;
+  transition:background .4s,border-color .4s;
+}
+.msg.mode-coding.assistant   .msg-bubble{background:var(--code-bg);border-color:#30363d;}
+.msg.mode-marketing.assistant .msg-bubble{background:#160d20;border-color:#3b1f5e;}
+.msg.mode-lock.assistant      .msg-bubble{background:#1a1200;border-color:#5c3a00;}
+
+/* Code blocks */
+.msg-bubble pre{
+  background:#0a0e16;border:1px solid #30363d;
+  border-radius:8px;padding:10px;margin:8px 0;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+  font-family:'Courier New',monospace;font-size:12px;line-height:1.5;
+}
+.msg-bubble code{
+  font-family:'Courier New',monospace;font-size:12px;
+  background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;
+}
+.msg-bubble pre code{background:transparent;padding:0;}
+.code-header{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;
+}
+.code-lang{font-family:'Courier New',monospace;font-size:10px;color:var(--accent);letter-spacing:.05em;}
+.copy-btn{
+  background:none;border:1px solid #30363d;color:var(--muted);
+  font-size:10px;padding:2px 8px;border-radius:4px;cursor:pointer;
+  min-height:24px;transition:color .15s;font-family:'Courier New',monospace;
+}
+.copy-btn:hover{color:var(--text);}
+
+/* Meta info */
+.msg-meta{
+  font-size:10px;color:var(--muted);margin-top:4px;padding-left:2px;
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+}
+.model-tag{
+  background:var(--bg3);border:1px solid var(--border);
+  padding:1px 6px;border-radius:20px;font-size:10px;
+}
+.fallback-tag{
+  background:rgba(245,158,11,.1);color:var(--amber);
+  border:1px solid rgba(245,158,11,.2);
+  padding:1px 6px;border-radius:20px;font-size:10px;
+}
+.intent-tag{
+  background:rgba(99,102,241,.1);color:var(--accent2);
+  border:1px solid rgba(99,102,241,.2);
+  padding:1px 6px;border-radius:20px;font-size:10px;
+}
+
+/* Upgrade CTA bubble */
+.upgrade-bubble{
+  background:linear-gradient(135deg,#1a1200,#2a1500);
+  border:1px solid var(--amber);border-radius:14px;
+  padding:16px;margin-top:8px;
+}
+.upgrade-bubble h3{color:var(--amber);font-size:14px;margin-bottom:8px;}
+.upgrade-bubble ul{color:#ccc;font-size:13px;line-height:1.8;margin-bottom:12px;padding-left:4px;list-style:none;}
+.upgrade-bubble ul li::before{content:'✅ ';margin-right:4px;}
+.upgrade-btn{
+  display:block;text-align:center;padding:12px;border-radius:10px;
+  background:var(--amber);color:#000;font-weight:800;font-size:14px;
+  text-decoration:none;transition:opacity .15s;
+}
+.upgrade-btn:hover{opacity:.88;}
+
+/* ── TYPING ── */
+#typing{
+  display:none;align-items:center;gap:6px;
+  padding:4px 12px 8px 50px;font-size:12px;color:var(--muted);
+}
+#typing.show{display:flex;}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:blink 1.2s infinite;}
+.dot:nth-child(2){animation-delay:.2s;}.dot:nth-child(3){animation-delay:.4s;}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+#typing-model{margin-left:4px;font-size:11px;}
+
+/* ── INPUT AREA ── */
+#input-area{
+  flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);
+  padding:8px 10px;padding-bottom:calc(8px + var(--safe-bot));
+  transition:background .4s,border-color .4s;
+}
+
+/* Quick actions */
+#quick-actions{
+  display:flex;gap:6px;overflow-x:auto;padding:0 0 8px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+#quick-actions::-webkit-scrollbar{display:none;}
+.qa-coding   { border-color:#22d3a0!important; color:#22d3a0!important; }
+.qa-marketing{ border-color:#f97316!important; color:#f97316!important; }
+.qa-sidehustle{ border-color:#ff6b6b!important; color:#ff6b6b!important; }
+.qa-business { border-color:#ef4444!important; color:#ef4444!important; }
+.qa-chat     { border-color:#a855f7!important; color:#a855f7!important; }
+.qa{
+  flex-shrink:0;font-size:12px;font-weight:500;
+  padding:6px 12px;border-radius:20px;
+  border:1px solid var(--border);color:var(--text);
+  background:var(--bg3);cursor:pointer;white-space:nowrap;
+  min-height:32px;transition:border-color .15s,background .15s;
+  -webkit-appearance:none;
+}
+.qa:active{border-color:var(--accent);background:rgba(99,102,241,.1);}
+
+#input-row{display:flex;gap:8px;align-items:flex-end;}
+
+#input{
+  flex:1;background:var(--bg3);border:1.5px solid var(--border);
+  border-radius:12px;color:var(--text);
+  font-family:inherit;font-size:15px;
+  padding:10px 13px;resize:none;outline:none;
+  line-height:1.45;min-height:44px;max-height:120px;
+  overflow-y:auto;-webkit-appearance:none;
+  transition:border-color .15s,font-family .4s;
+}
+body.mode-coding #input{font-family:'Courier New',monospace;font-size:13px;}
+#input:focus{border-color:var(--accent);}
+#input::placeholder{color:var(--muted);}
+
+#send-btn{
+  width:44px;height:44px;border-radius:12px;
+  background:var(--accent);border:none;color:#fff;
+  font-size:19px;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .4s,transform .1s;-webkit-appearance:none;
+}
+body.mode-coding   #send-btn{color:#0d1117;}
+body.mode-marketing #send-btn{color:#fff;}
+#send-btn:active{transform:scale(.94);}
+#send-btn:disabled{opacity:.4;}
+
+/* ── MODE TRANSITION OVERLAY ── */
+#mode-overlay{
+  position:fixed;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;
+  background:var(--bg);
+}
+#mode-overlay.show{opacity:1;pointer-events:all;}
+#overlay-icon{font-size:32px;margin-bottom:12px;}
+#overlay-text{
+  font-family:'Courier New',monospace;font-size:13px;
+  color:var(--accent);letter-spacing:.1em;
+}
+#overlay-bar{width:180px;height:2px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden;}
+#overlay-fill{height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .65s ease;}
+
+/* scrollbar */
+#messages::-webkit-scrollbar{width:3px;}
+#messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body class="mode-chat">
+
+<!-- MODE TRANSITION -->
+<div id="mode-overlay">
+  <div id="overlay-icon">🤖</div>
+  <div id="overlay-text">// activating mode...</div>
+  <div id="overlay-bar"><div id="overlay-fill"></div></div>
+</div>
+
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="header">
+    <div id="buddy-avatar">🤖</div>
+    <div id="header-info">
+      <div id="buddy-name">Vibe Buddy</div>
+      <div id="mode-badge">
+        <span id="mode-dot"></span>
+        <span id="mode-label">CHAT MODE</span>
+      </div>
+    </div>
+    <div id="action-counter">
+      <div id="action-bar"><div id="action-fill" style="width:0%"></div></div>
+      <div id="action-text">0/30</div>
+    </div>
+    <button id="btn-export" onclick="exportChat()" title="Salvează conversația" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 10px;font-size:13px;cursor:pointer;margin-left:8px;transition:all .2s" onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">💾</button>
+    <button id="btn-close" onclick="window.close()" title="Închide" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 10px;font-size:13px;cursor:pointer;margin-left:6px;transition:all .2s" onmouseover="this.style.borderColor='#ef4444';this.style.color='#ef4444'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">✕</button>
+  </div>
+
+  <!-- CTX BANNER -->
+  <div id="ctx-banner"><span>🎯</span><span id="ctx-text"></span></div>
+
+  <!-- MESSAGES -->
+  <div id="messages">
+    <div class="msg assistant mode-chat">
+      <div class="msg-av">🤖</div>
+      <div class="msg-body">
+        <div class="msg-bubble">Bună! Sunt Vibe Buddy 👋<br>Spune-mi cu ce vrei să începi — o meserie, un agent AI, sau direct o întrebare de business.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TYPING -->
+  <div id="typing">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    <span id="typing-model">Buddy gândește...</span>
+  </div>
+
+  <!-- INPUT -->
+  <div id="input-area">
+    <div id="quick-actions">
+      <button class="qa qa-chat" onclick="quickSend('Ce meserie am și cum o transform în business cu AI?')">💼 Meseria mea</button>
+      <button class="qa qa-coding" onclick="quickSend('Cum instalez OpenClaw pe VPS?')">🤖 Instalează Agent</button>
+      <button class="qa qa-marketing" onclick="quickSend('Ajutor cu marketing, prompts și tooluri AI')">🟠 Marketing</button>
+      <button class="qa qa-coding" onclick="quickSend('Vreau să automatizez un proces cu AI')">⚡ Automatizez</button>
+      <button class="qa qa-chat" onclick="quickSend('Cum construiesc un funnel de vânzări cu AI?')">💰 Funnel $</button>
+      <button class="qa qa-sidehustle" onclick="quickSend('Vreau să încep un side hustle din top 100 cu AI')">🔴 Top 100 Side Hustle</button>
+    </div>
+    <div id="input-row">
+      <textarea id="input" placeholder="Scrie un mesaj..." rows="1"></textarea>
+      <button id="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const msgsEl   = document.getElementById('messages');
+const inputEl  = document.getElementById('input');
+const typingEl = document.getElementById('typing');
+const overlay  = document.getElementById('mode-overlay');
+const overlayFill = document.getElementById('overlay-fill');
+const overlayIcon = document.getElementById('overlay-icon');
+const overlayText = document.getElementById('overlay-text');
+
+const MODE_CONFIG = {
+  coding:     { label:'CODING MODE',      icon:'⌨',  cls:'mode-coding',     text:'// activating CODING MODE...',     bodyClass:'mode-coding'     },
+  marketing:  { label:'MARKETING MODE',   icon:'📣',  cls:'mode-marketing',  text:'// activating MARKETING MODE...',  bodyClass:'mode-marketing'  },
+  business:   { label:'BUSINESS MODE',    icon:'💼',  cls:'mode-business',   text:'// activating BUSINESS MODE...',   bodyClass:'mode-business'   },
+  sidehustle: { label:'SIDE HUSTLE MODE', icon:'🔴',  cls:'mode-sidehustle', text:'// TOP 100 SIDE HUSTLES...',       bodyClass:'mode-sidehustle' },
+  chat:       { label:'CHAT MODE',        icon:'🤖', cls:'mode-chat',       text:'// chat mode',                     bodyClass:'mode-chat'       },
+  lock:       { label:'UPGRADE',          icon:'🔒', cls:'mode-lock',       text:'// limit reached',                 bodyClass:'mode-lock'       },
+};
+
+let history     = [];
+let currentMode = 'chat';
+let ctxParam    = null;
+let actionCount = 0;
+let userId = localStorage.getItem('buddy_uid') || 'u_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
+localStorage.setItem('buddy_uid', userId);
+
+// ── Load state
+function loadState() {
+
+  const lower = text.toLowerCase();
+
+  if (
+    lower.includes("site") ||
+    lower.includes("website") ||
+    lower.includes("landing page") ||
+    lower.includes("pagina") ||
+    lower.includes("restaurant") ||
+    lower.includes("business")
+  ) {
+    try {
+      const pageResp = await fetch('/create-page', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          page_name: 'BusinessLandingPage',
+          title: 'Restaurant Italian Premium',
+          subtitle: text
+        }),
+      });
+
+      const pageData = await pageResp.json();
+
+      if (pageData.success) {
+        typingEl.classList.remove('show');
+        appendMsg('assistant', '🚀 Landing page creată automat: ' + pageData.file, null, currentMode, null, null);
+        document.getElementById('send-btn').disabled = false;
+        return;
+      }
+    } catch(e) {
+      console.error('builder error', e);
+    }
+  }
+
+  try {
+    localStorage.removeItem('buddy_state'); // reset v2
+      const saved = localStorage.getItem('buddy_state_v2');
+
+    if (saved) {
+      const s = JSON.parse(saved);
+      actionCount = s.actionCount || 0;
+    }
+  } catch(e) {}
+}
+function saveState() {
+  try { localStorage.setItem('buddy_state_v2', JSON.stringify({ actionCount })); } catch(e) {}
+}
+
+// ── Context DNA
+function initCtx() {
+  const p = new URLSearchParams(window.location.search);
+  const ctx = p.get('ctx');
+  if (!ctx) return;
+  ctxParam = ctx;
+  try {
+    const d = JSON.parse(atob(ctx));
+    const tags = [d.source, d.project_type].filter(Boolean)
+      .map(t => `<span class="ctx-tag">${t}</span>`).join(' ');
+    if (tags) {
+      document.getElementById('ctx-text').innerHTML = '🎯 ' + tags;
+      document.getElementById('ctx-banner').classList.add('show');
+    }
+    const welcomes = {
+      openclaw:  '⚙️ Bună! Văd că vii de pe <b>OpenClaw</b>. Instalăm agentul sau configurăm ceva?',
+      daromania: '🇷🇴 Bună! Vii de pe <b>DaRomania</b>. Cu ce tranziție de carieră te ajut?',
+      hermes:    '🧬 Bună! Vii de pe <b>Hermes</b>. Configurăm agentul sau îl instalăm de la zero?',
+      paperclip: '📎 Bună! Vii de pe <b>Paperclip</b>. Construim compania AI sau orchestrăm agenți?',
+      nemoclaw:  '⚡ Bună! Vii de pe <b>NemoClaw</b>. Instalăm sandbox-ul NVIDIA sau configurăm securitatea?',
+    };
+    const w = welcomes[(d.source || '').toLowerCase()];
+    if (w) { msgsEl.innerHTML = ''; appendMsg('assistant', w, 'Vibe Buddy', 'chat', null, null); }
+  } catch(e) {}
+}
+
+// ── Mode switch
+function switchMode(newMode) {
+  if (newMode === currentMode) return;
+  const cfg = MODE_CONFIG[newMode] || MODE_CONFIG.chat;
+  const oldMode = currentMode;
+  currentMode = newMode;
+
+  // Overlay
+  overlayIcon.textContent = cfg.icon;
+  overlayText.textContent = cfg.text;
+  overlay.classList.add('show');
+  setTimeout(() => { overlayFill.style.width = '100%'; }, 50);
+  setTimeout(() => {
+    // Apply mode
+    document.body.className = cfg.bodyClass;
+    document.getElementById('buddy-avatar').textContent = cfg.icon;
+    document.getElementById('buddy-name').textContent =
+      newMode === 'coding' ? 'Buddy Coding' :
+      newMode === 'marketing' ? 'Buddy Marketing' :
+      newMode === 'lock' ? 'Buddy — Upgrade' : 'Vibe Buddy';
+    document.getElementById('mode-label').textContent = cfg.label;
+    overlay.classList.remove('show');
+    overlayFill.style.width = '0%';
+  }, 800);
+}
+
+// ── Action counter UI
+function updateActionUI(count) {
+  actionCount = count;
+  const pct = Math.min((count / 30) * 100, 100);
+  const fill = document.getElementById('action-fill');
+  fill.style.width = pct + '%';
+  fill.style.background = count >= 9 ? 'var(--amber)' : count >= 7 ? 'var(--purple)' : 'var(--accent)';
+  document.getElementById('action-text').textContent = `${count}/30`;
+  saveState();
+}
+
+// ── Render markdown
+function render(text) {
+  let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h = h.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
+    const l = lang || 'code';
+    return `<div class="code-header"><span class="code-lang">${l}</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div><pre><code>${code.trim()}</code></pre>`;
+  });
+  h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
+  h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\[([^\]]+)\]\((https?[^\)]+)\)/g, '<a href="$2" target="_blank" style="color:var(--accent2);text-decoration:underline;">$1</a>');
+  h = h.replace(/\n---\n/g, '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">');
+  h = h.replace(/\n/g, '<br>');
+  return h;
+}
+
+function copyCode(btn) {
+  const code = btn.closest('.msg-bubble').querySelector('pre code')?.textContent || '';
+  navigator.clipboard?.writeText(code).then(() => {
+    btn.textContent = '✓'; setTimeout(() => btn.textContent = 'copy', 1800);
+  });
+}
+
+// ── Append message
+function appendMsg(role, text, model, mode, intent, jobCtx) {
+  const div = document.createElement('div');
+  const modeClass = `mode-${mode || 'chat'}`;
+  div.className = `msg ${role} ${role === 'assistant' ? modeClass : ''}`;
+
+  const av = role === 'user' ? '👤' :
+    mode === 'coding' ? '⌨' :
+    mode === 'marketing' ? '🟣' :
+    mode === 'lock' ? '🔒' : '🤖';
+
+  const isFallback = model && model !== 'ChatGPT-4o' && model !== 'system';
+
+  // Check for upgrade content
+  let bubbleContent = render(text);
+
+  let meta = '';
+  if (role === 'assistant' && model && model !== 'system') {
+    meta = `<div class="msg-meta">
+      ${isFallback ? `<span class="fallback-tag">⚡ ${model}</span>` : `<span class="model-tag">${model}</span>`}
+      ${intent && intent !== 'lock' ? `<span class="intent-tag">${intent}</span>` : ''}
+      ${jobCtx ? `<span class="intent-tag">🎯 ${jobCtx.job} ${jobCtx.risk}%</span>` : ''}
+    </div>`;
+  }
+
+  div.innerHTML = `
+    <div class="msg-av">${av}</div>
+    <div class="msg-body">
+      <div class="msg-bubble">${bubbleContent}</div>
+      ${meta}
+    </div>`;
+
+  msgsEl.appendChild(div);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+// ── Send
+async function sendMessage() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  document.getElementById('send-btn').disabled = true;
+
+  history.push({ role:'user', content:text });
+  appendMsg('user', text, null, currentMode, null, null);
+  typingEl.classList.add('show');
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+
+  try {
+    const resp = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ messages:history, ctxParam, actionCount, userId }),
+    });
+
+    const d = await resp.json();
+
+    if (d.error) {
+      appendMsg('assistant', '⚠️ ' + d.error, null, currentMode, null, null);
+    } else {
+      const fullText = d.reply || '';
+      appendMsg('assistant', fullText, null, currentMode, null, null);
+      history.push({ role:'assistant', content:fullText });
+
+      if (d.mode && d.mode.toLowerCase() === 'lock') {
+        switchMode('lock');
+        inputEl.disabled = true;
+        document.getElementById('send-btn').disabled = true;
+      } else if (d.mode && d.mode.toLowerCase() !== currentMode) {
+        switchMode(d.mode.toLowerCase());
+      }
+
+      if (typeof d.remaining !== 'undefined') {
+        updateActionUI(30 - d.remaining);
+      }
+
+      if (d.limitStatus === 'hard_stop') {
+        switchMode('lock');
+        inputEl.disabled = true;
+        document.getElementById('send-btn').disabled = true;
+      }
+
+    }
+  } catch(e) {
+    appendMsg('assistant', '⚠️ Conexiune eșuată. Încearcă din nou.', null, currentMode, null, null);
+  } finally {
+    typingEl.classList.remove('show');
+    if (currentMode !== 'lock') document.getElementById('send-btn').disabled = false;
+  }
+}
+
+function quickSend(text) { inputEl.value = text; sendMessage(); }
+
+// ── Input auto-resize
+inputEl.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+// ── Keyboard fix mobile
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', () => {
+    document.getElementById('app').style.height = window.visualViewport.height + 'px';
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  });
+}
+
+// ── Init
+loadState();
+initCtx();
+if (actionCount > 0) updateActionUI(actionCount);
+if (actionCount >= 30) {
+  switchMode('lock');
+  inputEl.disabled = true;
+  document.getElementById('send-btn').disabled = true;
+}
+
+function exportChat() {
+  const msgs = document.querySelectorAll('.msg');
+  let txt = 'Conversatie Buddy — DaRomania\n' + '='.repeat(40) + '\n\n';
+  msgs.forEach(m => {
+    const isUser = m.classList.contains('user');
+    const bubble = m.querySelector('.msg-bubble');
+    if (bubble) {
+      txt += (isUser ? 'TU: ' : 'BUDDY: ') + bubble.innerText.trim() + '\n\n';
+    }
+  });
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'buddy-conversatie-' + new Date().toISOString().slice(0,10) + '.txt';
+  a.click();
+}
+</script>
+</body>
+</html>

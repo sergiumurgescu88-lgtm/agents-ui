@@ -1,0 +1,387 @@
+require('dotenv').config();
+const express = require('express');
+const path = require('path');
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+
+// ==========================================
+// FREE LIMIT ENGINE (hybrid localStorage+memory)
+// ==========================================
+const usageMap = {};
+
+function checkLimit(userId) {
+  const usage = usageMap[userId] || 0;
+  return { allowed: usage < 30, remaining: 30 - usage, usage };
+}
+
+function incrementUsage(userId) {
+  usageMap[userId] = (usageMap[userId] || 0) + 1;
+}
+
+// ==========================================
+// INTENT ENGINE
+// ==========================================
+function detectIntent(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes('idee') || m.includes('ce business') || m.includes('nu stiu') || m.includes('help') || m.includes('ajut')) return 'EXPLORATOR';
+  if (m.includes('valid') || m.includes('merge') || m.includes('functioneaza') || m.includes('verific')) return 'VALIDATOR';
+  if (m.includes('fa') || m.includes('genereaza') || m.includes('creeaza') || m.includes('instaleaza') || m.includes('vreau sa') || m.includes('hai') || m.includes('start')) return 'EXECUTOR';
+  return 'GENERAL';
+}
+
+// ==========================================
+// MODE ENGINE
+// ==========================================
+function detectMode(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes('openclaw') || m.includes('instaleaza') || m.includes('vps') || m.includes('terminal') || m.includes('cmd') || m.includes('server') || m.includes('api') || m.includes('cod') || m.includes('agent') || m.includes('hermes') || m.includes('paperclip') || m.includes('nemoclaw')) return 'coding';
+  if (m.includes('side hustle') || m.includes('etsy') || m.includes('tiktok') || m.includes('faceless') || m.includes('newsletter') || m.includes('dropshipping') || m.includes('hustle') || m.includes('micro-saas') || m.includes('100 ')) return 'sidehustle';
+  if (m.includes('business') || m.includes('companie') || m.includes('startup') || m.includes('scale') || m.includes('strategie') || m.includes('mrr') || m.includes('venit pasiv')) return 'business';
+  if (m.includes('marketing') || m.includes('vinde') || m.includes('oferta') || m.includes('funnel') || m.includes('continut') || m.includes('promo') || m.includes('reclama') || m.includes('tool') || m.includes('prompt')) return 'marketing';
+  return 'chat';
+}
+
+// ==========================================
+// KNOWLEDGE BASE — 109 JOBURI + PIPELINES
+// ==========================================
+const JOB_DATABASE = {
+  'contabil': { risk: 72, pivots: ['consultanță fiscală', 'newsletter taxe', 'CFO fractional', 'curs contabilitate online'] },
+  'avocat': { risk: 41, pivots: ['consultanță juridică online', 'template-uri contracte', 'curs drept antreprenori'] },
+  'medic': { risk: 45, pivots: ['telemedicină', 'health content creator', 'coaching sănătate'] },
+  'profesor': { risk: 78, pivots: ['cursuri online', 'tutoriat AI', 'content educațional', 'coaching carieră'] },
+  'inginer': { risk: 55, pivots: ['consultanță tehnică', 'SaaS B2B', 'automatizări business', 'curs tehnic online'] },
+  'programator': { risk: 35, pivots: ['SaaS propriu', 'agenție AI', 'vibe coding agency', 'tool-uri AI'] },
+  'designer': { risk: 48, pivots: ['brand identity AI', 'template-uri Canva', 'UI/UX consulting', 'design agenție'] },
+  'marketer': { risk: 65, pivots: ['agenție marketing AI', 'consultanță ads', 'newsletter paid', 'growth hacking'] },
+  'jurnalist': { risk: 82, pivots: ['newsletter paid', 'podcast', 'content creator', 'copywriting AI'] },
+  'economist': { risk: 70, pivots: ['analiză financiară', 'rapoarte piață', 'consultanță investiții'] },
+  'HR': { risk: 68, pivots: ['consultanță recrutare', 'curs interviuri', 'employer branding'] },
+  'vanzator': { risk: 60, pivots: ['sales coaching', 'funnel automation', 'consultanță CRM'] },
+  'antreprenor': { risk: 30, pivots: ['scale cu AI', 'automatizare operații', 'agenție AI', 'Paperclip orchestration'] },
+  'freelancer': { risk: 50, pivots: ['productizare servicii', 'retainer clients', 'tool SaaS', 'agenție AI solo'] },
+  'student': { risk: 40, pivots: ['tutoriat online', 'side hustle AI', 'startup student', 'content creator nișat'] },
+};
+
+
+// ==========================================
+// TOP 100 SIDE HUSTLE KNOWLEDGE BASE
+// ==========================================
+const SIDE_HUSTLE_DB = {
+  "automatizare_b2b": [
+    "Receptionist vocal AI pentru apeluri pierdute — setup cu Vapi.ai + Make.com",
+    "Reactivare lead-uri vechi prin SMS/voce — n8n + Twilio",
+    "Speed-to-Lead automation — răspuns instant la reclame Facebook/Google",
+    "Screening automat CV-uri — OpenAI API + Airtable",
+    "Chatboți FAQ pentru afaceri locale — Voiceflow sau Botpress",
+    "Automatizare onboarding clienți noi — Make.com + Gmail + Notion",
+    "Sistem recenzii automate după serviciu — Zapier + Google Reviews API",
+    "Generare automată rapoarte marketing — Python + GPT-4 + Google Sheets",
+    "Lead generation LinkedIn automatizat — PhantomBuster + OpenAI",
+    "Boți vocali programare întâlniri — Calendly + Vapi.ai"
+  ],
+  "micro_saas": [
+    "Generator manuale corporative din video Loom — Whisper + GPT-4",
+    "Redactor emailuri AI per industrie — fine-tune GPT + Stripe",
+    "Asistent juridic AI monitorizare contracte — Claude API + Supabase",
+    "CRM automatizat pentru agenți imobiliari — Next.js + OpenAI + Stripe",
+    "Generator subtitrări și rezumate podcasturi — Whisper + GPT-4",
+    "SaaS calendar social media AI — GPT-4 + Buffer API + Stripe",
+    "Churn prediction SaaS — Python ML + dashboard React",
+    "Inbox Zero agent pentru executivi — Gmail API + Claude",
+    "SDR autonom multi-canal — Apollo.io + OpenAI + Instantly",
+    "Analiză sentiment recenzii clienți — OpenAI API + Shopify webhook"
+  ],
+  "continut_digital": [
+    "Conturi Faceless TikTok cu avatare AI — HeyGen + CapCut + nișă tech",
+    "Newsletter nișat curatat de AI — Beehiiv + GPT-4 rezumate zilnice",
+    "Cărți povești personalizate copii — Midjourney + ChatGPT + Amazon KDP",
+    "Pachete grafică Midjourney vândute pe Etsy — prompt engineering + Etsy SEO",
+    "Videoclipuri explicative B2B cu AI Spokesperson — HeyGen + Canva",
+    "Template-uri Notion complexe — design + vânzare pe Gumroad/Etsy",
+    "Repurposing content: 1 video → 10 postări — Opus Clip + ChatGPT",
+    "Voiceover freelance cu AI vocal — ElevenLabs + Fiverr/Upwork",
+    "Dublare și localizare video — ElevenLabs + CapCut + YouTube",
+    "Ghostwriting Reddit pentru branduri — strategii de trust building"
+  ],
+  "ecommerce_arbitraj": [
+    "Magazin Shopify cu AI product descriptions — GPT-4 + Shopify API",
+    "Print-on-Demand design grafic AI — Midjourney + Printful + Etsy",
+    "Dropshipping cu optimizare inventar algoritmică — Python + AliExpress API",
+    "Resurse educaționale digitale pentru profesori — Canva AI + Teachers Pay Teachers",
+    "Arbitraj vintage/sneakers cu tracking digital — StockX API + Python alerts",
+    "WaaS (Website as a Service) micro-nișe — WordPress + AI content + abonament lunar",
+    "Template-uri side hustle descărcabile — Notion/Canva + Gumroad",
+    "Stock footage generat AI licențiat — RunwayML + Shutterstock",
+    "Cursuri micro-learning asamblate AI — Teachable + GPT-4 curriculum",
+    "Airdrop hunting crypto automatizat — Python bots + wallet management"
+  ],
+  "human_in_loop": [
+    "Evaluare și rafinare prompturi pe Outlier.ai — $20-50/oră",
+    "Adnotare date vizuale — Scale AI, Appen, Surge AI",
+    "Prompt Engineering consulting pentru directori — $150-500/sesiune",
+    "Fact-checking documente oficiale cu AI — serviciu B2B",
+    "Asistență AI pentru avocați — sumarizare contracte cu Claude",
+    "Audit automatizări pentru IMM-uri — raport diagnostic gratuit → upsell implementare",
+    "Traducere și localizare culturală AI-asistată — DeepL + post-editare umană",
+    "Testare și supervizare cod generat AI — QA specialist",
+    "Antrenare voci sintetice AI — ElevenLabs voice cloning B2B",
+    "Consultanță bookkeeping cu AI — QuickBooks + GPT-4 insights"
+  ]
+};
+
+function getSideHustleAdvice(category) {
+  const cat = SIDE_HUSTLE_DB[category] || SIDE_HUSTLE_DB['micro_saas'];
+  return cat[Math.floor(Math.random() * cat.length)];
+}
+
+function getJobContext(job) {
+  if (!job) return null;
+  const key = Object.keys(JOB_DATABASE).find(k => job.toLowerCase().includes(k));
+  return key ? { job: key, ...JOB_DATABASE[key] } : null;
+}
+
+// ==========================================
+// AGENT ORCHESTRATION
+// ==========================================
+function getAgent(intent, mode) {
+  if (mode === 'CODING') return 'OpenClaw';
+  if (mode === 'MARKETING') return 'Paperclip';
+  if (intent === 'EXPLORATOR') return 'Hermes';
+  if (intent === 'VALIDATOR') return 'Paperclip';
+  if (intent === 'EXECUTOR') return 'OpenClaw';
+  return 'Hermes';
+}
+
+// ==========================================
+// OPENAI SETUP
+// ==========================================
+const OpenAI = require('openai');
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// ==========================================
+// SYSTEM PROMPT COMPLET
+// ==========================================
+const SYSTEM_PROMPT = `Ești BUDDY — AI-ul de vibe coding al ecosistemului DaRomânia.
+
+REGULA #1 — VIBE CODING:
+Tu dai comenzi exacte copy-paste. Userul le rulează în CMD/SSH și trimite outputul înapoi.
+Tu ești creierul. El e mâinile. ATÂT.
+
+REGULA #2 — COMENZI:
+- Maxim 2-3 comenzi per mesaj
+- Fiecare comandă în bloc SEPARAT
+- Aștepți outputul înainte să continui
+- NICIODATĂ mai mult de 3 comenzi deodată
+
+FORMAT CORECT:
+\`\`\`bash
+comanda exacta
+\`\`\`
+
+REGULA #3 — NU pune întrebări inutile!
+Dacă userul zice "instalez OpenClaw pe VPS" → DAI DIRECT prima comandă, nu întreba OS-ul.
+Presupui Ubuntu/Linux pentru VPS și dai comenzile.
+Dacă apar erori → atunci adaptezi.
+
+REGULA #4 — CODING MODE = VERDE
+Când dai comenzi de instalare/cod → rămâi în modul CODING.
+Nu ieși din coding mode până nu termini instalarea.
+Returnează întotdeauna mode: "coding" când dai comenzi bash.
+
+REGULA #5 — FLOW RAPID:
+User: "instalez X pe VPS" → Tu: prima comandă bash + aștepți output
+User: trimite output → Tu: comanda următoare
+User: trimite output → Tu: comanda următoare
+→ Agent instalat ✅
+
+LIMBĂ: Română mereu.
+
+=== INSTALARE OPENCLAW ===
+
+Prima comandă dată mereu pentru VPS:
+\`\`\`bash
+node --version && git --version
+\`\`\`
+
+Dacă Node < 22:
+\`\`\`bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt install -y nodejs
+\`\`\`
+
+Instalare:
+\`\`\`bash
+npm install -g openclaw
+\`\`\`
+\`\`\`bash
+openclaw onboard
+\`\`\`
+
+Verificare:
+\`\`\`bash
+openclaw gateway status
+\`\`\`
+
+=== INSTALARE PAPERCLIP ===
+
+\`\`\`bash
+npx paperclipai onboard --yes
+\`\`\`
+
+=== INSTALARE NEMOCLAW ===
+
+Verifică RAM mai întâi:
+\`\`\`bash
+free -h
+\`\`\`
+
+Dacă < 8GB adaugă swap:
+\`\`\`bash
+fallocate -l 8G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+\`\`\`
+
+Instalare:
+\`\`\`bash
+curl -fsSL https://www.nvidia.com/nemoclaw.sh | bash
+\`\`\`
+
+=== INSTALARE HERMES ===
+
+IMPORTANT: Windows nativ NU merge! Folosești WSL2.
+
+\`\`\`bash
+curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+\`\`\`
+\`\`\`bash
+source ~/.bashrc && hermes doctor
+\`\`\`
+\`\`\`bash
+hermes model
+\`\`\`
+
+=== DEBUGGING ===
+
+502 Bad Gateway NemoClaw:
+\`\`\`bash
+openshell forward stop 18789 SANDBOX 2>/dev/null && openshell forward start 18789 SANDBOX --background
+\`\`\`
+
+Port ocupat:
+\`\`\`bash
+fuser -k PORT/tcp
+\`\`\`
+
+Serviciu căzut:
+\`\`\`bash
+journalctl -u SERVICIU -n 20 --no-pager
+\`\`\`
+
+=== SIDE HUSTLE MODE ===
+
+Când userul vrea un side hustle → explici pașii concreți de implementare:
+1. Ce tool/platformă folosești
+2. Cum setup-ezi (comenzi sau link-uri exacte)
+3. Cum monetizezi
+4. Cât poți câștiga realist
+
+Exemple din Top 100:
+- Etsy grafică Midjourney → Midjourney + Etsy SEO + Printful
+- Newsletter AI → Beehiiv + GPT-4 + Stripe
+- TikTok Faceless → HeyGen + CapCut + nișă tech
+- Chatbot FAQ local → Voiceflow + Make.com + abonament lunar
+
+=== MARKETING MODE ===
+
+Când userul vrea marketing → dai:
+1. Prompt specialist gata de folosit
+2. Tool recomandat (ex: NanoBananaPro, Jasper, Copy.ai)
+3. Flow de implementare concret
+
+=== FREE LIMIT ===
+30 acțiuni gratuite.
+La acțiunea 8: "Mai ai 2 acțiuni gratuite. Vrei să continui cu acces complet?"
+La acțiunea 30 HARD STOP:
+"🔒 Ai văzut sistemul în acțiune.
+Deblochează acces complet — $9: https://buy.stripe.com/bJe14o1Ht3ZCamfedh5os00
+💬 WhatsApp: https://wa.me/40768676141"
+
+REGULI FINALE:
+✅ DAI COMENZI DIRECT — nu întreba inutile
+✅ Maxim 2-3 comenzi per mesaj
+✅ Aștepți outputul
+✅ Rămâi în CODING mode când dai comenzi bash
+✅ Celebrezi fiecare pas reușit cu emoji
+`;
+
+// ==========================================
+// API ENDPOINTS
+// ==========================================
+
+app.post('/api/chat', async (req, res) => {
+  const { messages, userId } = req.body;
+  if (!messages || !messages.length) return res.json({ error: 'No messages' });
+
+  const uid = userId || 'anonymous';
+  const limitInfo = checkLimit(uid);
+
+  // Detect context din ultimul mesaj
+  const lastMsg = messages[messages.length - 1]?.content || '';
+  const intent = detectIntent(lastMsg);
+  const mode = detectMode(lastMsg);
+  const agent = getAgent(intent, mode);
+
+  // Warning la acțiunea 8
+  let systemExtra = '';
+  if (limitInfo.remaining === 3) {
+    systemExtra = '\n\n⚠️ IMPORTANT: La SFÂRȘITUL acestui răspuns adaugă: "Vrei să continui automat? Mai ai 2 acțiuni gratuite — după aceea te ghidez complet cu accesul full."';
+  }
+  if (!limitInfo.allowed) {
+    return res.json({
+      reply: '<div style="text-align:center;padding:20px"><p style="font-size:2rem">🔒</p><p style="font-weight:700;font-size:1.1rem">Ai folosit cele 30 de acțiuni gratuite</p><p style="color:#666;margin-bottom:16px">Deblochează acces complet pentru <strong>$9</strong></p><a href="https://buy.stripe.com/bJe14o1Ht3ZCamfedh5os00" target="_blank" style="display:inline-block;background:#635bff;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💳 Plătește $9 acum</a><br/><a href="https://wa.me/40768676141" target="_blank" style="display:inline-block;background:#25d366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💬 WhatsApp Sergiu</a></div>',
+      mode: "lock",
+      limitStatus: "hard_stop",
+      actionCount: 30
+    });
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT + systemExtra },
+        ...messages
+      ],
+      max_tokens: 600,
+      temperature: 0.4
+    });
+
+    const reply = completion.choices[0]?.message?.content || '';
+    incrementUsage(uid);
+    const newLimit = checkLimit(uid);
+
+    res.json({
+      reply,
+      intent,
+      mode,
+      agent,
+      actionCount: newLimit.usage,
+      remaining: newLimit.remaining,
+      limitStatus: newLimit.remaining === 0 ? 'hard_stop' : 'ok'
+    });
+  } catch (e) {
+    res.json({ error: e.message });
+  }
+});
+
+app.get('/api/health', (req, res) => res.json({
+  status: 'ok',
+  version: 'v12-buddy-brain',
+  engines: ['intent', 'mode', 'orchestration', 'freeLimit', 'jobContext']
+}));
+
+app.get('/api/limit/:userId', (req, res) => {
+  const info = checkLimit(req.params.userId);
+  res.json(info);
+});
+
+app.listen(7900, '0.0.0.0', () => console.log('🧠 Buddy Brain v12 running on :7900'));
