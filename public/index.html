@@ -375,9 +375,9 @@ body.mode-marketing #send-btn{color:#fff;}
         🟢 Coding &nbsp;🔵 Marketing &nbsp;🔴 Hustle<br>
         💬 Idei &nbsp;🔵 Creator &nbsp;• mesaje ∞
       </div>
-      <a href="https://buy.stripe.com/bJe14o1Ht3ZCamfedh5os00" target="_blank" style="flex-shrink:0;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:900;text-decoration:none;white-space:nowrap;text-align:center;box-shadow:0 2px 12px rgba(245,158,11,0.4)">
+      <button onclick="startCheckout()" style="flex-shrink:0;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:900;border:none;cursor:pointer;white-space:nowrap;text-align:center;box-shadow:0 2px 12px rgba(245,158,11,0.4)">
         🤖 PREMIUM<br><span style="font-size:9px;font-weight:600">Activează acum</span>
-      </a>
+      </button>
     </div>
     <button id="btn-export" onclick="exportChat()" title="Salvează conversația" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 10px;font-size:13px;cursor:pointer;margin-left:6px;transition:all .2s" onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">💾</button>
     <button id="btn-close" onclick="window.close()" title="Închide" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 10px;font-size:13px;cursor:pointer;margin-left:6px;transition:all .2s" onmouseover="this.style.borderColor='#ef4444';this.style.color='#ef4444'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">✕</button>
@@ -448,6 +448,8 @@ let currentMode = 'chat';
 let ctxParam    = null;
 let actionCount = 0;
 let userId = localStorage.getItem('buddy_uid') || 'u_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
+localStorage.setItem('buddy_uid', userId);
+checkPremiumStatus();
 localStorage.setItem('buddy_uid', userId);
 
 // ── Load state
@@ -720,6 +722,50 @@ function closePopup() {
   document.getElementById('qa-overlay').classList.remove('open');
   document.querySelectorAll('.qa-tab').forEach(function(t){t.classList.remove('active');});
 }
+async function startCheckout() {
+  try {
+    const r = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId })
+    });
+    const d = await r.json();
+    if (d.url) window.open(d.url, '_blank');
+    else alert('Eroare: ' + d.error);
+  } catch(e) { alert('Eroare checkout: ' + e.message); }
+}
+
+async function checkPremiumStatus() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('premium') === 'success') {
+      const r = await fetch('/api/premium/' + userId);
+      const d = await r.json();
+      if (d.premium) {
+        actionCount = 0;
+        updateActionUI(0);
+        localStorage.setItem('buddy_premium_' + userId, '1');
+        window.history.replaceState({}, '', '/');
+        showToast('🎉 Buddy Premium activat! Mesaje nelimitate!');
+      }
+    }
+    // Verifica la fiecare load
+    const cached = localStorage.getItem('buddy_premium_' + userId);
+    if (cached === '1') {
+      actionCount = 0;
+      updateActionUI(0);
+    }
+  } catch(e) {}
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#22d3a0;color:#000;padding:12px 24px;border-radius:10px;font-weight:800;z-index:9999;font-size:14px;';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
 function quickSend(text) { inputEl.value = text; sendMessage(); }
 
 // ── Input auto-resize

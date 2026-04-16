@@ -1,4 +1,6 @@
 require('dotenv').config({ path: '/opt/agents-ui/.env' });
+const Stripe = require('stripe');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -9,8 +11,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const USAGE_FILE = '/opt/agents-ui/usage.json';
 let usageMap = (() => { try { return JSON.parse(fs.readFileSync(USAGE_FILE,'utf8')); } catch(e) { return {}; } })();
+
+const PREMIUM_FILE = '/opt/agents-ui/premium.json';
+let premiumUsers = (() => { try { return JSON.parse(fs.readFileSync(PREMIUM_FILE,'utf8')); } catch(e) { return {}; } })();
+const savePremium = () => { try { fs.writeFileSync(PREMIUM_FILE, JSON.stringify(premiumUsers)); } catch(e) {} };
+const isPremium = (uid) => !!premiumUsers[uid];
 const saveUsage = () => { try { fs.writeFileSync(USAGE_FILE, JSON.stringify(usageMap)); } catch(e) {} };
-const checkLimit = (uid) => { const u = usageMap[uid]||0; return { allowed: u<50, remaining: 50-u, usage: u }; };
+const checkLimit = (uid) => { 
+  if (isPremium(uid)) return { allowed: true, remaining: 999, usage: usageMap[uid]||0, premium: true };
+  const u = usageMap[uid]||0; 
+  return { allowed: u<50, remaining: 50-u, usage: u, premium: false }; 
+};
 const incUsage = (uid) => { usageMap[uid] = (usageMap[uid]||0)+1; saveUsage(); };
 
 async function callAI(messages, system) {
@@ -149,6 +160,77 @@ app.post('/api/chat', async (req, res) => {
 
 app.get('/api/health', (req, res) => res.json({ status:'ok', version:'v14-clean', providers:{ anthropic:!!process.env.ANTHROPIC_API_KEY, openai:!!process.env.OPENAI_API_KEY } }));
 app.get('/api/limit/:userId', (req, res) => res.json(checkLimit(req.params.userId)));
+
+// ==========================================
+// STRIPE CHECKOUT
+// ==========================================
+app.post('/api/create-checkout', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ error: 'No userId' });
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+      success_url: 'https://buddy.daeu.online?premium=success&uid=' + userId,
+      cancel_url: 'https://buddy.daeu.online?premium=cancel',
+      metadata: { userId },
+      client_reference_id: userId,
+    });
+    res.json({ url: session.url });
+  } catch(e) {
+    console.error('[Stripe] Checkout error:', e.message);
+    res.json({ error: e.message });
+  }
+});
+
+// ==========================================
+// STRIPE WEBHOOK
+// ==========================================
+app.post('/webhook/stripe', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch(e) {
+    console.error('[Webhook] Signature fail:', e.message);
+    return res.status(400).send('Webhook Error');
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const uid = session.metadata?.userId || session.client_reference_id;
+    if (uid) {
+      premiumUsers[uid] = { 
+        active: true, 
+        customerId: session.customer,
+        subscriptionId: session.subscription,
+        activatedAt: new Date().toISOString()
+      };
+      savePremium();
+      console.log('[Premium] Activated:', uid);
+    }
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object;
+    const uid = Object.keys(premiumUsers).find(k => premiumUsers[k].subscriptionId === sub.id);
+    if (uid) {
+      delete premiumUsers[uid];
+      savePremium();
+      console.log('[Premium] Cancelled:', uid);
+    }
+  }
+
+  res.json({ received: true });
+});
+
+// ==========================================
+// CHECK PREMIUM STATUS
+// ==========================================
+app.get('/api/premium/:userId', (req, res) => {
+  res.json({ premium: isPremium(req.params.userId) });
+});
 
 const PORT = process.env.PORT || 7900;
 app.listen(PORT, () => console.log(`🧠 Buddy Brain v14 running on :${PORT}`));
