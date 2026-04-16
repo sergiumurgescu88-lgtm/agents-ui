@@ -367,7 +367,7 @@ body.mode-marketing #send-btn{color:#fff;}
     </div>
     <div id="action-counter">
       <div id="action-bar"><div id="action-fill" style="width:0%"></div></div>
-      <div id="action-text">0/50</div>
+      <div id="action-text">0/50 gratuit</div>
     </div>
     <button id="btn-export" onclick="exportChat()" title="Salvează conversația" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 10px;font-size:13px;cursor:pointer;margin-left:8px;transition:all .2s" onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">💾</button>
     <button id="btn-close" onclick="window.close()" title="Închide" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 10px;font-size:13px;cursor:pointer;margin-left:6px;transition:all .2s" onmouseover="this.style.borderColor='#ef4444';this.style.color='#ef4444'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">✕</button>
@@ -516,7 +516,7 @@ function updateActionUI(count) {
   const fill = document.getElementById('action-fill');
   fill.style.width = pct + '%';
   fill.style.background = count >= 9 ? 'var(--amber)' : count >= 7 ? 'var(--purple)' : 'var(--accent)';
-  document.getElementById('action-text').textContent = `${count}/50`;
+  document.getElementById('action-text').textContent = `${count}/50 gratuit`;
   saveState();
 }
 
