@@ -16,6 +16,32 @@ const PREMIUM_FILE = '/opt/agents-ui/premium.json';
 let premiumUsers = (() => { try { return JSON.parse(fs.readFileSync(PREMIUM_FILE,'utf8')); } catch(e) { return {}; } })();
 const savePremium = () => { try { fs.writeFileSync(PREMIUM_FILE, JSON.stringify(premiumUsers)); } catch(e) {} };
 const isPremium = (uid) => !!premiumUsers[uid];
+
+// ==========================================
+// REFERRAL SYSTEM
+// ==========================================
+const REFERRAL_FILE = '/opt/agents-ui/referrals.json';
+let referrals = (() => { try { return JSON.parse(fs.readFileSync(REFERRAL_FILE,'utf8')); } catch(e) { return {}; } })();
+const saveReferrals = () => { try { fs.writeFileSync(REFERRAL_FILE, JSON.stringify(referrals, null, 2)); } catch(e) {} };
+
+function getOrCreateRefCode(uid) {
+  if (!referrals[uid]) {
+    referrals[uid] = {
+      code: 'BUDDY' + uid.substr(-6).toUpperCase(),
+      referredUsers: [],
+      totalEarned: 0,
+      pendingPayout: 0,
+      paidOut: 0,
+      createdAt: new Date().toISOString()
+    };
+    saveReferrals();
+  }
+  return referrals[uid];
+}
+
+function getReferralByCode(code) {
+  return Object.entries(referrals).find(([uid, r]) => r.code === code.toUpperCase())?.[0];
+}
 const saveUsage = () => { try { fs.writeFileSync(USAGE_FILE, JSON.stringify(usageMap)); } catch(e) {} };
 const checkLimit = (uid) => { 
   if (isPremium(uid)) return { allowed: true, remaining: 999, usage: usageMap[uid]||0, premium: true };
@@ -197,6 +223,29 @@ app.post('/api/chat', async (req, res) => {
 app.get('/api/health', (req, res) => res.json({ status:'ok', version:'v14-clean', providers:{ anthropic:!!process.env.ANTHROPIC_API_KEY, openai:!!process.env.OPENAI_API_KEY } }));
 app.get('/api/limit/:userId', (req, res) => res.json(checkLimit(req.params.userId)));
 
+app.get('/api/referral/:userId', (req, res) => {
+  const ref = getOrCreateRefCode(req.params.userId);
+  res.json({
+    code: ref.code,
+    link: 'https://buddy.daeu.online?ref=' + ref.code,
+    referredCount: ref.referredUsers.length,
+    totalEarned: ref.totalEarned,
+    pendingPayout: ref.pendingPayout,
+    paidOut: ref.paidOut,
+    commission: '30%'
+  });
+});
+
+app.get('/api/referral/stats/all', (req, res) => {
+  const stats = Object.entries(referrals).map(([uid, r]) => ({
+    uid, code: r.code,
+    referredCount: r.referredUsers.length,
+    totalEarned: r.totalEarned,
+    pendingPayout: r.pendingPayout
+  })).sort((a,b) => b.referredCount - a.referredCount);
+  res.json({ total: stats.length, stats });
+});
+
 // ==========================================
 // STRIPE CHECKOUT
 // ==========================================
@@ -210,7 +259,7 @@ app.post('/api/create-checkout', async (req, res) => {
       line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
       success_url: 'https://buddy.daeu.online?premium=success&uid=' + userId,
       cancel_url: 'https://buddy.daeu.online?premium=cancel',
-      metadata: { userId },
+      metadata: { userId, refCode: req.body.refCode || '' },
       client_reference_id: userId,
     });
     res.json({ url: session.url });
@@ -236,15 +285,31 @@ app.post('/webhook/stripe', express.raw({ type: 'application/json' }), (req, res
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
     const uid = session.metadata?.userId || session.client_reference_id;
+    const refCode = session.metadata?.refCode;
     if (uid) {
       premiumUsers[uid] = { 
         active: true, 
         customerId: session.customer,
         subscriptionId: session.subscription,
-        activatedAt: new Date().toISOString()
+        activatedAt: new Date().toISOString(),
+        refCode: refCode || null
       };
       savePremium();
       console.log('[Premium] Activated:', uid);
+      
+      // Crediteaza referral-ul
+      if (refCode) {
+        const referrerUid = getReferralByCode(refCode);
+        if (referrerUid && referrerUid !== uid) {
+          const ref = referrals[referrerUid];
+          const commission = 9 * 0.30; // $2.70 per luna
+          ref.referredUsers.push({ uid, activatedAt: new Date().toISOString() });
+          ref.totalEarned += commission;
+          ref.pendingPayout += commission;
+          saveReferrals();
+          console.log('[Referral] Commission $' + commission + ' for:', referrerUid);
+        }
+      }
     }
   }
 

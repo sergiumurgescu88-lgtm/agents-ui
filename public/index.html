@@ -266,6 +266,20 @@ body.mode-marketing #buddy-name{letter-spacing:.04em;}
 #qa-popup-btns{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
 #qa-popup-btns .qa{width:100%;text-align:left;padding:9px 12px;font-size:12px;border-radius:10px;white-space:normal;line-height:1.3;}
 #qa-overlay{display:none;position:fixed;inset:0;z-index:998;}
+#ref-modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;}
+#ref-modal.open{display:flex;}
+#ref-box{background:#111;border:1px solid #f59e0b;border-radius:20px;padding:24px;max-width:420px;width:100%;text-align:center;}
+#ref-box h2{font-size:22px;font-weight:900;color:#fbbf24;margin-bottom:4px;}
+#ref-box .ref-sub{font-size:13px;color:#888;margin-bottom:20px;}
+.ref-stat{background:#1a1a1a;border-radius:12px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.ref-stat-label{font-size:12px;color:#666;}
+.ref-stat-val{font-size:18px;font-weight:900;color:#fbbf24;}
+#ref-link-box{background:#0a0a0a;border:1px solid #333;border-radius:10px;padding:10px 14px;font-size:12px;color:#22d3a0;word-break:break-all;margin:16px 0;cursor:pointer;transition:border-color .2s;}
+#ref-link-box:hover{border-color:#22d3a0;}
+.ref-btn{display:block;width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:800;border:none;cursor:pointer;margin-bottom:8px;text-decoration:none;text-align:center;}
+.ref-btn-gold{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;}
+.ref-btn-green{background:#25d366;color:#fff;}
+.ref-btn-close{background:#1a1a1a;color:#888;font-size:13px;}
 #qa-overlay.open{display:block;}
 .qa-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#555;padding:4px 8px 2px;flex-shrink:0;align-self:center;}
 #qa-tabs{display:flex;gap:6px;padding:6px 8px 4px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
@@ -375,6 +389,9 @@ body.mode-marketing #send-btn{color:#fff;}
     <button onclick="startCheckout()" id="btn-premium" style="flex-shrink:0;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:900;border:none;cursor:pointer;white-space:nowrap;text-align:center;box-shadow:0 2px 12px rgba(245,158,11,0.5);line-height:1.3">
       🤖 $9/lună<br><span style="font-size:9px;font-weight:600;opacity:.8">∞ mesaje</span>
     </button>
+    <button onclick="openRefModal()" style="flex-shrink:0;background:rgba(245,158,11,0.1);border:1px solid #f59e0b;color:#fbbf24;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap;margin-left:4px">
+      💰 Invite<br><span style="font-size:8px;opacity:.7">+$2.70</span>
+    </button>
     <button id="btn-export" onclick="exportChat()" title="Salvează" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 8px;font-size:13px;cursor:pointer;margin-left:4px;flex-shrink:0" onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">💾</button>
     <button id="btn-close" onclick="window.close()" title="Închide" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 8px;font-size:13px;cursor:pointer;margin-left:4px;flex-shrink:0" onmouseover="this.style.borderColor='#ef4444';this.style.color='#ef4444'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">✕</button>
   </div>
@@ -408,6 +425,23 @@ body.mode-marketing #send-btn{color:#fff;}
       <button class="qa-tab qa-tab-creator" onclick="togglePopup('creator','🔵 Creator Mode')">🔵 Creator</button>
     </div>
     <!-- POPUP -->
+    <!-- REFERRAL MODAL -->
+    <div id="ref-modal">
+      <div id="ref-box">
+        <div style="font-size:32px;margin-bottom:8px">🤖💰</div>
+        <h2>Câștigă $2.70/lună per invite</h2>
+        <p class="ref-sub">30% comision recurent • Plătit lunar • Nelimitat</p>
+        <div class="ref-stat"><span class="ref-stat-label">👥 Useri invitați</span><span class="ref-stat-val" id="ref-count">0</span></div>
+        <div class="ref-stat"><span class="ref-stat-label">💶 Total câștigat</span><span class="ref-stat-val" id="ref-earned">$0</span></div>
+        <div class="ref-stat"><span class="ref-stat-label">⏳ De primit</span><span class="ref-stat-val" id="ref-pending">$0</span></div>
+        <p style="font-size:11px;color:#666;margin:12px 0 4px">Linkul tău unic de referral:</p>
+        <div id="ref-link-box" onclick="copyRefLink()">Se încarcă...</div>
+        <button class="ref-btn ref-btn-gold" onclick="copyRefLink()">📋 Copiază Linkul</button>
+        <a id="ref-wa-btn" href="#" target="_blank" class="ref-btn ref-btn-green">💬 Trimite pe WhatsApp</a>
+        <button class="ref-btn ref-btn-close" onclick="closeRefModal()">✕ Închide</button>
+        <p style="font-size:10px;color:#555;margin-top:12px">$9/lună × 30% = $2.70 comision per user per lună. La 100 useri = $270/lună pasiv.</p>
+      </div>
+    </div>
     <div id="qa-overlay" onclick="closePopup()"></div>
     <div id="qa-popup">
       <div id="qa-popup-title"><span id="qa-popup-label">Alege</span><span onclick="closePopup()">✕</span></div>
@@ -445,6 +479,8 @@ let ctxParam    = null;
 let actionCount = 0;
 let userId = localStorage.getItem('buddy_uid') || 'u_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
 localStorage.setItem('buddy_uid', userId);
+const urlRef = new URLSearchParams(window.location.search).get('ref');
+if (urlRef) localStorage.setItem('buddy_ref', urlRef);
 checkPremiumStatus();
 localStorage.setItem('buddy_uid', userId);
 
@@ -728,12 +764,38 @@ function closePopup() {
   document.getElementById('qa-overlay').classList.remove('open');
   document.querySelectorAll('.qa-tab').forEach(function(t){t.classList.remove('active');});
 }
+let refCodeGlobal = null;
+
+async function openRefModal() {
+  document.getElementById('ref-modal').classList.add('open');
+  try {
+    const r = await fetch('/api/referral/' + userId);
+    const d = await r.json();
+    refCodeGlobal = d.code;
+    const link = d.link;
+    document.getElementById('ref-link-box').textContent = link;
+    document.getElementById('ref-count').textContent = d.referredCount;
+    document.getElementById('ref-earned').textContent = '$' + d.totalEarned.toFixed(2);
+    document.getElementById('ref-pending').textContent = '$' + d.pendingPayout.toFixed(2);
+    document.getElementById('ref-wa-btn').href = 'https://wa.me/?text=' + encodeURIComponent('🤖 Folosesc Buddy AI — agentul AI personal care răspunde la orice instant. Încearcă 50 mesaje gratuit: ' + link);
+  } catch(e) { console.error(e); }
+}
+
+function closeRefModal() {
+  document.getElementById('ref-modal').classList.remove('open');
+}
+
+function copyRefLink() {
+  const link = document.getElementById('ref-link-box').textContent;
+  navigator.clipboard.writeText(link).then(() => showToast('✅ Link copiat! Trimite-l prietenilor'));
+}
+
 async function startCheckout() {
   try {
     const r = await fetch('/api/create-checkout', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ userId })
+      body: JSON.stringify({ userId, refCode: refCodeGlobal || new URLSearchParams(window.location.search).get('ref') || '' })
     });
     const d = await r.json();
     if (d.url) window.open(d.url, '_blank');

@@ -1,0 +1,10 @@
+{
+  "test_user": {
+    "code": "BUDDYT_USER",
+    "referredUsers": [],
+    "totalEarned": 0,
+    "pendingPayout": 0,
+    "paidOut": 0,
+    "createdAt": "2026-04-16T09:40:57.506Z"
+  }
+}
