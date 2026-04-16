@@ -256,11 +256,29 @@ body.mode-marketing #buddy-name{letter-spacing:.04em;}
 }
 
 /* Quick actions */
-#quick-actions{
-  display:flex;gap:6px;overflow-x:auto;padding:0 0 8px;
-  scrollbar-width:none;-webkit-overflow-scrolling:touch;
-}
+#quick-actions{display:flex;gap:6px;padding:6px 8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
 #quick-actions::-webkit-scrollbar{display:none;}
+#qa-popup{display:none;position:fixed;bottom:130px;left:50%;transform:translateX(-50%);width:min(480px,94vw);background:#111;border:1px solid #333;border-radius:16px;padding:12px;z-index:999;box-shadow:0 -8px 40px rgba(0,0,0,.8);}
+#qa-popup.open{display:block;animation:popIn .18s ease;}
+@keyframes popIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+#qa-popup-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#666;margin-bottom:8px;padding:0 4px;display:flex;justify-content:space-between;align-items:center;}
+#qa-popup-title span{cursor:pointer;font-size:16px;color:#555;}
+#qa-popup-btns{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+#qa-popup-btns .qa{width:100%;text-align:left;padding:9px 12px;font-size:12px;border-radius:10px;white-space:normal;line-height:1.3;}
+#qa-overlay{display:none;position:fixed;inset:0;z-index:998;}
+#qa-overlay.open{display:block;}
+.qa-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#555;padding:4px 8px 2px;flex-shrink:0;align-self:center;}
+#qa-tabs{display:flex;gap:6px;padding:6px 8px 4px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+#qa-tabs::-webkit-scrollbar{display:none;}
+.qa-tab{flex-shrink:0;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;border:1.5px solid #333;background:transparent;color:#888;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.qa-tab.active,.qa-tab:hover{color:#fff;}
+.qa-tab-coding.active,.qa-tab-coding:hover{border-color:#22d3a0;color:#22d3a0;background:rgba(34,211,160,.1);}
+.qa-tab-marketing.active,.qa-tab-marketing:hover{border-color:#f97316;color:#f97316;background:rgba(249,115,22,.1);}
+.qa-tab-sidehustle.active,.qa-tab-sidehustle:hover{border-color:#ff6b6b;color:#ff6b6b;background:rgba(255,107,107,.1);}
+.qa-tab-chat.active,.qa-tab-chat:hover{border-color:#a855f7;color:#a855f7;background:rgba(168,85,247,.1);}
+.qa-cat{display:none;gap:6px;padding:4px 8px 6px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;}
+.qa-cat::-webkit-scrollbar{display:none;}
+.qa-cat.active{display:flex;}
 .qa-coding   { border-color:#22d3a0!important; color:#22d3a0!important; }
 .qa-marketing{ border-color:#f97316!important; color:#f97316!important; }
 .qa-sidehustle{ border-color:#ff6b6b!important; color:#ff6b6b!important; }
@@ -347,7 +365,7 @@ body.mode-marketing #send-btn{color:#fff;}
     </div>
     <div id="action-counter">
       <div id="action-bar"><div id="action-fill" style="width:0%"></div></div>
-      <div id="action-text">0/30</div>
+      <div id="action-text">0/50</div>
     </div>
     <button id="btn-export" onclick="exportChat()" title="Salvează conversația" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 10px;font-size:13px;cursor:pointer;margin-left:8px;transition:all .2s" onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">💾</button>
     <button id="btn-close" onclick="window.close()" title="Închide" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 10px;font-size:13px;cursor:pointer;margin-left:6px;transition:all .2s" onmouseover="this.style.borderColor='#ef4444';this.style.color='#ef4444'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">✕</button>
@@ -375,12 +393,16 @@ body.mode-marketing #send-btn{color:#fff;}
   <!-- INPUT -->
   <div id="input-area">
     <div id="quick-actions">
-      <button class="qa qa-chat" onclick="quickSend('Ce meserie am și cum o transform în business cu AI?')">💼 Meseria mea</button>
-      <button class="qa qa-coding" onclick="quickSend('Cum instalez OpenClaw pe VPS?')">🤖 Instalează Agent</button>
-      <button class="qa qa-marketing" onclick="quickSend('Ajutor cu marketing, prompts și tooluri AI')">🟠 Marketing</button>
-      <button class="qa qa-coding" onclick="quickSend('Vreau să automatizez un proces cu AI')">⚡ Automatizez</button>
-      <button class="qa qa-chat" onclick="quickSend('Cum construiesc un funnel de vânzări cu AI?')">💰 Funnel $</button>
-      <button class="qa qa-sidehustle" onclick="quickSend('Vreau să încep un side hustle din top 100 cu AI')">🔴 Top 100 Side Hustle</button>
+      <button class="qa-tab qa-tab-coding" onclick="togglePopup('coding','🟢 Coding &amp; VPS')">🟢 Coding</button>
+      <button class="qa-tab qa-tab-marketing" onclick="togglePopup('marketing','🔵 Marketing')">🔵 Marketing</button>
+      <button class="qa-tab qa-tab-sidehustle" onclick="togglePopup('sidehustle','🔴 Side Hustle')">🔴 Hustle</button>
+      <button class="qa-tab qa-tab-chat" onclick="togglePopup('chat','💬 Brainstorming')">💬 Idei</button>
+    </div>
+    <!-- POPUP -->
+    <div id="qa-overlay" onclick="closePopup()"></div>
+    <div id="qa-popup">
+      <div id="qa-popup-title"><span id="qa-popup-label">Alege</span><span onclick="closePopup()">✕</span></div>
+      <div id="qa-popup-btns"></div>
     </div>
     <div id="input-row">
       <textarea id="input" placeholder="Scrie un mesaj..." rows="1"></textarea>
@@ -487,11 +509,11 @@ function switchMode(newMode) {
 // ── Action counter UI
 function updateActionUI(count) {
   actionCount = count;
-  const pct = Math.min((count / 30) * 100, 100);
+  const pct = Math.min((count / 50) * 100, 100);
   const fill = document.getElementById('action-fill');
   fill.style.width = pct + '%';
   fill.style.background = count >= 9 ? 'var(--amber)' : count >= 7 ? 'var(--purple)' : 'var(--accent)';
-  document.getElementById('action-text').textContent = `${count}/30`;
+  document.getElementById('action-text').textContent = `${count}/50`;
   saveState();
 }
 
@@ -612,6 +634,57 @@ async function sendMessage() {
   }
 }
 
+const QA_DATA = {
+  coding: { color:'#22d3a0', btns:[
+    ['🤖 Instalează Agent AI','Vreau sa instalez un agent AI'],
+    ['🖥️ Setup VPS Ubuntu','Configureaza-mi VPS-ul Ubuntu de la zero'],
+    ['⚡ Automatizez cu AI','Vreau sa automatizez un proces cu AI pe VPS'],
+    ['🐛 Debug Eroare Server','Am o eroare pe server, ajuta-ma sa o rezolv'],
+    ['🔒 Nginx + SSL','Configureaza nginx si SSL pentru domeniul meu']
+  ]},
+  marketing: { color:'#f97316', btns:[
+    ['📊 Strategie Marketing','Fa-mi o strategie completa de marketing cu AI'],
+    ['✍️ Prompts Social Media','Scrie-mi 10 prompturi AI gata de folosit pentru social media'],
+    ['💰 Funnel Vanzari','Construieste-mi un funnel de vanzari complet cu AI'],
+    ['🔍 SEO cu AI','Fa-mi o strategie SEO cu AI pentru site-ul meu'],
+    ['📧 Email Sequence','Scrie-mi o secventa de 7 emailuri de vanzare']
+  ]},
+  sidehustle: { color:'#ff6b6b', btns:[
+    ['🔴 Top 100 Hustle','Vreau sa incep un side hustle din top 100 cu AI'],
+    ['💼 Meseria spre Business','Ce meserie am si cum o transform in business cu AI'],
+    ['💶 1000 euro pe luna','Cum fac 1000 euro pe luna cu AI in 30 de zile'],
+    ['🚀 Micro SaaS','Top 5 idei de SaaS micro pe care le pot lansa cu AI'],
+    ['👥 Monetizez Comunitate','Cum monetizez o comunitate online cu AI']
+  ]},
+  chat: { color:'#a855f7', btns:[
+    ['🧠 Business RO 2025','Fa-mi un brainstorming de 10 idei de business pentru Romania'],
+    ['🛒 Produse Etsy','Ce produse digitale pot vinde pe Etsy cu AI'],
+    ['⭐ Brand Personal','Cum construiesc un brand personal cu AI in 90 de zile'],
+    ['🤝 AI Agents Stack','Ce agenti AI pot folosi sa lucrez mai putin si castig mai mult'],
+    ['📅 Launch 30 zile','Fa-mi un plan sa lansez un produs digital in 30 de zile']
+  ]}
+};
+let activePopupCat = null;
+function togglePopup(cat, title) {
+  if (activePopupCat === cat) { closePopup(); return; }
+  activePopupCat = cat;
+  const data = QA_DATA[cat];
+  document.getElementById('qa-popup-label').textContent = title;
+  const btns = document.getElementById('qa-popup-btns');
+  btns.innerHTML = data.btns.map(function(b) {
+    return '<button class="qa" style="border-color:'+data.color+';color:'+data.color+'" onclick="quickSend(this.dataset.msg)" data-msg="'+b[1]+'">'+b[0]+'</button>';
+  }).join('');
+  document.getElementById('qa-popup').classList.add('open');
+  document.getElementById('qa-overlay').classList.add('open');
+  document.querySelectorAll('.qa-tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelector('.qa-tab-'+cat).classList.add('active');
+}
+function closePopup() {
+  activePopupCat = null;
+  document.getElementById('qa-popup').classList.remove('open');
+  document.getElementById('qa-overlay').classList.remove('open');
+  document.querySelectorAll('.qa-tab').forEach(function(t){t.classList.remove('active');});
+}
 function quickSend(text) { inputEl.value = text; sendMessage(); }
 
 // ── Input auto-resize
@@ -635,7 +708,7 @@ if (window.visualViewport) {
 loadState();
 initCtx();
 if (actionCount > 0) updateActionUI(actionCount);
-if (actionCount >= 30) {
+if (actionCount >= 50) {
   switchMode('lock');
   inputEl.disabled = true;
   document.getElementById('send-btn').disabled = true;

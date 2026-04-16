@@ -1,395 +1,167 @@
-require('dotenv').config();
+require('dotenv').config({ path: '/opt/agents-ui/.env' });
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
+const axios = require('axios');
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const fs = require('fs');
 const USAGE_FILE = '/opt/agents-ui/usage.json';
+let usageMap = (() => { try { return JSON.parse(fs.readFileSync(USAGE_FILE,'utf8')); } catch(e) { return {}; } })();
+const saveUsage = () => { try { fs.writeFileSync(USAGE_FILE, JSON.stringify(usageMap)); } catch(e) {} };
+const checkLimit = (uid) => { const u = usageMap[uid]||0; return { allowed: u<50, remaining: 50-u, usage: u }; };
+const incUsage = (uid) => { usageMap[uid] = (usageMap[uid]||0)+1; saveUsage(); };
 
-function loadUsage() {
-  try { return JSON.parse(fs.readFileSync(USAGE_FILE, 'utf8')); } catch(e) { return {}; }
-}
-function saveUsage(map) {
+async function callAI(messages, system) {
+  const msgs = messages.map(m => ({ role: m.role==='model'?'assistant':m.role, content: String(m.content||m.text||'') })).filter(m=>m.content);
+  
+  // CLAUDE PRIMARY
   try {
-    fs.writeFileSync(USAGE_FILE, JSON.stringify(map));
-    console.log("[save] OK users:", Object.keys(map).length);
-  } catch(e) {
-    console.error("[save] FAIL:", e.message);
-  }
+    console.log('[AI] Trying Claude haiku...');
+    const r = await axios.post('https://api.anthropic.com/v1/messages',
+      { model:'claude-haiku-4-5-20251001', max_tokens:2000, system: system||undefined, messages: msgs },
+      { headers:{ 'Content-Type':'application/json', 'x-api-key':process.env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' }, timeout:30000 }
+    );
+    const reply = r.data?.content?.[0]?.text;
+    if (reply) { console.log('[AI] Claude OK'); return reply; }
+  } catch(e) { console.error('[AI] Claude failed:', e.response?.data?.error?.message || e.message); }
+
+  // OPENAI FALLBACK
+  try {
+    console.log('[AI] Trying OpenAI gpt-4o-mini...');
+    const allMsgs = system ? [{role:'system',content:system},...msgs] : msgs;
+    const r = await axios.post('https://api.openai.com/v1/chat/completions',
+      { model:'gpt-4o-mini', messages:allMsgs, max_tokens:2000 },
+      { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
+    );
+    const reply = r.data?.choices?.[0]?.message?.content;
+    if (reply) { console.log('[AI] OpenAI OK'); return reply; }
+  } catch(e) { console.error('[AI] OpenAI failed:', e.response?.data?.error?.message || e.message); }
+
+  return '⚠️ Toate modelele sunt indisponibile momentan.';
 }
 
-let usageMap = loadUsage();
+const SYSTEM_PROMPT = `Ești BUDDY — creierul DaRomânia. Vibe Coding AI #1.
 
-function checkLimit(userId) {
-  const usage = usageMap[userId] || 0;
-  return { allowed: usage < 30, remaining: 30 - usage, usage };
-}
-function incrementUsage(userId) {
-  usageMap[userId] = (usageMap[userId] || 0) + 1;
-  saveUsage(usageMap);
-}
+Tu ești CREIERUL. Userul este MÂINILE.
+VIBE CODING = tu gândești și dai comenzi exacte, el face DOAR copy-paste în CMD sau SSH.
+Userul NU scrie și NU modifică NICIODATĂ nimic manual.
 
-function detectIntent(msg) {
-  const m = msg.toLowerCase();
-  if (m.includes('idee') || m.includes('ce business') || m.includes('nu stiu') || m.includes('help') || m.includes('ajut')) return 'EXPLORATOR';
-  if (m.includes('valid') || m.includes('merge') || m.includes('functioneaza') || m.includes('verific')) return 'VALIDATOR';
-  if (m.includes('fa') || m.includes('genereaza') || m.includes('creeaza') || m.includes('instaleaza') || m.includes('vreau sa') || m.includes('hai') || m.includes('start')) return 'EXECUTOR';
-  return 'GENERAL';
-}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 CÂND USERUL VREA SĂ INSTALEZE UN AGENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Urmezi EXACT acești pași în ordine. Nu sari niciun pas.
 
-function detectMode(msg) {
-  const m = msg.toLowerCase();
-  if (m.includes('openclaw') || m.includes('instaleaza') || m.includes('vps') || m.includes('terminal') || m.includes('cmd') || m.includes('server') || m.includes('api') || m.includes('cod') || m.includes('agent') || m.includes('hermes') || m.includes('paperclip') || m.includes('nemoclaw')) return 'coding';
-  if (m.includes('side hustle') || m.includes('etsy') || m.includes('tiktok') || m.includes('faceless') || m.includes('newsletter') || m.includes('dropshipping') || m.includes('hustle') || m.includes('micro-saas') || m.includes('100 ')) return 'sidehustle';
-  if (m.includes('business') || m.includes('companie') || m.includes('startup') || m.includes('scale') || m.includes('strategie') || m.includes('mrr') || m.includes('venit pasiv')) return 'business';
-  if (m.includes('marketing') || m.includes('vinde') || m.includes('oferta') || m.includes('funnel') || m.includes('continut') || m.includes('promo') || m.includes('reclama') || m.includes('tool') || m.includes('prompt')) return 'marketing';
-  return 'chat';
-}
+PASUL 1 — Întrebi CE AGENT (o singură întrebare clară):
 
-const JOB_DATABASE = {
-  'contabil': { risk: 72, pivots: ['consultanță fiscală', 'newsletter taxe', 'CFO fractional', 'curs contabilitate online'] },
-  'avocat': { risk: 41, pivots: ['consultanță juridică online', 'template-uri contracte', 'curs drept antreprenori'] },
-  'medic': { risk: 45, pivots: ['telemedicină', 'health content creator', 'coaching sănătate'] },
-  'profesor': { risk: 78, pivots: ['cursuri online', 'tutoriat AI', 'content educațional', 'coaching carieră'] },
-  'inginer': { risk: 55, pivots: ['consultanță tehnică', 'SaaS B2B', 'automatizări business', 'curs tehnic online'] },
-  'programator': { risk: 35, pivots: ['SaaS propriu', 'agenție AI', 'vibe coding agency', 'tool-uri AI'] },
-  'designer': { risk: 48, pivots: ['brand identity AI', 'template-uri Canva', 'UI/UX consulting', 'design agenție'] },
-  'marketer': { risk: 65, pivots: ['agenție marketing AI', 'consultanță ads', 'newsletter paid', 'growth hacking'] },
-  'jurnalist': { risk: 82, pivots: ['newsletter paid', 'podcast', 'content creator', 'copywriting AI'] },
-  'economist': { risk: 70, pivots: ['analiză financiară', 'rapoarte piață', 'consultanță investiții'] },
-  'HR': { risk: 68, pivots: ['consultanță recrutare', 'curs interviuri', 'employer branding'] },
-  'vanzator': { risk: 60, pivots: ['sales coaching', 'funnel automation', 'consultanță CRM'] },
-  'antreprenor': { risk: 30, pivots: ['scale cu AI', 'automatizare operații', 'agenție AI', 'Paperclip orchestration'] },
-  'freelancer': { risk: 50, pivots: ['productizare servicii', 'retainer clients', 'tool SaaS', 'agenție AI solo'] },
-  'student': { risk: 40, pivots: ['tutoriat online', 'side hustle AI', 'startup student', 'content creator nișat'] },
-};
+"🤖 Ce agent vrei să instalezi?
 
-function getJobContext(job) {
-  if (!job) return null;
-  const key = Object.keys(JOB_DATABASE).find(k => job.toLowerCase().includes(k));
-  return key ? { job: key, ...JOB_DATABASE[key] } : null;
-}
+1️⃣ OpenClaw — agentul care face orice (email, cod, browser, WhatsApp)
+2️⃣ NemoClaw — OpenClaw în sandbox ultra-securizat (recomandat pentru producție)
+3️⃣ HermesClaw — agentul cu memorie persistentă și 74 de skills
+4️⃣ Paperclip — orchestrează mai mulți agenți ca o companie AI
+5️⃣ Vibe Buddy — asistentul AI de coding (cel cu care vorbești acum)
 
-function getAgent(intent, mode) {
-  if (mode === 'CODING') return 'OpenClaw';
-  if (mode === 'MARKETING') return 'Paperclip';
-  if (intent === 'EXPLORATOR') return 'Hermes';
-  if (intent === 'VALIDATOR') return 'Paperclip';
-  if (intent === 'EXECUTOR') return 'OpenClaw';
-  return 'Hermes';
-}
+Scrie numărul: 1, 2, 3, 4 sau 5"
 
-// ==========================================
-// AI CLIENTS SETUP
-// ==========================================
-const OpenAI = require('openai');
+PASUL 2 — Când primești numărul, întrebi UNDE:
 
-// xAI (Grok) — PRIMARY
-const xai = new OpenAI({
-  apiKey: process.env.XAI_API_KEY || '',
-  baseURL: 'https://api.x.ai/v1'
-});
+"📍 Unde îl instalezi?
 
-// OpenAI — FALLBACK 1
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
+1️⃣ Pe VPS / server (Linux Ubuntu) — recomandat
+2️⃣ Pe calculatorul meu local (Windows / Mac / Linux)
 
-// Anthropic — FALLBACK 2
-let anthropic = null;
-try {
-  const Anthropic = require('@anthropic-ai/sdk');
-  anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
-} catch(e) {
-  console.log('[init] Anthropic SDK not installed — installing...');
-}
+Scrie 1 sau 2"
 
-// ==========================================
-// FALLBACK CHAT FUNCTION
-// ==========================================
-async function callAI(messages, systemPrompt) {
-  // PRIMARY: xAI Grok
-  if (process.env.XAI_API_KEY) {
-    try {
-      console.log('[AI] Trying xAI grok-3-fast...');
-      const res = await xai.chat.completions.create({
-        model: 'grok-3-fast',
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        max_tokens: 600,
-        temperature: 0.4
-      });
-      console.log('[AI] xAI OK');
-      return res.choices[0]?.message?.content || '';
-    } catch(e) {
-      console.warn('[AI] xAI FAIL:', e.message);
-    }
-  }
+PASUL 3 — Când primești răspunsul, mai pui 2 întrebări SIMPLE:
 
-  // FALLBACK 1: OpenAI GPT-4o
-  if (process.env.OPENAI_API_KEY) {
-    try {
-      console.log('[AI] Trying OpenAI gpt-4o...');
-      const res = await openai.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [{ role: 'system', content: systemPrompt }, ...messages],
-        max_tokens: 600,
-        temperature: 0.4
-      });
-      console.log('[AI] OpenAI OK');
-      return res.choices[0]?.message?.content || '';
-    } catch(e) {
-      console.warn('[AI] OpenAI FAIL:', e.message);
-    }
-  }
+"⚡ Două întrebări rapide:
 
-  // FALLBACK 2: Anthropic Claude
-  if (anthropic && process.env.ANTHROPIC_API_KEY) {
-    try {
-      console.log('[AI] Trying Anthropic claude-3-5-haiku...');
-      const res = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
-        system: systemPrompt,
-        messages: messages
-      });
-      console.log('[AI] Anthropic OK');
-      return res.content[0]?.text || '';
-    } catch(e) {
-      console.warn('[AI] Anthropic FAIL:', e.message);
-    }
-  }
+1️⃣ Ai deja Node.js instalat?
+   DA sau NU
 
-  throw new Error('Toți providerii AI au eșuat');
-}
+2️⃣ Ai o cheie API de la Anthropic, OpenAI sau xAI?
+   DA (am cheia) sau NU (nu am)"
 
-// ==========================================
-// SYSTEM PROMPT
-// ==========================================
-const SYSTEM_PROMPT = `Ești BUDDY — AI-ul de vibe coding al ecosistemului DaRomânia.
+PASUL 4 — Verifici mediul. Dai această comandă de verificare:
 
-REGULA #1 — VIBE CODING:
-Tu dai comenzi exacte copy-paste. Userul le rulează în CMD/SSH și trimite outputul înapoi.
-Tu ești creierul. El e mâinile. ATÂT.
-
-REGULA #2 — COMENZI:
-- Maxim 2-3 comenzi per mesaj
-- Fiecare comandă în bloc SEPARAT
-- Aștepți outputul înainte să continui
-- NICIODATĂ mai mult de 3 comenzi deodată
-
-FORMAT CORECT:
 \`\`\`bash
-comanda exacta
+node -v 2>/dev/null && echo "✅ Node OK" || echo "❌ Node lipsă" && npm -v 2>/dev/null && echo "✅ NPM OK" || echo "❌ NPM lipsă" && pm2 -v 2>/dev/null && echo "✅ PM2 OK" || echo "❌ PM2 lipsă" && python3 --version 2>/dev/null && echo "✅ Python OK" || echo "❌ Python lipsă" && free -h | grep Mem && df -h / | tail -1
 \`\`\`
+✅ Ce face: verifică tot ce avem instalat și spațiul disponibil.
 
-REGULA #3 — NU pune întrebări inutile!
-Dacă userul zice "instalez OpenClaw pe VPS" → DAI DIRECT prima comandă, nu întreba OS-ul.
-Presupui Ubuntu/Linux pentru VPS și dai comenzile.
-Dacă apar erori → atunci adaptezi.
+PASUL 5 — După ce primești outputul, spui:
+"✅ Perfect! Am toate informațiile. Știu exact ce ai și ce îți lipsește.
+Acum instalez [AGENT] pas cu pas. Tu faci doar copy-paste. Gata? 🚀"
 
-REGULA #4 — CODING MODE = VERDE
-Când dai comenzi de instalare/cod → rămâi în modul CODING.
-Nu ieși din coding mode până nu termini instalarea.
-Returnează întotdeauna mode: "coding" când dai comenzi bash.
+Și abia DUPĂ aceasta începi instalarea.
 
-REGULA #5 — FLOW RAPID:
-User: "instalez X pe VPS" → Tu: prima comandă bash + aștepți output
-User: trimite output → Tu: comanda următoare
-User: trimite output → Tu: comanda următoare
-→ Agent instalat ✅
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🟢 CODING & VPS — REGULI GENERALE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Maxim 3 comenzi per mesaj, fiecare în bloc bash SEPARAT
+- Aștepți outputul ÎNAINTE să continui
+- Fișiere întregi: folosești python3 script sau cat heredoc, NICIODATĂ sed pe linii multiple
+- Sub fiecare bloc: 1 propoziție scurtă ce face
+- Limbaj SIMPLU — să înțeleagă și un om de 60 de ani și un copil de 15 ani
 
-LIMBĂ: Română mereu.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔵 MARKETING & CONTENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Faci IMEDIAT analiza. Dai strategie, prompts gata de copy-paste, tools cu prețuri.
+NICIODATĂ "nu e domeniul meu".
 
-=== INSTALARE OPENCLAW ===
-Prima comandă dată mereu pentru VPS:
-\`\`\`bash
-node --version && git --version
-\`\`\`
-Dacă Node < 22:
-\`\`\`bash
-curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt install -y nodejs
-\`\`\`
-Instalare:
-\`\`\`bash
-npm install -g openclaw
-\`\`\`
-\`\`\`bash
-openclaw onboard
-\`\`\`
-Verificare:
-\`\`\`bash
-openclaw gateway status
-\`\`\`
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔴 SIDE HUSTLE & BUSINESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Idei cu: €/lună estimat, timp până la primul €, pași exacți ziua 1.
 
-=== INSTALARE PAPERCLIP ===
-\`\`\`bash
-npx paperclipai onboard --yes
-\`\`\`
-
-=== INSTALARE NEMOCLAW ===
-Verifică RAM mai întâi:
-\`\`\`bash
-free -h
-\`\`\`
-Dacă < 8GB adaugă swap:
-\`\`\`bash
-fallocate -l 8G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-\`\`\`
-Instalare:
-\`\`\`bash
-curl -fsSL https://www.nvidia.com/nemoclaw.sh | bash
-\`\`\`
-
-=== INSTALARE HERMES ===
-IMPORTANT: Windows nativ NU merge! Folosești WSL2.
-\`\`\`bash
-curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
-\`\`\`
-\`\`\`bash
-source ~/.bashrc && hermes doctor
-\`\`\`
-\`\`\`bash
-hermes model
-\`\`\`
-
-=== DEBUGGING ===
-502 Bad Gateway NemoClaw:
-\`\`\`bash
-openshell forward stop 18789 SANDBOX 2>/dev/null && openshell forward start 18789 SANDBOX --background
-\`\`\`
-Port ocupat:
-\`\`\`bash
-fuser -k PORT/tcp
-\`\`\`
-Serviciu căzut:
-\`\`\`bash
-journalctl -u SERVICIU -n 20 --no-pager
-\`\`\`
-
-=== SIDE HUSTLE MODE ===
-Când userul vrea un side hustle → explici pașii concreți:
-1. Ce tool/platformă folosești
-2. Cum setup-ezi (comenzi sau link-uri exacte)
-3. Cum monetizezi
-4. Cât poți câștiga realist
-
-=== MARKETING MODE ===
-Când userul vrea marketing → dai:
-1. Prompt specialist gata de folosit
-2. Tool recomandat
-3. Flow de implementare concret
-
-=== FREE LIMIT ===
-30 acțiuni gratuite.
-La acțiunea 8: "Mergi bine! Ai folosit 8 acțiuni gratuite din 30. Continuă — mai ai 22 rămase."
-La acțiunea 30 HARD STOP cu link Stripe.
-
-REGULI FINALE:
-✅ DAI COMENZI DIRECT — nu întreba inutile
-✅ Maxim 2-3 comenzi per mesaj
-✅ Aștepți outputul
-✅ Rămâi în CODING mode când dai comenzi bash
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 REGULI GLOBALE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Română întotdeauna
+✅ Direct, clar, fără jargon tehnic inutil
+✅ La finalul fiecărui răspuns: 1-2 întrebări scurte pentru optimizare
 ✅ Celebrezi fiecare pas reușit cu emoji
-`;
+✅ Codul e ÎNTOTDEAUNA complet, gata de rulat, zero modificări manuale`;
 
-// ==========================================
-// API ENDPOINTS
-// ==========================================
 app.post('/api/chat', async (req, res) => {
   const { messages, userId } = req.body;
-  if (!messages || !messages.length) return res.json({ success: false, error: 'No messages' });
-
+  if (!messages || !messages.length) return res.json({ success:false, error:'No messages' });
+  
   const uid = userId || 'anonymous';
-  const lastMsg = messages[messages.length - 1]?.content || '';
-  const lower = String(lastMsg).toLowerCase();
-
-  if (
-    lower.includes('landing page') ||
-    lower.includes('restaurant') ||
-    lower.includes('site') ||
-    lower.includes('website')
-  ) {
-    try {
-      const axios = require('axios');
-
-      const pageResp = await axios.post('http://127.0.0.1:8091/create-page', {
-        page_name: 'BusinessLandingPage',
-        title: 'Restaurant Italian Premium',
-        subtitle: lastMsg
-      });
-
-      return res.json({
-        success: true,
-        reply: '🚀 Landing page creată automat: ' + pageResp.data.file
-      });
-    } catch (e) {
-      return res.json({
-        success: false,
-        error: 'builder failed'
-      });
-    }
-  }
-
-  if (!messages || !messages.length) return res.json({ success: false, error: 'No messages' });
-
   const limitInfo = checkLimit(uid);
-  const intent = detectIntent(lastMsg);
-  const mode = detectMode(lastMsg);
-  const agent = getAgent(intent, mode);
-  const jobContext = getJobContext(lastMsg);
-
-  let systemExtra = '';
-  if (limitInfo.remaining === 22) {
-    systemExtra = '\n\n⚠️ IMPORTANT: La SFÂRȘITUL acestui răspuns adaugă: "Mergi bine! Ai folosit 8 acțiuni gratuite din 30. Continuă — mai ai 22 rămase."';
-  }
-
+  
   if (!limitInfo.allowed) {
     return res.json({
-      success: true,
-      reply: '<div style="text-align:center;padding:20px"><p style="font-size:2rem">🔒</p><p style="font-weight:700;font-size:1.1rem">Ai folosit cele 30 de acțiuni gratuite</p><p style="color:#678;margin-bottom:16px">Deblochează acces complet pentru <strong>$9</strong></p><a href="https://buy.stripe.com/bJe14o1Ht3ZCamfedh5os00" target="_blank" style="display:inline-block;background:#635bff;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💳 Plătește $9 acum</a><br/><a href="https://wa.me/40768676141" target="_blank" style="display:inline-block;background:#25d366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💬 WhatsApp Sergiu</a></div>',
-      text: '',
-      mode: "lock",
-      limitStatus: "hard_stop",
-      actionCount: 30
+      success:true,
+      reply:'<div style="text-align:center;padding:20px"><p style="font-size:2rem">🔒</p><p style="font-weight:700;font-size:1.1rem">Ai folosit cele 50 de acțiuni gratuite</p><p style="color:#678;margin-bottom:16px">Deblochează acces complet pentru <strong>$9</strong></p><a href="https://buy.stripe.com/bJe14o1Ht3ZCamfedh5os00" target="_blank" style="display:inline-block;background:#635bff;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💳 Plătește $9 acum</a><br/><a href="https://wa.me/40768676141" target="_blank" style="display:inline-block;background:#25d366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💬 WhatsApp Sergiu</a></div>',
+      text:'', mode:'lock', limitStatus:'hard_stop', actionCount:50
     });
   }
 
   try {
-    const reply = await callAI(messages, SYSTEM_PROMPT + systemExtra);
-    incrementUsage(uid);
+    const lastMsg = messages[messages.length-1]?.content || '';
+    const lower = lastMsg.toLowerCase();
+    let mode = 'chat', agent = 'Buddy', intent = 'GENERAL';
+    if (/error|fix|debug|server|vps|nginx|pm2|deploy|docker|node|bash|terminal|cod|instal/i.test(lower)) { mode='coding'; agent='OpenClaw'; intent='EXECUTOR'; }
+    else if (/marketing|content|prompts?|copywriting|social media|funnel|email|seo|ads/i.test(lower)) { mode='marketing'; agent='Paperclip'; intent='MARKETING'; }
+    else if (/side.?hustle|hustle|pasiv|venit|income|top 100|bani|câștig/i.test(lower)) { mode='sidehustle'; agent='Hermes'; intent='EXPLORATOR'; }
+    else if (/business|automatiz|ai agent|openclaw|nemo|hermes|paperclip|saas|startup/i.test(lower)) { mode='business'; agent='Paperclip'; intent='VALIDATOR'; }
+
+    const reply = await callAI(messages, SYSTEM_PROMPT);
+    incUsage(uid);
     const newLimit = checkLimit(uid);
-
-    res.json({
-      success: true,
-      reply,
-      text: reply,
-      intent,
-      mode,
-      agent,
-      jobContext,
-      actionCount: newLimit.usage,
-      remaining: newLimit.remaining,
-      limitStatus: newLimit.remaining === 0 ? 'hard_stop' : 'ok'
-    });
+    res.json({ success:true, reply, text:reply, intent, mode, agent, jobContext:null, actionCount:newLimit.usage, remaining:newLimit.remaining, limitStatus:'ok' });
   } catch(e) {
-    console.error('[chat] Error:', e.message);
-    res.json({ success: false, error: e.message });
+    console.error('[CHAT] Error:', e.message);
+    res.json({ success:false, error: e.message });
   }
 });
 
-app.get('/api/health', (req, res) => res.json({
-  status: 'ok',
-  version: 'v13-fallback-chain',
-  providers: {
-    xai: !!process.env.XAI_API_KEY,
-    openai: !!process.env.OPENAI_API_KEY,
-    anthropic: !!process.env.ANTHROPIC_API_KEY
-  }
-}));
+app.get('/api/health', (req, res) => res.json({ status:'ok', version:'v14-clean', providers:{ anthropic:!!process.env.ANTHROPIC_API_KEY, openai:!!process.env.OPENAI_API_KEY } }));
+app.get('/api/limit/:userId', (req, res) => res.json(checkLimit(req.params.userId)));
 
-app.get('/api/limit/:userId', (req, res) => {
-  const info = checkLimit(req.params.userId);
-  res.json(info);
-});
-
-app.listen(7900, '0.0.0.0', () => console.log('🧠 Buddy Brain v13 fallback-chain running on :7900'));
+const PORT = process.env.PORT || 7900;
+app.listen(PORT, () => console.log(`🧠 Buddy Brain v14 running on :${PORT}`));
