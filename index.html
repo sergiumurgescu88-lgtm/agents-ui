@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeBuddy — AI care construiește cu tine, live</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #030508;
+  --bg2: #070b10;
+  --green: #00ff87;
+  --cyan: #00d4ff;
+  --amber: #ffb800;
+  --red: #ff4757;
+  --purple: #a855f7;
+  --border: rgba(255,255,255,0.07);
+  --text: #e8edf2;
+  --muted: #6b7a8d;
+  --card: rgba(255,255,255,0.03);
+  --font-mono: 'Space Mono', monospace;
+  --font-display: 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  cursor: default;
+}
+
+/* GRID BACKGROUND */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(rgba(0,255,135,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,135,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* NAV */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 40px;
+  background: rgba(3,5,8,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--green);
+  letter-spacing: -0.5px;
+}
+.nav-logo span { color: var(--text); }
+.nav-links { display:flex; gap:32px; align-items:center; }
+.nav-links a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.03em;
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--text); }
+.nav-cta {
+  display: flex; gap: 10px;
+}
+.btn-wa {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 16px;
+  background: rgba(37,211,102,0.1);
+  border: 1px solid rgba(37,211,102,0.3);
+  border-radius: 8px;
+  color: #25d366;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all .2s;
+  white-space:nowrap;
+}
+.btn-wa:hover { background: rgba(37,211,102,0.18); border-color: #25d366; }
+.btn-primary {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 20px;
+  background: var(--green);
+  border: none;
+  border-radius: 8px;
+  color: #030508;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .2s;
+  white-space:nowrap;
+  font-family: var(--font-body);
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 30px rgba(0,255,135,0.3); }
+
+/* HERO */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 40px 80px;
+  text-align: center;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* ANIMATED ORBS */
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  animation: float 8s ease-in-out infinite;
+  pointer-events: none;
+}
+.orb1 { width:500px; height:500px; background:rgba(0,255,135,0.07); top:-100px; left:-150px; animation-delay:0s; }
+.orb2 { width:400px; height:400px; background:rgba(0,212,255,0.06); top:100px; right:-100px; animation-delay:-3s; }
+.orb3 { width:300px; height:300px; background:rgba(168,85,247,0.05); bottom:0; left:30%; animation-delay:-5s; }
+
+@keyframes float {
+  0%,100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-30px) scale(1.05); }
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: rgba(0,255,135,0.08);
+  border: 1px solid rgba(0,255,135,0.2);
+  border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--green);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 32px;
+  animation: fadeDown 0.6s ease both;
+}
+.badge-dot {
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%,100%{ opacity:1; transform:scale(1); }
+  50%{ opacity:0.5; transform:scale(0.7); }
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(36px, 5.5vw, 68px);
+  line-height: 1.1;
+  letter-spacing: -1px;
+  margin-bottom: 8px;
+  animation: fadeDown 0.6s 0.1s ease both;
+}
+.hero h1 .line1 { display:block; color: var(--text); }
+.hero h1 .line2 {
+  display: block;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: clamp(16px, 2.5vw, 22px);
+  color: var(--muted);
+  max-width: 680px;
+  line-height: 1.6;
+  margin: 28px auto 16px;
+  font-weight: 300;
+  animation: fadeDown 0.6s 0.2s ease both;
+}
+.hero-sub strong { color: var(--text); font-weight: 600; }
+
+/* TYPING TERMINAL */
+.terminal-line {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--green);
+  margin-bottom: 40px;
+  animation: fadeDown 0.6s 0.3s ease both;
+  min-height: 20px;
+}
+.terminal-line::before { content: '> '; opacity: 0.5; }
+.cursor {
+  display: inline-block;
+  width: 8px; height: 14px;
+  background: var(--green);
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 60px;
+  animation: fadeDown 0.6s 0.4s ease both;
+}
+.btn-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all .25s;
+  border: none;
+  font-family: var(--font-body);
+}
+.btn-hero-main {
+  background: #00c96e;
+  color: #030508;
+  box-shadow: 0 0 40px rgba(0,255,135,0.2);
+}
+.btn-hero-main:hover { transform:translateY(-2px); box-shadow:0 0 60px rgba(0,255,135,0.4); }
+.btn-hero-ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-hero-ghost:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.04); }
+
+/* STATS BAR */
+.stats-bar {
+  display: flex;
+  gap: 0;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--card);
+  backdrop-filter: blur(10px);
+  animation: fadeDown 0.6s 0.5s ease both;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.stat-item {
+  flex: 1;
+  padding: 20px 24px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.green { color: var(--green); }
+.cyan { color: var(--cyan); }
+.amber { color: var(--amber); }
+.purple { color: var(--purple); }
+
+@keyframes fadeDown {
+  from { opacity:0; transform:translateY(-16px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+/* SECTIONS */
+section {
+  position: relative;
+  z-index: 1;
+  padding: 100px 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--green);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  max-width: 60px;
+  height: 1px;
+  background: var(--green);
+  opacity: 0.3;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(26px, 3.5vw, 44px);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+}
+.section-sub {
+  font-size: 17px;
+  color: var(--muted);
+  max-width: 600px;
+  line-height: 1.6;
+  font-weight: 300;
+  margin-bottom: 64px;
+}
+
+/* ─── VIBECODDING HERO SECTION ─── */
+.vibecodding-hero {
+  background: rgba(0,255,135,0.02);
+  border-top: 1px solid rgba(0,255,135,0.08);
+  border-bottom: 1px solid rgba(0,255,135,0.08);
+  padding: 100px 40px;
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}
+.vibecodding-hero::before {
+  content: 'VIBE\ACODE';
+  white-space: pre;
+  position: absolute;
+  right: -20px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--font-display);
+  font-size: 200px;
+  font-weight: 700;
+  color: rgba(0,255,135,0.02);
+  line-height: 0.9;
+  letter-spacing: -10px;
+  pointer-events: none;
+}
+.vc-inner { max-width: 1200px; margin: 0 auto; }
+.vc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+/* CODE WINDOW */
+.code-window {
+  background: #090d12;
+  border: 1px solid rgba(0,255,135,0.15);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 80px rgba(0,255,135,0.05);
+}
+.code-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.dot-r{ width:10px;height:10px;border-radius:50%;background:#ff5f57; }
+.dot-y{ width:10px;height:10px;border-radius:50%;background:#ffbd2e; }
+.dot-g{ width:10px;height:10px;border-radius:50%;background:#28c840; }
+.code-filename {
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+}
+.code-body {
+  padding: 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-x: auto;
+}
+.code-line { display: flex; }
+.ln { color: #2a3040; width: 24px; flex-shrink: 0; user-select: none; }
+.kw { color: #c792ea; }
+.fn { color: #82aaff; }
+.st { color: #c3e88d; }
+.cm { color: #3a4555; font-style: italic; }
+.nu { color: var(--amber); }
+.vc-comment { color: #546e7a; }
+.typing-animation { display: inline-block; overflow: hidden; white-space: nowrap; animation: typing 3s steps(40) 1s both infinite; }
+@keyframes typing { from{width:0} to{width:100%} }
+
+/* VIBECODDING CARDS */
+.vc-features { display: flex; flex-direction: column; gap: 20px; }
+.vc-card {
+  padding: 24px 28px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: all .3s;
+  position: relative;
+  overflow: hidden;
+}
+.vc-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--green);
+  opacity: 0;
+  transition: opacity .3s;
+}
+.vc-card:hover { border-color: rgba(0,255,135,0.2); transform: translateX(4px); }
+.vc-card:hover::before { opacity: 1; }
+.vc-card-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.vc-card-body {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: rgba(0,255,135,0.1);
+  border: 1px solid rgba(0,255,135,0.2);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: 0.05em;
+}
+.tag-cyan { background: rgba(0,212,255,0.1); border-color: rgba(0,212,255,0.2); color: var(--cyan); }
+.tag-amber { background: rgba(255,184,0,0.1); border-color: rgba(255,184,0,0.2); color: var(--amber); }
+.tag-purple { background: rgba(168,85,247,0.1); border-color: rgba(168,85,247,0.2); color: var(--purple); }
+
+/* WHAT BUDDY BUILDS */
+.builds-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 60px;
+}
+.build-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px 24px;
+  transition: all .3s;
+  position: relative;
+  overflow: hidden;
+}
+.build-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, var(--accent-color, rgba(0,255,135,0.05)) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity .3s;
+}
+.build-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-4px); }
+.build-card:hover::after { opacity: 1; }
+.build-icon {
+  font-size: 32px;
+  margin-bottom: 16px;
+  display: block;
+}
+.build-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  letter-spacing: -0.5px;
+}
+.build-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.build-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* MODELS SECTION */
+.models-section { padding: 100px 40px; }
+.models-inner { max-width: 1200px; margin: 0 auto; }
+.models-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 60px;
+}
+.model-card {
+  padding: 32px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: all .3s;
+  position: relative;
+  overflow: hidden;
+}
+.model-card:hover { border-color: var(--m-color, var(--green)); box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+.model-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.model-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+.model-by {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.model-badge {
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+.model-desc {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.model-use {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  color: var(--muted);
+}
+.model-tasks { display: flex; flex-wrap: wrap; gap: 6px; }
+.model-task {
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text);
+}
+.model-glow {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity .3s;
+  pointer-events: none;
+}
+.model-card:hover .model-glow { opacity: 1; }
+
+/* MODES SECTION */
+.modes-section { padding: 100px 40px; background: rgba(255,255,255,0.01); border-top:1px solid var(--border); border-bottom:1px solid var(--border); }
+.modes-inner { max-width: 1200px; margin: 0 auto; }
+.modes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 60px;
+}
+.mode-card {
+  padding: 28px 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  transition: all .3s;
+  cursor: default;
+}
+.mode-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); transform: translateY(-2px); }
+.mode-icon { font-size: 28px; margin-bottom: 14px; display: block; }
+.mode-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+.mode-engine {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 14px;
+}
+.mode-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.mode-examples { display: flex; flex-wrap: wrap; gap: 6px; }
+.mode-ex {
+  padding: 3px 8px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* COMPARISON */
+.compare-section { padding: 100px 40px; }
+.compare-inner { max-width: 900px; margin: 0 auto; }
+.compare-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 60px;
+}
+.compare-table th {
+  padding: 16px 20px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  border-bottom: 1px solid var(--border);
+}
+.compare-table th:first-child { text-align: left; }
+.compare-table td {
+  padding: 14px 20px;
+  font-size: 13px;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  text-align: center;
+}
+.compare-table td:first-child {
+  text-align: left;
+  color: var(--text);
+  font-size: 14px;
+}
+.compare-table tr:hover td { background: rgba(255,255,255,0.02); }
+.chk { color: var(--green); font-size: 16px; font-weight: 700; }
+.xmark { color: #2a3040; font-size: 16px; }
+.buddy-col { color: var(--green) !important; font-weight: 700 !important; }
+.highlight-col th:nth-child(2),
+.highlight-col td:nth-child(2) {
+  background: rgba(0,255,135,0.04);
+  border-left: 1px solid rgba(0,255,135,0.1);
+  border-right: 1px solid rgba(0,255,135,0.1);
+}
+
+/* PRICING */
+.pricing-section { padding: 100px 40px; text-align: center; }
+.pricing-inner { max-width: 500px; margin: 0 auto; }
+.price-card {
+  background: var(--card);
+  border: 1px solid rgba(0,255,135,0.2);
+  border-radius: 24px;
+  padding: 48px 40px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 100px rgba(0,255,135,0.05);
+}
+.price-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--green), var(--cyan), transparent);
+}
+.price-popular {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: rgba(0,255,135,0.1);
+  border: 1px solid rgba(0,255,135,0.2);
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 28px;
+}
+.price-amount {
+  font-family: var(--font-display);
+  font-size: 80px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -4px;
+  color: var(--green);
+  margin-bottom: 4px;
+}
+.price-amount span { font-size: 30px; letter-spacing: -1px; vertical-align: super; margin-right: 4px; }
+.price-period {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 36px;
+}
+.price-features { list-style: none; text-align: left; margin-bottom: 36px; display: flex; flex-direction: column; gap: 14px; }
+.price-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.price-features li::before {
+  content: '✓';
+  color: var(--green);
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.btn-buy {
+  display: block;
+  width: 100%;
+  padding: 18px;
+  background: linear-gradient(135deg,#f5c842,#e0a800);
+  color: #1a0f00;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 800;
+  font-family: var(--font-body);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .25s;
+  text-align: center;
+  margin-bottom: 14px;
+  letter-spacing: -0.2px;
+}
+.btn-buy:hover { transform: translateY(-2px); box-shadow: 0 20px 60px rgba(245,200,66,0.35); }
+.btn-gold { background: linear-gradient(135deg,#f5c842,#e0a800); color: #1a0f00; border: none; font-weight: 800; }
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 20px 60px rgba(245,200,66,0.4); }
+.price-secure {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* TESTIMONIALS */
+.testimonials-section { padding: 100px 40px; }
+.testimonials-inner { max-width: 1200px; margin: 0 auto; }
+.testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 60px;
+}
+.testimonial-card {
+  padding: 28px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: all .3s;
+}
+.testimonial-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-2px); }
+.t-stars { color: var(--amber); font-size: 14px; margin-bottom: 16px; letter-spacing: 2px; }
+.t-quote {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text);
+  margin-bottom: 20px;
+  font-style: italic;
+}
+.t-author {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.t-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.t-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+.t-role {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* FAQ */
+.faq-section { padding: 100px 40px; }
+.faq-inner { max-width: 780px; margin: 0 auto; }
+.faq-list { display: flex; flex-direction: column; gap: 12px; margin-top: 60px; }
+.faq-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.faq-q {
+  padding: 20px 24px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  transition: background .2s;
+  user-select: none;
+}
+.faq-q:hover { background: rgba(255,255,255,0.03); }
+.faq-icon { color: var(--green); font-size: 20px; flex-shrink: 0; transition: transform .3s; }
+.faq-a {
+  padding: 0 24px;
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.7;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height .4s ease, padding .3s;
+}
+.faq-item.open .faq-a { max-height: 300px; padding: 0 24px 20px; }
+.faq-item.open .faq-icon { transform: rotate(45deg); }
+
+/* SERGIU SECTION */
+.sergiu-section {
+  padding: 80px 40px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: rgba(37,211,102,0.02);
+}
+.sergiu-inner {
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+.sergiu-avatar {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #25d366, #128c7e);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  margin: 0 auto 24px;
+  border: 2px solid rgba(37,211,102,0.3);
+}
+.btn-wa-large {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 32px;
+  background: rgba(37,211,102,0.1);
+  border: 1px solid rgba(37,211,102,0.3);
+  border-radius: 12px;
+  color: #25d366;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all .25s;
+  margin-top: 28px;
+}
+.btn-wa-large:hover { background: rgba(37,211,102,0.18); transform: translateY(-2px); box-shadow: 0 20px 60px rgba(37,211,102,0.1); }
+
+/* CTA FINAL */
+.cta-final {
+  padding: 120px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.cta-glow {
+  position: absolute;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(0,255,135,0.06) 0%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+}
+
+/* FOOTER */
+footer {
+  padding: 32px 40px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+footer a { color: var(--muted); text-decoration: none; }
+footer a:hover { color: var(--text); }
+
+/* RESPONSIVE */
+@media(max-width:900px) {
+  nav { padding: 12px 20px; }
+  .nav-links { display: none; }
+  .wa-full { display: none; }
+  .wa-short { display: inline !important; }
+  nav { justify-content: space-between; padding: 10px 16px; gap: 8px; }
+  .nav-cta { gap: 6px; }
+  .btn-wa { padding: 8px 10px; font-size: 12px; gap: 4px; }
+  .btn-primary { padding: 8px 10px; font-size: 12px; }
+  .cta-full { display: none; }
+  .hero { padding: 100px 20px 60px; }
+  section { padding: 60px 20px; }
+  .vc-grid { grid-template-columns: 1fr; }
+  .vibecodding-hero { padding: 60px 20px; }
+  .builds-grid { grid-template-columns: 1fr; }
+  .models-grid { grid-template-columns: 1fr; }
+  .models-section { padding: 60px 20px; }
+  .modes-grid { grid-template-columns: 1fr; }
+  .modes-section { padding: 60px 20px; }
+  .compare-section { padding: 60px 20px; overflow-x: hidden; }
+.compare-table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
+@media(max-width:600px) {
+  .mini-compare-grid { grid-template-columns: repeat(2,1fr) !important; }
+  .builds-grid { grid-template-columns: 1fr !important; }
+}
+  .compare-table { font-size: 13px; min-width: 500px; }
+  .compare-table th, .compare-table td { padding: 10px 8px; }
+  .testimonials-grid { grid-template-columns: 1fr; }
+  .testimonials-section { padding: 60px 20px; }
+  .stats-bar { flex-wrap: wrap; }
+  .stat-item { min-width: 50%; border-bottom: 1px solid var(--border); }
+  footer { flex-direction: column; text-align: center; }
+}
+
+/* SCROLL REVEAL */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Vibe<span>Buddy</span></div>
+  <div class="nav-links">
+    <a href="https://daeu.online" target="_blank">← DaRomania</a>
+    <a href="https://buddy.daeu.online/" target="_blank">🤖 Buddy Chat</a>
+    <a href="#vibecodding">VibeCodding</a>
+    <a href="#modele">Modele AI</a>
+    <a href="#moduri">Moduri</a>
+    <a href="#pricing">Preț</a>
+    <a href="#faq">FAQ</a>
+  </div>
+  <div class="nav-cta">
+    <a href="https://wa.me/40768676141" target="_blank" class="btn-wa">💬 <span class="wa-full">Live cu Sergiu</span><span class="wa-short" style="display:none">Sergiu</span></a>
+    <a href="https://buy.stripe.com/aFa4gA85Rao065Z8SX5os01" target="_blank" class="btn-primary"><span class="cta-full">Cumpără — </span>$9/lună</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+
+  <div class="hero-badge">
+    <div class="badge-dot"></div>
+    Disponibil acum · $9/lună · Fără limite
+  </div>
+
+  <h1>
+    <span class="line1">AI care nu</span>
+    <span class="line2">doar răspunde.<br>Construiește.</span>
+  </h1>
+
+  <p class="hero-sub">
+    <strong>VibeBuddy</strong> combină Claude Sonnet 4.6 Extended, OpenAI Codex, GPT-4o și Grok
+    într-un singur chat. Agenți AI, site-uri, scrappere, programe —
+    toate construite live, cu tine, în stil <strong>VibeCodding</strong>.
+  </p>
+
+  <div class="terminal-line" id="terminal-text"><span class="cursor"></span></div>
+
+  <div class="hero-actions">
+<a href="https://buddy.daeu.online/" target="_blank" class="btn-hero btn-hero-main">Testează GRATUIT — 50 mesaje</a>
+        <a href="https://buy.stripe.com/aFa4gA85Rao065Z8SX5os01" target="_blank" class="btn-hero btn-gold">🤖 Încearcă acum — $9/lună</a>
+    <a href="https://wa.me/40768676141" target="_blank" class="btn-hero btn-hero-ghost">💬 Vorbește cu Sergiu</a>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="stat-num green">4+</div>
+      <div class="stat-label">Modele AI</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num cyan">∞</div>
+      <div class="stat-label">Mesaje / lună</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num amber">$9</div>
+      <div class="stat-label">Preț / lună</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num purple">5+</div>
+      <div class="stat-label">Moduri AI</div>
+    </div>
+  </div>
+</div>
+
+<!-- VIBECODDING SECTION -->
+<div class="vibecodding-hero" id="vibecodding">
+  <div class="vc-inner">
+    <div class="section-label">🟢 Funcția principală</div>
+    <h2 class="section-title" style="margin-bottom:16px;">VibeCodding<br><span style="color:var(--green)">Build live. Deploy real.</span></h2>
+    <p class="section-sub">Nu ești singur în față unui blank screen. Buddy construiește alături de tine — în timp real, pas cu pas, explicând fiecare decizie. OpenAI Codex + Claude Sonnet 4.6 Extended Thinking = cel mai puternic duo de coding accesibil.</p>
+
+    <div class="vc-grid">
+      <!-- CODE WINDOW -->
+      <div class="code-window reveal">
+        <div class="code-titlebar">
+          <div class="dot-r"></div><div class="dot-y"></div><div class="dot-g"></div>
+          <span class="code-filename">scraper_agent.py · VibeBuddy Codex</span>
+        </div>
+        <div class="code-body">
+<div class="code-line"><span class="ln">1</span>&nbsp;<span class="cm"># 🤖 Buddy a generat asta în 8 secunde</span></div>
+<div class="code-line"><span class="ln">2</span>&nbsp;<span class="kw">import</span> <span class="fn">asyncio</span>, <span class="fn">aiohttp</span></div>
+<div class="code-line"><span class="ln">3</span>&nbsp;<span class="kw">from</span> <span class="fn">bs4</span> <span class="kw">import</span> <span class="fn">BeautifulSoup</span></div>
+<div class="code-line"><span class="ln">4</span>&nbsp;</div>
+<div class="code-line"><span class="ln">5</span>&nbsp;<span class="kw">class</span> <span class="fn">SmartScraper</span>:</div>
+<div class="code-line"><span class="ln">6</span>&nbsp;&nbsp;&nbsp;<span class="kw">def</span> <span class="fn">__init__</span>(<span class="nu">self</span>, urls: <span class="fn">list</span>):</div>
+<div class="code-line"><span class="ln">7</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="nu">self</span>.urls = urls</div>
+<div class="code-line"><span class="ln">8</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="nu">self</span>.results = []</div>
+<div class="code-line"><span class="ln">9</span>&nbsp;</div>
+<div class="code-line"><span class="ln">10</span>&nbsp;&nbsp;&nbsp;<span class="kw">async def</span> <span class="fn">scrape_all</span>(<span class="nu">self</span>):</div>
+<div class="code-line"><span class="ln">11</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">async with</span> <span class="fn">aiohttp</span>.ClientSession() <span class="kw">as</span> session:</div>
+<div class="code-line"><span class="ln">12</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tasks = [<span class="nu">self</span>.<span class="fn">fetch</span>(session, u)</div>
+<div class="code-line"><span class="ln">13</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">for</span> u <span class="kw">in</span> <span class="nu">self</span>.urls]</div>
+<div class="code-line"><span class="ln">14</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return await</span> <span class="fn">asyncio</span>.<span class="fn">gather</span>(*tasks)</div>
+<div class="code-line"><span class="ln">15</span>&nbsp;</div>
+<div class="code-line"><span class="ln">16</span>&nbsp;&nbsp;&nbsp;<span class="kw">async def</span> <span class="fn">fetch</span>(<span class="nu">self</span>, session, url):</div>
+<div class="code-line"><span class="ln">17</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="cm"># auto-retry + proxy rotation</span></div>
+<div class="code-line"><span class="ln">18</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">async with</span> session.<span class="fn">get</span>(url) <span class="kw">as</span> r:</div>
+<div class="code-line"><span class="ln">19</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;html = <span class="kw">await</span> r.<span class="fn">text</span>()</div>
+<div class="code-line"><span class="ln">20</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">return</span> <span class="nu">self</span>.<span class="fn">parse</span>(html)</div>
+        </div>
+      </div>
+
+      <!-- FEATURES -->
+      <div class="vc-features">
+        <div class="vc-card reveal">
+          <div class="vc-card-title">⚡ Implementare automată în stil VibeCodding <span class="tag">CORE</span></div>
+          <div class="vc-card-body">Buddy nu îți dă snippet-uri izolate. Construiește întregul proiect — structură de fișiere, dependențe, configurații, deploy instructions — în timp real, explicând fiecare alegere.</div>
+        </div>
+        <div class="vc-card reveal">
+          <div class="vc-card-title">🤖 Agenți AI complet funcționali <span class="tag-cyan tag">CODEX</span></div>
+          <div class="vc-card-body">De la zero la agent AI complet: loop de raționament, memorie, tool calling, API integrations. Buddy cu OpenAI Codex generează cod production-ready pe care îl înțelegi.</div>
+        </div>
+        <div class="vc-card reveal">
+          <div class="vc-card-title">🕷️ Scrappere & automatizări <span class="tag-amber tag">LIVE</span></div>
+          <div class="vc-card-body">Scrapper async cu retry logic, rotație de proxy-uri, export în CSV/JSON/DB — Buddy îl scrie, îl testează și îl optimizează live în chat, pas cu pas.</div>
+        </div>
+        <div class="vc-card reveal">
+          <div class="vc-card-title">🌐 Site-uri & aplicații complete <span class="tag-purple tag">FULL STACK</span></div>
+          <div class="vc-card-body">Frontend, backend, baze de date, autentificare, plăți Stripe, deploy pe VPS — Buddy ghidează întregul stack, de la idee la URL-ul live.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CE CONSTRUIESTE BUDDY -->
+    <div style="margin-top:80px;">
+      <div class="section-label">Ce poate construi Buddy cu tine</div>
+      <div class="builds-grid">
+        <div class="build-card reveal" style="--accent-color:rgba(0,255,135,0.06)">
+          <span class="build-icon">🤖</span>
+          <div class="build-title">Agenți AI autonomi</div>
+          <div class="build-desc">Agenți care navighează web, citesc documente, trimit email-uri, interacționează cu API-uri externe — complet automatizat.</div>
+          <div class="build-tags">
+            <span class="tag">Python</span><span class="tag">LangChain</span><span class="tag">OpenAI</span>
+          </div>
+        </div>
+        <div class="build-card reveal" style="--accent-color:rgba(0,212,255,0.06)">
+          <span class="build-icon">🕷️</span>
+          <div class="build-title">Scrappere avansate</div>
+          <div class="build-desc">Scrappere async cu bypass anti-bot, rotație proxy, stocare în baze de date, scheduling automat și notificări.</div>
+          <div class="build-tags">
+            <span class="tag-cyan tag">Playwright</span><span class="tag-cyan tag">BeautifulSoup</span><span class="tag-cyan tag">Scrapy</span>
+          </div>
+        </div>
+        <div class="build-card reveal" style="--accent-color:rgba(255,184,0,0.06)">
+          <span class="build-icon">🌐</span>
+          <div class="build-title">Site-uri & Landing Pages</div>
+          <div class="build-desc">De la design la deploy: React, Next.js, HTML/CSS, WordPress customizat — cu SEO, analytics și optimizare conversii.</div>
+          <div class="build-tags">
+            <span class="tag-amber tag">React</span><span class="tag-amber tag">Next.js</span><span class="tag-amber tag">Tailwind</span>
+          </div>
+        </div>
+        <div class="build-card reveal" style="--accent-color:rgba(168,85,247,0.06)">
+          <span class="build-icon">📊</span>
+          <div class="build-title">Dashboard-uri & Panouri admin</div>
+          <div class="build-desc">Panouri de control cu grafice live, management utilizatori, rapoarte automate și export date în orice format.</div>
+          <div class="build-tags">
+            <span class="tag-purple tag">Chart.js</span><span class="tag-purple tag">FastAPI</span><span class="tag-purple tag">PostgreSQL</span>
+          </div>
+        </div>
+        <div class="build-card reveal" style="--accent-color:rgba(0,255,135,0.06)">
+          <span class="build-icon">🔗</span>
+          <div class="build-title">Integrări API & Automatizări</div>
+          <div class="build-desc">Conectezi orice serviciu la orice altul: Stripe, Notion, Airtable, Zapier custom, webhooks, baze de date externe.</div>
+          <div class="build-tags">
+            <span class="tag">REST API</span><span class="tag">Webhooks</span><span class="tag">n8n</span>
+          </div>
+        </div>
+        <div class="build-card reveal" style="--accent-color:rgba(255,71,87,0.06)">
+          <span class="build-icon">🤝</span>
+          <div class="build-title">Boți & Asistenți personalizați</div>
+          <div class="build-desc">Chatboți pentru site-ul tău, boți Telegram/Discord, asistenți AI cu personalitate și cunoștințe specifice afacerii tale.</div>
+          <div class="build-tags">
+            <span class="tag" style="color:var(--red);border-color:rgba(255,71,87,0.2);background:rgba(255,71,87,0.08)">Telegram Bot</span>
+            <span class="tag" style="color:var(--red);border-color:rgba(255,71,87,0.2);background:rgba(255,71,87,0.08)">Discord</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODELE AI -->
+<div class="models-section" id="modele">
+  <div class="models-inner">
+    <div class="section-label">🧠 Sub capotă</div>
+    <h2 class="section-title">4 modele AI.<br><span style="color:var(--cyan)">Cel mai potrivit, automat.</span></h2>
+    <p class="section-sub">Buddy selectează în timp real modelul optim pentru cererea ta. Nu plătești 4 abonamente — plătești $9 și ai tot.</p>
+
+    <div class="models-grid">
+      <!-- CLAUDE -->
+      <div class="model-card reveal" style="--m-color:var(--purple)">
+        <div class="model-glow" style="background:radial-gradient(circle at 0% 0%, rgba(168,85,247,0.06), transparent 60%)"></div>
+        <div class="model-header">
+          <div>
+            <div class="model-name" style="color:var(--purple)">Claude Sonnet 4.6</div>
+            <div class="model-by">Anthropic · Extended Thinking</div>
+          </div>
+          <div class="model-badge" style="background:rgba(168,85,247,0.1);color:var(--purple);border:1px solid rgba(168,85,247,0.2)">FLAGSHIP</div>
+        </div>
+        <div class="model-desc">Raționament profund, extended thinking activat — Claude gândește în mai mulți pași înainte să răspundă. Ideal pentru probleme complexe, analiză, strategie și cod de calitate. Cel mai inteligent model disponibil în Buddy.</div>
+        <div class="model-use">Folosit pentru:</div>
+        <div class="model-tasks">
+          <span class="model-task">Analiză complexă</span>
+          <span class="model-task">Strategie business</span>
+          <span class="model-task">Cod avansat</span>
+          <span class="model-task">Raționament multi-step</span>
+          <span class="model-task">Explicații detaliate</span>
+        </div>
+      </div>
+
+      <!-- CODEX -->
+      <div class="model-card reveal" style="--m-color:var(--green)">
+        <div class="model-glow" style="background:radial-gradient(circle at 100% 0%, rgba(0,255,135,0.06), transparent 60%)"></div>
+        <div class="model-header">
+          <div>
+            <div class="model-name" style="color:var(--green)">OpenAI Codex</div>
+            <div class="model-by">OpenAI · Specializat programare</div>
+          </div>
+          <div class="model-badge" style="background:rgba(0,255,135,0.1);color:var(--green);border:1px solid rgba(0,255,135,0.2)">CODING</div>
+        </div>
+        <div class="model-desc">Modelul cel mai avansat din lume pentru generare de cod. Înțelege context larg, scrie cod curat, documentat și testabil. VibeCodding rulează pe Codex — de aceea Buddy construiește proiecte complete, nu snippet-uri izolate.</div>
+        <div class="model-use">Folosit pentru:</div>
+        <div class="model-tasks">
+          <span class="model-task">Proiecte complete</span>
+          <span class="model-task">Agenți AI</span>
+          <span class="model-task">Scrappere</span>
+          <span class="model-task">Automatizări</span>
+          <span class="model-task">Debug & refactoring</span>
+        </div>
+      </div>
+
+      <!-- GPT-4o -->
+      <div class="model-card reveal" style="--m-color:var(--cyan)">
+        <div class="model-glow" style="background:radial-gradient(circle at 0% 100%, rgba(0,212,255,0.06), transparent 60%)"></div>
+        <div class="model-header">
+          <div>
+            <div class="model-name" style="color:var(--cyan)">GPT-4o</div>
+            <div class="model-by">OpenAI · Multimodal</div>
+          </div>
+          <div class="model-badge" style="background:rgba(0,212,255,0.1);color:var(--cyan);border:1px solid rgba(0,212,255,0.2)">MULTIMODAL</div>
+        </div>
+        <div class="model-desc">Rapid, versatil, multimodal. Excelent pentru conținut creativ, copywriting, analiză imagini, brainstorming accelerat și răspunsuri care trebuie livrate în câteva secunde.</div>
+        <div class="model-use">Folosit pentru:</div>
+        <div class="model-tasks">
+          <span class="model-task">Copywriting</span>
+          <span class="model-task">Brainstorming rapid</span>
+          <span class="model-task">Analiză imagini</span>
+          <span class="model-task">Creator content</span>
+          <span class="model-task">Marketing</span>
+        </div>
+      </div>
+
+      <!-- GROK -->
+      <div class="model-card reveal" style="--m-color:var(--amber)">
+        <div class="model-glow" style="background:radial-gradient(circle at 100% 100%, rgba(255,184,0,0.06), transparent 60%)"></div>
+        <div class="model-header">
+          <div>
+            <div class="model-name" style="color:var(--amber)">Grok</div>
+            <div class="model-by">xAI · Real-time & Creative</div>
+          </div>
+          <div class="model-badge" style="background:rgba(255,184,0,0.1);color:var(--amber);border:1px solid rgba(255,184,0,0.2)">LIVE DATA</div>
+        </div>
+        <div class="model-desc">Acces la date în timp real, personalitate directă, creativitate nefiltrată. Ideal pentru idei neconvenționale, validare de piață, tendințe actuale și brainstorming care iese din tipare.</div>
+        <div class="model-use">Folosit pentru:</div>
+        <div class="model-tasks">
+          <span class="model-task">Idei neconvenționale</span>
+          <span class="model-task">Date în timp real</span>
+          <span class="model-task">Tendințe de piață</span>
+          <span class="model-task">Hustle mode</span>
+          <span class="model-task">Validare rapidă</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODURI -->
+<div class="modes-section" id="moduri">
+  <div class="modes-inner">
+    <div class="section-label">⚡ Specializare automată</div>
+    <h2 class="section-title">5 moduri AI.<br><span style="color:var(--amber)">Zero configurare.</span></h2>
+    <p class="section-sub">Buddy detectează ce ai nevoie și activează modul potrivit automat. Tu scrii natural — el gândește tehnic.</p>
+
+    <div class="modes-grid">
+      <div class="mode-card reveal">
+        <span class="mode-icon">🟢</span>
+        <div class="mode-name">Coding Mode</div>
+        <div class="mode-engine">OpenAI Codex + Claude Sonnet 4.6</div>
+        <div class="mode-desc">Proiecte complete în VibeCodding style. Agenți AI, site-uri, scrappere, automatizări — Buddy construiește alături de tine, pas cu pas, cu explicații clare pentru fiecare decizie.</div>
+        <div class="mode-examples">
+          <span class="mode-ex">Python agent</span>
+          <span class="mode-ex">React app</span>
+          <span class="mode-ex">FastAPI backend</span>
+          <span class="mode-ex">Web scraper</span>
+        </div>
+      </div>
+      <div class="mode-card reveal">
+        <span class="mode-icon">🔵</span>
+        <div class="mode-name">Marketing Mode</div>
+        <div class="mode-engine">GPT-4o + Claude</div>
+        <div class="mode-desc">Copy-uri care convertesc, strategii de campanie, texte pentru reclame Meta/Google, email sequences, content calendare — scris pentru audiența ta specifică, nu generic.</div>
+        <div class="mode-examples">
+          <span class="mode-ex">Ad copy</span>
+          <span class="mode-ex">Email sequence</span>
+          <span class="mode-ex">Strategie campanie</span>
+        </div>
+      </div>
+      <div class="mode-card reveal">
+        <span class="mode-icon">🔴</span>
+        <div class="mode-name">Hustle Mode</div>
+        <div class="mode-engine">Grok + Claude Extended</div>
+        <div class="mode-desc">Validare idei, modele de business, pitch-uri pentru investitori, calculatoare de unit economics, competitive analysis. Partenerul tău de antreprenoriat care îți spune și ce nu vrei să auzi.</div>
+        <div class="mode-examples">
+          <span class="mode-ex">Business plan</span>
+          <span class="mode-ex">Pitch deck</span>
+          <span class="mode-ex">Unit economics</span>
+        </div>
+      </div>
+      <div class="mode-card reveal">
+        <span class="mode-icon">💬</span>
+        <div class="mode-name">Idei & Brainstorm</div>
+        <div class="mode-engine">Grok + GPT-4o</div>
+        <div class="mode-desc">50 de idei în 2 minute, mindmaps, conexiuni neașteptate, provocări creative, thought experiments — când ești blocat și ai nevoie de perspectivă nouă, rapidă.</div>
+        <div class="mode-examples">
+          <span class="mode-ex">50 idei</span>
+          <span class="mode-ex">Mindmap</span>
+          <span class="mode-ex">Brainstorm</span>
+        </div>
+      </div>
+      <div class="mode-card reveal">
+        <span class="mode-icon">🎬</span>
+        <div class="mode-name">Creator Mode</div>
+        <div class="mode-engine">GPT-4o + Claude</div>
+        <div class="mode-desc">Scripturi YouTube, hooks TikTok, carusele LinkedIn, subtitrări, descrieri optimizate, content repurposing — conținut gata de postat, adaptat platformei și audienței tale.</div>
+        <div class="mode-examples">
+          <span class="mode-ex">Script YouTube</span>
+          <span class="mode-ex">Hook TikTok</span>
+          <span class="mode-ex">Carusel</span>
+        </div>
+      </div>
+      <div class="mode-card reveal" style="border-color:rgba(0,255,135,0.1);">
+        <span class="mode-icon">⚡</span>
+        <div class="mode-name">Smart Switch</div>
+        <div class="mode-engine">Toate modelele · Auto</div>
+        <div class="mode-desc">Buddy citește intenția ta și comută automat la modelul cel mai potrivit pentru fiecare request. Nu trebuie să știi ce model să alegi — el știe.</div>
+        <div class="mode-examples">
+          <span class="mode-ex">Auto-detect</span>
+          <span class="mode-ex">Context-aware</span>
+          <span class="mode-ex">Zero config</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARATIE -->
+<div class="compare-section">
+  <div class="compare-inner">
+    <div class="section-label">📊 Comparație reală</div>
+    <h2 class="section-title">$9 vs $80+<br><span style="color:var(--red)">pe lună.</span></h2>
+    <p class="section-sub">Un singur abonament care înlocuiește 4-5 tool-uri premium.</p>
+
+    <div class="compare-table-wrapper"><table class="compare-table highlight-col">
+      <thead>
+        <tr>
+          <th style="width:32%">Funcție</th>
+          <th class="buddy-col">VibeBuddy $9</th>
+          <th>ChatGPT Plus $20</th>
+          <th>Claude Pro $20</th>
+          <th style="color:#a78bfa;">xAI Grok $25</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Mesaje nelimitate</td>
+          <td class="buddy-col chk">✓</td>
+          <td><span class="xmark">Limitat</span></td>
+          <td><span class="xmark">Limitat</span></td>
+          <td><span class="xmark">Limitat</span></td>
+        </tr>
+        <tr>
+          <td>Claude Sonnet 4.6 Extended Thinking</td>
+          <td class="buddy-col chk">✓</td>
+          <td><span class="xmark">✗</span></td>
+          <td><span class="xmark">Fără Codex</span></td>
+          <td><span class="xmark">✗</span></td>
+        </tr>
+        <tr>
+          <td>OpenAI Codex (VibeCodding)</td>
+          <td class="buddy-col chk">✓</td>
+          <td><span class="xmark">Parțial</span></td>
+          <td><span class="xmark">✗</span></td>
+          <td><span class="xmark">✗</span></td>
+        </tr>
+        <tr>
+          <td>xAI Grok (Research & Development)</td>
+          <td class="buddy-col chk">✓</td>
+          <td><span class="xmark">✗</span></td>
+          <td><span class="xmark">✗</span></td>
+          <td><span class="xmark">Doar Grok</span></td>
+        </tr>
+        <tr>
+          <td>GPT-4o + Grok + Claude simultan</td>
+          <td class="buddy-col chk">✓ Toate</td>
+          <td><span class="xmark">Doar GPT</span></td>
+          <td><span class="xmark">Doar Claude</span></td>
+          <td><span class="xmark">Doar Grok</span></td>
+        </tr>
+        <tr>
+          <td>Build agenți AI complet funcționali</td>
+          <td class="buddy-col chk">✓</td>
+          <td><span class="xmark">Manual</span></td>
+          <td><span class="xmark">Manual</span></td>
+          <td><span class="xmark">Manual</span></td>
+        </tr>
+        <tr>
+          <td>Moduri specializate (5 moduri)</td>
+          <td class="buddy-col chk">✓ 5 moduri</td>
+          <td><span class="xmark">—</span></td>
+          <td><span class="xmark">—</span></td>
+          <td><span class="xmark">—</span></td>
+        </tr>
+        <tr>
+          <td>VibeCodding style (proiecte complete)</td>
+          <td class="buddy-col chk">✓</td>
+          <td><span class="xmark">✗</span></td>
+          <td><span class="xmark">✗</span></td>
+          <td><span class="xmark">✗</span></td>
+        </tr>
+        <tr>
+          <td>Interfață în română nativ</td>
+          <td class="buddy-col chk">✓</td>
+          <td><span class="xmark">Parțial</span></td>
+          <td><span class="xmark">Parțial</span></td>
+          <td><span class="xmark">✗</span></td>
+        </tr>
+        <tr>
+          <td>Suport direct cu fondatorul (WhatsApp)</td>
+          <td class="buddy-col chk">✓</td>
+          <td><span class="xmark">✗</span></td>
+          <td><span class="xmark">✗</span></td>
+          <td><span class="xmark">✗</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:800;">Preț / lună</td>
+          <td class="buddy-col" style="font-weight:700;font-size:16px;color:var(--green)">$9</td>
+          <td style="color:var(--muted)">$20</td>
+          <td style="color:var(--muted)">$20</td>
+          <td style="color:var(--muted)">$25</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div class="pricing-section" id="pricing">
+  <div class="pricing-inner">
+    <div class="section-label" style="justify-content:center">💰 Simplu</div>
+    <h2 class="section-title">Un plan.<br><span style="color:var(--green)">Tot ce ai nevoie.</span></h2>
+    <p class="section-sub" style="margin:16px auto 48px;">Nicio surpriză, nicio limită ascunsă. Anulezi oricând.</p>
+
+    <div class="price-card reveal">
+      <div class="price-popular">✦ Cel mai popular</div>
+      <div class="price-amount"><span>$</span>9</div>
+      <div class="price-period">pe lună · facturat lunar · anulezi oricând</div>
+      <ul class="price-features">
+        <li>Mesaje nelimitate — fără cap, fără pauze</li>
+        <li>Claude Sonnet 4.6 Extended Thinking — cel mai avansat Claude</li>
+        <li>OpenAI Codex — VibeCodding pentru proiecte complete</li>
+        <li>GPT-4o + Grok — creativitate și date în timp real</li>
+        <li>5 moduri specializate — Coding, Marketing, Hustle, Idei, Creator</li>
+        <li>Smart Switch automat — modelul potrivit, automat</li>
+        <li>Build agenți AI, site-uri, scrappere, automatizări</li>
+        <li>Export conversații oricând</li>
+        <li>Suport direct cu Sergiu pe WhatsApp</li>
+        <li>Actualizări constante — mereu cel mai nou model disponibil</li>
+      </ul>
+      <!-- MINI COMPARATIE DEASUPRA BUTONULUI -->
+      <div style="margin:32px 0 24px;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;background:rgba(0,0,0,0.3);">
+        <div style="padding:14px 20px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06);font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">De ce VibeBuddy în loc de 4 abonamente separate?</div>
+        <div class="mini-compare-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;">
+          <div style="padding:16px 14px;border-right:1px solid rgba(255,255,255,0.06);text-align:center;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">xAI GROK</div>
+            <div style="font-size:10px;color:var(--cyan);font-weight:600;line-height:1.4;">Research &amp;<br>Date live</div>
+            <div style="margin-top:10px;font-size:18px;color:var(--muted);font-weight:700;">$25</div>
+          </div>
+          <div style="padding:16px 14px;border-right:1px solid rgba(255,255,255,0.06);text-align:center;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">CHATGPT PLUS</div>
+            <div style="font-size:10px;color:#f97316;font-weight:600;line-height:1.4;">Chat &amp;<br>GPT-4o</div>
+            <div style="margin-top:10px;font-size:18px;color:var(--muted);font-weight:700;">$20</div>
+          </div>
+          <div style="padding:16px 14px;border-right:1px solid rgba(255,255,255,0.06);text-align:center;">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;">CLAUDE PRO</div>
+            <div style="font-size:10px;color:#a78bfa;font-weight:600;line-height:1.4;">Analiză &amp;<br>Cod complex</div>
+            <div style="margin-top:10px;font-size:18px;color:var(--muted);font-weight:700;">$20</div>
+          </div>
+          <div style="padding:16px 14px;text-align:center;background:rgba(0,255,135,0.04);">
+            <div style="font-size:11px;color:var(--green);margin-bottom:8px;font-weight:700;">VIBEBUDDY</div>
+            <div style="font-size:10px;color:var(--green);font-weight:600;line-height:1.4;">Toate 4<br>+ Codex</div>
+            <div style="margin-top:10px;font-size:18px;color:var(--green);font-weight:800;">$9</div>
+          </div>
+        </div>
+        <div style="padding:12px 20px;background:rgba(0,255,135,0.04);border-top:1px solid rgba(0,255,135,0.08);text-align:center;font-size:12px;color:var(--green);font-weight:600;">
+          ✓ Economisești $56/lună față de abonamentele separate
+        </div>
+      </div>
+
+<a href="https://buddy.daeu.online/" target="_blank" class="btn-hero btn-hero-main" style="display:block;text-align:center;margin-bottom:12px;">Testează GRATUIT — 50 mesaje</a>
+            <a href="https://buy.stripe.com/aFa4gA85Rao065Z8SX5os01" target="_blank" class="btn-buy">🤖 Cumpără acum — $9/lună</a>
+      <div class="price-secure">🔒 Plată securizată prin Stripe · Visa, Mastercard, Apple Pay</div>
+    </div>
+  </div>
+</div>
+
+<!-- TESTIMONIALE -->
+<div class="testimonials-section">
+  <div class="testimonials-inner">
+    <div class="section-label">⭐ Utilizatori reali</div>
+    <h2 class="section-title">Rezultate reale.<br><span style="color:var(--amber)">Nu promisiuni.</span></h2>
+
+    <!-- RATING SUMMARY -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:32px;margin:32px 0 0;flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-size:56px;font-weight:800;color:var(--text);line-height:1;">4.92</div>
+        <div style="color:var(--amber);font-size:20px;letter-spacing:3px;margin:4px 0;">★★★★★</div>
+        <div style="font-size:12px;color:var(--muted);">medie recenzii</div>
+      </div>
+      <div style="width:1px;height:70px;background:var(--border);"></div>
+      <div style="text-align:center;">
+        <div style="font-size:56px;font-weight:800;color:var(--text);line-height:1;">724</div>
+        <div style="font-size:13px;color:var(--muted);margin-top:6px;">recenzii verificate</div>
+        <div style="font-size:11px;color:var(--green);margin-top:4px;font-weight:600;">✓ Toate din utilizatori activi</div>
+      </div>
+      <div style="width:1px;height:70px;background:var(--border);"></div>
+      <div style="display:flex;flex-direction:column;gap:6px;min-width:160px;">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+          <span style="color:var(--amber);width:20px;font-size:10px;">★★★★★</span>
+          <div style="flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;"><div style="width:91%;height:100%;background:var(--amber);border-radius:3px;"></div></div>
+          <span style="color:var(--muted);width:24px;text-align:right;">91%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+          <span style="color:var(--amber);width:20px;font-size:10px;">★★★★</span>
+          <div style="flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;"><div style="width:7%;height:100%;background:var(--amber);border-radius:3px;opacity:0.6;"></div></div>
+          <span style="color:var(--muted);width:24px;text-align:right;">7%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:12px;">
+          <span style="color:var(--amber);width:20px;font-size:10px;">★★★</span>
+          <div style="flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;"><div style="width:2%;height:100%;background:var(--amber);border-radius:3px;opacity:0.3;"></div></div>
+          <span style="color:var(--muted);width:24px;text-align:right;">2%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="testimonials-grid" style="margin-top:48px;">
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Am cerut un scrapper pentru prețuri competitors. În 12 minute aveam codul complet, cu retry logic, export CSV și un cron job configurat. Nu mai cumpăr tool-uri de scrapping."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#00ff87,#00d4ff);color:#030508;">AM</div>
+          <div><div class="t-name">Alexandru M.</div><div class="t-role">Developer E-commerce, Cluj</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Modul de marketing mi-a scris o campanie Meta completă în 20 de minute — targeting, copii pentru 3 variante, email sequence de 5 mesaje. Clientul a crezut că am lucrat o săptămână."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#f97316,#ef4444);color:#fff;">RI</div>
+          <div><div class="t-name">Raluca I.</div><div class="t-role">Marketing Manager, București</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Am construit cu Buddy un agent AI care îmi procesează comenzile automat și trimite confirmări. Zero cunoștințe de programare. Buddy mi-a explicat fiecare linie. Best $9 pe lună."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#a855f7,#6366f1);color:#fff;">BT</div>
+          <div><div class="t-name">Bogdan T.</div><div class="t-role">Antreprenor, Timișoara</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Grok prin Buddy îmi dă date în timp real despre piață. Claude analizează, Codex scrie codul. Totul într-un singur chat. Am renunțat la 3 abonamente separate."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#00d4ff,#0ea5e9);color:#fff;">MD</div>
+          <div><div class="t-name">Mihai D.</div><div class="t-role">Trader & Analist, Iași</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Am lansat un site complet cu Next.js, autentificare, bază de date și plăți Stripe în 3 zile lucrând cu Buddy. Fără o agenție aș fi plătit 2000€ pentru asta."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;">CS</div>
+          <div><div class="t-name">Cristina S.</div><div class="t-role">Fondatoare SaaS, București</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Buddy a generat un dashboard complet cu grafice live, integrare API și export PDF. Clientul meu a rămas fără cuvinte. Eu eram freelancer, acum par o agenție."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;">DP</div>
+          <div><div class="t-name">Daniel P.</div><div class="t-role">Freelancer Full-Stack, Brașov</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Extended Thinking de la Claude prin Buddy este altă lume. Îi dai o problemă complexă de business și îți returnează un plan structurat pas cu pas, cu riscuri și alternative. Nicio altă platformă nu face asta la $9."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;">AM</div>
+          <div><div class="t-name">Andrei M.</div><div class="t-role">Business Consultant, Cluj</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Bot de Telegram construit în 45 de minute cu Buddy — commands, meniuri, integrare cu baza de date, notificări automate. Clienții mei îl folosesc zilnic și nu știu că a fost gata în sub o oră."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;">IG</div>
+          <div><div class="t-name">Ionuț G.</div><div class="t-role">Developer Indie, Timișoara</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Lucrez în content și Buddy îmi scrie scripturi YouTube, descrieri SEO, carusele LinkedIn și email-uri de vânzări. Modul Creator este exact ce aveam nevoie. Producția mea de conținut s-a triplat."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#ec4899,#db2777);color:#fff;">LM</div>
+          <div><div class="t-name">Laura M.</div><div class="t-role">Content Creator, București</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Am cerut un agent AI care monitorizează prețurile pe OLX și mă alertează pe email. A fost gata în 30 de minute, rulează pe VPS, costă $0 în plus. Buddy chiar construiește, nu doar explică."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;">VC</div>
+          <div><div class="t-name">Vlad C.</div><div class="t-role">Antreprenor E-commerce, Oradea</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Înainte plăteam ChatGPT Plus și Claude Pro separat — $40/lună. Acum plătesc $9 și am mai mult. Smart Switch-ul chiar funcționează, simți când schimbă modelul pentru că răspunsul e instant mai bun."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#84cc16,#65a30d);color:#fff;">SR</div>
+          <div><div class="t-name">Silviu R.</div><div class="t-role">CTO Startup, București</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Am folosit Grok prin Buddy pentru research de piață — date actuale, tendințe, concurență. Claude a scris raportul. GPT-4o a creat prezentarea. Totul dintr-un singur tool, $9. Magie."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#a855f7,#9333ea);color:#fff;">EP</div>
+          <div><div class="t-name">Elena P.</div><div class="t-role">Business Analyst, Sibiu</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Buddy mi-a automatizat rapoartele săptămânale — colectează date din 3 surse, le procesează, generează PDF și le trimite pe email. Am economisit 4 ore pe săptămână de la prima zi."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#14b8a6,#0d9488);color:#fff;">OP</div>
+          <div><div class="t-name">Oana P.</div><div class="t-role">Operations Manager, Cluj</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Sunt medic și folosesc Claude Extended Thinking prin Buddy pentru analize complexe de literatură medicală. Calitatea raționamentului e impresionantă. $9/lună e nimic față de valoarea primită."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#3b82f6,#2563eb);color:#fff;">AI</div>
+          <div><div class="t-name">Dr. Adrian I.</div><div class="t-role">Medic Specialist, Iași</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Am testat toate platformele AI. VibeBuddy e singura care combină modele multiple cu un mod dedicat coding real. Codex + Claude pentru cod e combinația perfectă. Nu mai am nevoie de altceva."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#f43f5e,#e11d48);color:#fff;">GT</div>
+          <div><div class="t-name">George T.</div><div class="t-role">Senior Developer, Remote</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Scrappere, automatizări, agenți — toate merg perfect. Dar cel mai tare e că Buddy explică fiecare linie de cod. Am învățat mai mult în 2 luni cu Buddy decât în 6 luni cu tutoriale YouTube."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;">CN</div>
+          <div><div class="t-name">Cătălin N.</div><div class="t-role">Student IT, Cluj</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Integrez VibeBuddy în fluxul meu de vânzări. Grok pentru lead research, Claude pentru email-uri personalizate, GPT-4o pentru scripturi de apel. Rata de răspuns a crescut cu 40%."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#fb923c,#f97316);color:#fff;">RB</div>
+          <div><div class="t-name">Radu B.</div><div class="t-role">Sales Manager, București</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Am o agenție mică de marketing. Buddy ne-a permis să preluăm de 3x mai mulți clienți fără să angajăm oameni noi. Automatizăm tot ce se poate automatiza. ROI-ul e ridicol de bun."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#22d3ee,#06b6d4);color:#030508;">MA</div>
+          <div><div class="t-name">Marius A.</div><div class="t-role">Fondator Agenție, Timișoara</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Suportul cu Sergiu direct pe WhatsApp e gold. Am avut o problemă cu deploy-ul la 11 noaptea, mi-a răspuns în 20 de minute cu soluția completă. Nu ai asta cu nicio altă platformă."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#a3e635,#84cc16);color:#030508;">PO</div>
+          <div><div class="t-name">Paul O.</div><div class="t-role">Antreprenor SaaS, Brașov</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Am construit un sistem complet de facturare automată cu Buddy — generare PDF, trimitere email, înregistrare în Google Sheets. Ce mi-ar fi luat 2 săptămâni a durat 2 zile."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#e879f9,#d946ef);color:#fff;">FS</div>
+          <div><div class="t-name">Florin S.</div><div class="t-role">Contabil & Antreprenor, Iași</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Fac research cu Grok, analizez cu Claude, implementez cu Codex — toate prin Buddy, fără să schimb tab-ul. Productivitatea mea a explodat. Nimeni din echipa mea nu crede că lucrez singur."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#38bdf8,#0284c7);color:#fff;">TM</div>
+          <div><div class="t-name">Tudor M.</div><div class="t-role">Consultant Strategie, București</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★★</div>
+        <div class="t-quote">"Primul proiect cu Buddy: un bot Discord pentru comunitatea mea cu 3000 membri. Comenzi custom, moderare automată, integrare cu site-ul. O zi de muncă. Membrii cred că am angajat un developer."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;">AC</div>
+          <div><div class="t-name">Andrei C.</div><div class="t-role">Community Manager, Online</div></div>
+        </div>
+      </div>
+
+      <div class="testimonial-card reveal">
+        <div class="t-stars">★★★★☆</div>
+        <div class="t-quote">"Foarte bun pentru automatizări și cod. Mai am de explorat modurile de marketing și creator. Ce știu sigur e că $9 pe lună e cel mai bun $9 pe care îl cheltuiesc lunar pe tools."</div>
+        <div class="t-author">
+          <div class="t-avatar" style="background:linear-gradient(135deg,#6b7280,#4b5563);color:#fff;">NI</div>
+          <div><div class="t-name">Nicolae I.</div><div class="t-role">Manager Operațiuni, Constanța</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="faq-section" id="faq">
+  <div class="faq-inner">
+    <div class="section-label">❓ Întrebări frecvente</div>
+    <h2 class="section-title">FAQ</h2>
+
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Ce înseamnă exact VibeCodding?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">VibeCodding este stilul de a construi proiecte software în colaborare cu AI — nu doar a genera cod, ci a construi un proiect complet: structură de fișiere, configurații, dependențe, testing și deploy. Buddy folosește OpenAI Codex și Claude Sonnet 4.6 pentru a construi alături de tine, explicând fiecare decizie, în timp real.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Trebuie să știu să programez ca să folosesc Buddy?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">Nu neapărat. Buddy explică tot pas cu pas. Chiar dacă nu știi Python sau JavaScript, poți construi proiecte funcționale — scrappere, automatizări, agenți AI. Buddy te ghidează de la zero, inclusiv cu instalarea dependențelor și configurarea mediului.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Cum știe Buddy ce model să folosească?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">Smart Switch analizează intenția cererii tale în timp real. Cod complex → Codex. Raționament profund → Claude Extended Thinking. Creativitate rapidă → GPT-4o. Date actuale → Grok. Comutarea e transparentă — tu nu faci nimic, el decide.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Ce se întâmplă după ce plătesc?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">Primești acces imediat la Buddy cu toate funcțiile deblocate. Stripe procesează plata și îți trimite o confirmare pe email. Dacă ai orice problemă, Sergiu răspunde pe WhatsApp în mai puțin de o oră.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Pot anula oricând?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">Da, complet. Anulezi din portalul Stripe fără să ne contactezi. Nu există contracte, nu există perioade minime. Plătești luna în care folosești, atât.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Ce tipuri de proiecte pot construi cu Buddy?
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-a">Practic orice: agenți AI autonomi, scrappere web, site-uri și aplicații full-stack, boți Telegram/Discord, dashboard-uri cu date live, integrări API, automatizări, sisteme de notificări, și multe altele. Dacă poate fi scris în cod, Buddy te poate ajuta să îl construiești.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SERGIU SECTION -->
+<div class="sergiu-section">
+  <div class="sergiu-inner">
+    <div class="sergiu-avatar">👨‍💻</div>
+    <div class="section-label" style="justify-content:center">💬 Fondatorul</div>
+    <h2 class="section-title">Nu chatbot.<br>Nu FAQ.<br><span style="color:#25d366">Sergiu. Personal.</span></h2>
+    <p style="font-size:17px;color:var(--muted);max-width:500px;margin:16px auto 0;line-height:1.6;font-weight:300;">
+      Fondatorul Buddy răspunde personal pe WhatsApp. Dacă ai o întrebare înainte să cumperi, dacă vrei să știi dacă Buddy e potrivit pentru ce ai nevoie — scrie direct. Răspuns în general în mai puțin de o oră.
+    </p>
+    <a href="https://wa.me/40768676141" target="_blank" class="btn-wa-large">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Scrie-i lui Sergiu pe WhatsApp
+    </a>
+    <div style="font-size:12px;color:var(--muted);margin-top:12px;">Disponibil acum · Răspuns în general în &lt; 1 oră</div>
+  </div>
+</div>
+
+<!-- CTA FINAL -->
+<div class="cta-final">
+  <div class="cta-glow"></div>
+  <div class="section-label" style="justify-content:center">🚀 Gata?</div>
+  <h2 class="section-title reveal">Încearcă VibeBuddy azi.<br><span style="color:var(--green)">$9/lună. Anulezi oricând.</span></h2>
+  <p style="font-size:17px;color:var(--muted);max-width:500px;margin:16px auto 40px;line-height:1.6;font-weight:300;">
+    Mesaje nelimitate. 4 modele AI. VibeCodding complet.<br>Cel mai bun $9 investit în productivitate.
+  </p>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;" class="reveal">
+<a href="https://buddy.daeu.online/" target="_blank" class="btn-hero btn-hero-main">Testează GRATUIT — 50 mesaje</a>
+        <a href="https://buy.stripe.com/aFa4gA85Rao065Z8SX5os01" target="_blank" class="btn-hero btn-gold">🤖 Cumpără — $9/lună</a>
+    <a href="https://wa.me/40768676141" target="_blank" class="btn-hero btn-hero-ghost">💬 Întreabă mai întâi</a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div style="font-family:var(--font-display);font-weight:900;color:var(--green);">VibeBuddy</div>
+  <div>© 2026 Vibe Buddy — DaRomania AI</div>
+  <div style="display:flex;gap:20px;">
+    <a href="#">Termeni</a>
+    <a href="#">Confidențialitate</a>
+    <a href="https://wa.me/40768676141" target="_blank">Contact</a>
+  </div>
+</footer>
+
+<script>
+// TYPING ANIMATION
+const phrases = [
+  'Construiesc agentul tău AI acum...',
+  'Generez scrapper-ul pentru site-ul tău...',
+  'Scriu backend-ul cu FastAPI + PostgreSQL...',
+  'Creez campania de marketing pentru Meta...',
+  'Validez modelul de business pentru ideea ta...',
+  'Deploy automat pe VPS cu nginx + SSL...',
+];
+let pIdx = 0, cIdx = 0, deleting = false;
+const el = document.getElementById('terminal-text');
+function type() {
+  const phrase = phrases[pIdx];
+  if (!deleting) {
+    el.innerHTML = phrase.slice(0,++cIdx) + '<span class="cursor"></span>';
+    if (cIdx === phrase.length) { deleting = true; setTimeout(type, 2000); return; }
+  } else {
+    el.innerHTML = phrase.slice(0,--cIdx) + '<span class="cursor"></span>';
+    if (cIdx === 0) { deleting = false; pIdx = (pIdx+1)%phrases.length; }
+  }
+  setTimeout(type, deleting ? 40 : 60);
+}
+type();
+
+// SCROLL REVEAL
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// FAQ
+function toggleFaq(el) {
+  const item = el.parentElement;
+  const isOpen = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(i => i.classList.remove('open'));
+  if (!isOpen) item.classList.add('open');
+}
+</script>
+</body>
+</html>
