@@ -276,6 +276,8 @@ body.mode-marketing #buddy-name{letter-spacing:.04em;}
 .qa-tab-marketing.active,.qa-tab-marketing:hover{border-color:#f97316;color:#f97316;background:rgba(249,115,22,.1);}
 .qa-tab-sidehustle.active,.qa-tab-sidehustle:hover{border-color:#ff6b6b;color:#ff6b6b;background:rgba(255,107,107,.1);}
 .qa-tab-chat.active,.qa-tab-chat:hover{border-color:#a855f7;color:#a855f7;background:rgba(168,85,247,.1);}
+.qa-tab-creator.active,.qa-tab-creator:hover{border-color:#3b82f6;color:#3b82f6;background:rgba(59,130,246,.1);}
+.qa-creator{border-color:#3b82f6!important;color:#3b82f6!important;}
 .qa-cat{display:none;gap:6px;padding:4px 8px 6px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;}
 .qa-cat::-webkit-scrollbar{display:none;}
 .qa-cat.active{display:flex;}
@@ -397,6 +399,7 @@ body.mode-marketing #send-btn{color:#fff;}
       <button class="qa-tab qa-tab-marketing" onclick="togglePopup('marketing','🔵 Marketing')">🔵 Marketing</button>
       <button class="qa-tab qa-tab-sidehustle" onclick="togglePopup('sidehustle','🔴 Side Hustle')">🔴 Hustle</button>
       <button class="qa-tab qa-tab-chat" onclick="togglePopup('chat','💬 Brainstorming')">💬 Idei</button>
+      <button class="qa-tab qa-tab-creator" onclick="togglePopup('creator','🔵 Creator Mode')">🔵 Creator</button>
     </div>
     <!-- POPUP -->
     <div id="qa-overlay" onclick="closePopup()"></div>
@@ -636,32 +639,54 @@ async function sendMessage() {
 
 const QA_DATA = {
   coding: { color:'#22d3a0', btns:[
-    ['🤖 Instalează Agent AI','Vreau sa instalez un agent AI'],
-    ['🖥️ Setup VPS Ubuntu','Configureaza-mi VPS-ul Ubuntu de la zero'],
-    ['⚡ Automatizez cu AI','Vreau sa automatizez un proces cu AI pe VPS'],
-    ['🐛 Debug Eroare Server','Am o eroare pe server, ajuta-ma sa o rezolv'],
-    ['🔒 Nginx + SSL','Configureaza nginx si SSL pentru domeniul meu']
+    ['🤖 Instalează Agent AI','Vreau sa instalez un agent AI pe VPS-ul meu'],
+    ['🖥️ Setup VPS Ubuntu','Configureaza-mi VPS-ul Ubuntu 24 de la zero complet'],
+    ['⚡ Automatizez proces','Vreau sa automatizez un proces repetitiv cu AI pe VPS'],
+    ['🐛 Debug eroare server','Am o eroare pe server, ajuta-ma sa o rezolv pas cu pas'],
+    ['🔒 Nginx + SSL domeniu','Configureaza nginx si SSL pentru domeniul meu'],
+    ['📦 Deploy aplicatie Node','Vreau sa deploy-ez o aplicatie Node.js cu PM2 pe VPS'],
+    ['🔗 Conectez API la backend','Ajuta-ma sa conectez un API extern la backend-ul meu'],
+    ['🗄️ Setup Supabase + Node','Configureaza Supabase cu Node.js pentru proiectul meu']
   ]},
   marketing: { color:'#f97316', btns:[
-    ['📊 Strategie Marketing','Fa-mi o strategie completa de marketing cu AI'],
-    ['✍️ Prompts Social Media','Scrie-mi 10 prompturi AI gata de folosit pentru social media'],
-    ['💰 Funnel Vanzari','Construieste-mi un funnel de vanzari complet cu AI'],
-    ['🔍 SEO cu AI','Fa-mi o strategie SEO cu AI pentru site-ul meu'],
-    ['📧 Email Sequence','Scrie-mi o secventa de 7 emailuri de vanzare']
+    ['📊 Strategie marketing AI','Fa-mi o strategie completa de marketing cu AI pentru business-ul meu'],
+    ['✍️ Prompts social media','Scrie-mi 10 prompturi AI gata de folosit pentru social media'],
+    ['💰 Funnel vanzari complet','Construieste-mi un funnel de vanzari complet cu AI pas cu pas'],
+    ['🔍 Strategie SEO cu AI','Fa-mi o strategie SEO completa cu AI pentru site-ul meu'],
+    ['📧 Secventa 7 emailuri','Scrie-mi o secventa de 7 emailuri de vanzare gata de trimis'],
+    ['📱 Plan content LinkedIn','Fa-mi un plan de continut pentru LinkedIn pentru 30 de zile'],
+    ['🎯 Campanie Google Ads','Ajuta-ma sa creez o campanie Google Ads cu AI pentru produsul meu'],
+    ['🤖 Agent marketing automat','Cum construiesc un agent AI care posteaza automat pe social media']
   ]},
   sidehustle: { color:'#ff6b6b', btns:[
-    ['🔴 Top 100 Hustle','Vreau sa incep un side hustle din top 100 cu AI'],
-    ['💼 Meseria spre Business','Ce meserie am si cum o transform in business cu AI'],
-    ['💶 1000 euro pe luna','Cum fac 1000 euro pe luna cu AI in 30 de zile'],
-    ['🚀 Micro SaaS','Top 5 idei de SaaS micro pe care le pot lansa cu AI'],
-    ['👥 Monetizez Comunitate','Cum monetizez o comunitate online cu AI']
+    ['🔴 Top 100 Side Hustle','Vreau sa incep un side hustle din top 100 cu AI, da-mi cel mai potrivit'],
+    ['💼 Meseria mea spre business','Ce meserie am si cum o transform in business cu AI in 30 de zile'],
+    ['💶 1000 euro luna cu AI','Cum fac primii 1000 euro pe luna cu AI, da-mi planul exact'],
+    ['🚀 Lansez Micro SaaS','Vreau sa lansez un Micro SaaS, da-mi ideea si stack-ul complet'],
+    ['👥 Monetizez comunitate','Cum monetizez o comunitate online cu AI si ce tools folosesc'],
+    ['🛒 Vand pe Etsy cu AI','Ce produse digitale pot vinde pe Etsy generate cu AI'],
+    ['📚 Lansez curs online','Cum lansez un curs online cu AI in 2 saptamani de la zero'],
+    ['🎬 Canal YouTube cu AI','Cum construiesc un canal YouTube automatizat cu AI care face bani']
   ]},
   chat: { color:'#a855f7', btns:[
-    ['🧠 Business RO 2025','Fa-mi un brainstorming de 10 idei de business pentru Romania'],
-    ['🛒 Produse Etsy','Ce produse digitale pot vinde pe Etsy cu AI'],
-    ['⭐ Brand Personal','Cum construiesc un brand personal cu AI in 90 de zile'],
-    ['🤝 AI Agents Stack','Ce agenti AI pot folosi sa lucrez mai putin si castig mai mult'],
-    ['📅 Launch 30 zile','Fa-mi un plan sa lansez un produs digital in 30 de zile']
+    ['🧠 Brainstorming business RO','Fa-mi un brainstorming de 10 idei de business pentru Romania in 2025'],
+    ['⭐ Brand personal 90 zile','Cum construiesc un brand personal puternic cu AI in 90 de zile'],
+    ['🤝 AI Agents Stack complet','Ce agenti AI pot folosi sa lucrez mai putin si sa castig mai mult'],
+    ['📅 Plan lansare 30 zile','Fa-mi un plan complet sa lansez un produs digital in 30 de zile'],
+    ['💡 Idee validata de business','Ajuta-ma sa validez o idee de business inainte sa investesc timp'],
+    ['📈 Scalez de la 0 la 5000 euro','Cum scalez un business de la zero la 5000 euro pe luna cu AI'],
+    ['🎯 Nisa profitabila 2025','Care sunt cele mai profitabile nise pentru un business AI in 2025'],
+    ['🔄 Automatizez tot business-ul','Cum automatizez 85% din business-ul meu cu AI si ce tools folosesc']
+  ]},
+  creator: { color:'#3b82f6', btns:[
+    ['🚀 Lansez SaaS cu API-uri','Vreau sa lansez un SaaS cu API-uri gratuite, da-mi stack-ul complet'],
+    ['💡 Business din API gratuite','Cum construiesc un business din API-uri gratuite cu cost zero lunar'],
+    ['📦 Produs digital de la zero','Fa-mi planul complet pentru un produs digital de la zero la primul client'],
+    ['🔌 Combin API-uri gratis','Ce API-uri gratuite pot combina sa fac un tool vandabil si util'],
+    ['💰 Creator Economy Romania','Cum devin creator si fac bani din continut cu AI in Romania in 2025'],
+    ['🤖 Agent AI pentru clienti','Cum construiesc si vand un agent AI custom pentru clienti business'],
+    ['📊 Dashboard SaaS cu Supabase','Ajuta-ma sa construiesc un dashboard SaaS cu Supabase si React'],
+    ['🏭 AI Content Factory','Cum construiesc o AI Content Factory care genereaza continut automat']
   ]}
 };
 let activePopupCat = null;
