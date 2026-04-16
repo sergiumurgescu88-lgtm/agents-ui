@@ -205,7 +205,7 @@ app.post('/api/chat', async (req, res) => {
     const lastMsg = messages[messages.length-1]?.content || '';
     const lower = lastMsg.toLowerCase();
     let mode = 'chat', agent = 'Buddy', intent = 'GENERAL';
-    if (/error|fix|debug|server|vps|nginx|pm2|deploy|docker|node|bash|terminal|cod|instal/i.test(lower)) { mode='coding'; agent='OpenClaw'; intent='EXECUTOR'; }
+    if (/error|fix|debug|server|vps|nginx|pm2|deploy|docker|node|bash|terminal|cod|instal|python|flask|django|fastapi|script|programar|site|html|css|javascript|php|sql|database|api|git|linux/i.test(lower)) { mode='coding'; agent='OpenClaw'; intent='EXECUTOR'; }
     else if (/marketing|content|prompts?|copywriting|social media|funnel|email|seo|ads/i.test(lower)) { mode='marketing'; agent='Paperclip'; intent='MARKETING'; }
     else if (/side.?hustle|hustle|pasiv|venit|income|top 100|bani|câștig/i.test(lower)) { mode='sidehustle'; agent='Hermes'; intent='EXPLORATOR'; }
     else if (/business|automatiz|ai agent|openclaw|nemo|hermes|paperclip|saas|startup/i.test(lower)) { mode='business'; agent='Paperclip'; intent='VALIDATOR'; }

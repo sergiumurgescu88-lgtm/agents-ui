@@ -364,8 +364,6 @@ body.mode-marketing #send-btn{color:#fff;}
 /* scrollbar */
 #messages::-webkit-scrollbar{width:3px;}
 #messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-.btn-funnel{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-size:13px;font-weight:600;transition:all .2s;margin-left:auto;}
-.btn-funnel:hover{background:var(--accent2);transform:scale(1.05);}
 </style>
 </head>
 <body class="mode-chat">
@@ -397,7 +395,6 @@ body.mode-marketing #send-btn{color:#fff;}
       </div>
       <button id="btn-export" onclick="exportChat()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;">💾</button>
       <button id="btn-close" onclick="window.close()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;">✕</button>
-      <a href="https://ssociety.eu/" target="_blank" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center;">📊</a>
     </div>
     <!-- RAND 2: Butoane premium - scroll orizontal pe mobile, flex-wrap pe desktop -->
     <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">
@@ -854,7 +851,7 @@ function showToast(msg) {
   setTimeout(() => t.remove(), 4000);
 }
 
-function quickSend(text) { closePopup(); inputEl.value = text; sendMessage(); }
+function quickSend(text) { inputEl.value = text; sendMessage(); }
 
 // ── Input auto-resize
 inputEl.addEventListener('input', function() {
