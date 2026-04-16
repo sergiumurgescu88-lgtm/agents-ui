@@ -24,12 +24,39 @@ const checkLimit = (uid) => {
 };
 const incUsage = (uid) => { usageMap[uid] = (usageMap[uid]||0)+1; saveUsage(); };
 
-async function callAI(messages, system) {
+async function callAI(messages, system, mode='chat') {
   const msgs = messages.map(m => ({ role: m.role==='model'?'assistant':m.role, content: String(m.content||m.text||'') })).filter(m=>m.content);
-  
-  // CLAUDE PRIMARY
+  const allMsgs = system ? [{role:'system',content:system},...msgs] : msgs;
+
+  // 🟢 CODING → OpenAI GPT-4o (cel mai bun la cod)
+  if (mode === 'coding') {
+    try {
+      console.log('[AI] CODING → OpenAI gpt-4o...');
+      const r = await axios.post('https://api.openai.com/v1/chat/completions',
+        { model:'gpt-4o', messages:allMsgs, max_tokens:2000 },
+        { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
+      );
+      const reply = r.data?.choices?.[0]?.message?.content;
+      if (reply) { console.log('[AI] OpenAI gpt-4o OK'); return reply; }
+    } catch(e) { console.error('[AI] OpenAI failed:', e.response?.data?.error?.message || e.message); }
+  }
+
+  // 🔵 MARKETING → xAI Grok (cel mai creativ)
+  if (mode === 'marketing') {
+    try {
+      console.log('[AI] MARKETING → xAI Grok...');
+      const r = await axios.post('https://api.x.ai/v1/chat/completions',
+        { model:'grok-3', messages:allMsgs, max_tokens:2000 },
+        { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.XAI_API_KEY}` }, timeout:30000 }
+      );
+      const reply = r.data?.choices?.[0]?.message?.content;
+      if (reply) { console.log('[AI] xAI Grok OK'); return reply; }
+    } catch(e) { console.error('[AI] xAI failed:', e.response?.data?.error?.message || e.message); }
+  }
+
+  // 💬 CHAT/SIDEHUSTLE/CREATOR → Claude (cel mai inteligent conversational)
   try {
-    console.log('[AI] Trying Claude haiku...');
+    console.log('[AI] CHAT → Claude haiku...');
     const r = await axios.post('https://api.anthropic.com/v1/messages',
       { model:'claude-haiku-4-5-20251001', max_tokens:2000, system: system||undefined, messages: msgs },
       { headers:{ 'Content-Type':'application/json', 'x-api-key':process.env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' }, timeout:30000 }
@@ -38,17 +65,26 @@ async function callAI(messages, system) {
     if (reply) { console.log('[AI] Claude OK'); return reply; }
   } catch(e) { console.error('[AI] Claude failed:', e.response?.data?.error?.message || e.message); }
 
-  // OPENAI FALLBACK
+  // FALLBACK UNIVERSAL → OpenAI gpt-4o-mini
   try {
-    console.log('[AI] Trying OpenAI gpt-4o-mini...');
-    const allMsgs = system ? [{role:'system',content:system},...msgs] : msgs;
+    console.log('[AI] FALLBACK → OpenAI gpt-4o-mini...');
     const r = await axios.post('https://api.openai.com/v1/chat/completions',
       { model:'gpt-4o-mini', messages:allMsgs, max_tokens:2000 },
       { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
     );
     const reply = r.data?.choices?.[0]?.message?.content;
-    if (reply) { console.log('[AI] OpenAI OK'); return reply; }
-  } catch(e) { console.error('[AI] OpenAI failed:', e.response?.data?.error?.message || e.message); }
+    if (reply) { console.log('[AI] OpenAI fallback OK'); return reply; }
+  } catch(e) { console.error('[AI] OpenAI fallback failed:', e.message); }
+
+  // LAST RESORT → Claude opus
+  try {
+    const r = await axios.post('https://api.anthropic.com/v1/messages',
+      { model:'claude-opus-4-6', max_tokens:2000, system: system||undefined, messages: msgs },
+      { headers:{ 'Content-Type':'application/json', 'x-api-key':process.env.ANTHROPIC_API_KEY, 'anthropic-version':'2023-06-01' }, timeout:30000 }
+    );
+    const reply = r.data?.content?.[0]?.text;
+    if (reply) return reply;
+  } catch(e) {}
 
   return '⚠️ Toate modelele sunt indisponibile momentan.';
 }
@@ -148,7 +184,7 @@ app.post('/api/chat', async (req, res) => {
     else if (/side.?hustle|hustle|pasiv|venit|income|top 100|bani|câștig/i.test(lower)) { mode='sidehustle'; agent='Hermes'; intent='EXPLORATOR'; }
     else if (/business|automatiz|ai agent|openclaw|nemo|hermes|paperclip|saas|startup/i.test(lower)) { mode='business'; agent='Paperclip'; intent='VALIDATOR'; }
 
-    const reply = await callAI(messages, SYSTEM_PROMPT);
+    const reply = await callAI(messages, SYSTEM_PROMPT, mode);
     incUsage(uid);
     const newLimit = checkLimit(uid);
     res.json({ success:true, reply, text:reply, intent, mode, agent, jobContext:null, actionCount:newLimit.usage, remaining:newLimit.remaining, limitStatus:'ok' });
