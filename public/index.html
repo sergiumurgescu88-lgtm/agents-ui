@@ -365,22 +365,18 @@ body.mode-marketing #send-btn{color:#fff;}
         <span id="mode-label">CHAT MODE</span>
       </div>
     </div>
-    <div id="action-counter">
-      <div id="action-bar"><div id="action-fill" style="width:0%"></div></div>
-      <div id="action-text">0/50 gratuit</div>
+    <!-- COUNTER vizibil pe mobile -->
+    <div id="action-counter" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(255,255,255,0.05);border:1px solid #333;border-radius:8px;padding:4px 8px;min-width:52px">
+      <div id="action-text" style="font-size:12px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;">0/50</div>
+      <div style="font-size:8px;color:#666;white-space:nowrap">mesaje</div>
+      <div id="action-bar" style="width:44px;height:3px;background:#333;border-radius:3px;overflow:hidden;"><div id="action-fill" style="width:0%;height:100%;background:var(--accent);border-radius:3px;transition:width .4s,background .4s;"></div></div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-left:8px;background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.3);border-radius:10px;padding:5px 10px;flex-shrink:0">
-      <div style="font-size:9px;color:#d4a017;line-height:1.5;white-space:nowrap">
-        <span style="font-weight:800;color:#fbbf24">$9/lună</span> — acces complet<br>
-        🟢 Coding &nbsp;🔵 Marketing &nbsp;🔴 Hustle<br>
-        💬 Idei &nbsp;🔵 Creator &nbsp;• mesaje ∞
-      </div>
-      <button onclick="startCheckout()" style="flex-shrink:0;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:900;border:none;cursor:pointer;white-space:nowrap;text-align:center;box-shadow:0 2px 12px rgba(245,158,11,0.4)">
-        🤖 PREMIUM<br><span style="font-size:9px;font-weight:600">Activează acum</span>
-      </button>
-    </div>
-    <button id="btn-export" onclick="exportChat()" title="Salvează conversația" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 10px;font-size:13px;cursor:pointer;margin-left:6px;transition:all .2s" onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">💾</button>
-    <button id="btn-close" onclick="window.close()" title="Închide" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 10px;font-size:13px;cursor:pointer;margin-left:6px;transition:all .2s" onmouseover="this.style.borderColor='#ef4444';this.style.color='#ef4444'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">✕</button>
+    <!-- BUTON PREMIUM -->
+    <button onclick="startCheckout()" id="btn-premium" style="flex-shrink:0;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:900;border:none;cursor:pointer;white-space:nowrap;text-align:center;box-shadow:0 2px 12px rgba(245,158,11,0.5);line-height:1.3">
+      🤖 $9/lună<br><span style="font-size:9px;font-weight:600;opacity:.8">∞ mesaje</span>
+    </button>
+    <button id="btn-export" onclick="exportChat()" title="Salvează" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 8px;font-size:13px;cursor:pointer;margin-left:4px;flex-shrink:0" onmouseover="this.style.borderColor='#6366f1';this.style.color='#6366f1'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">💾</button>
+    <button id="btn-close" onclick="window.close()" title="Închide" style="background:none;border:1px solid #333;border-radius:8px;color:#aaa;padding:4px 8px;font-size:13px;cursor:pointer;margin-left:4px;flex-shrink:0" onmouseover="this.style.borderColor='#ef4444';this.style.color='#ef4444'" onmouseout="this.style.borderColor='#333';this.style.color='#aaa'">✕</button>
   </div>
 
   <!-- CTX BANNER -->
@@ -528,7 +524,7 @@ function updateActionUI(count) {
   const fill = document.getElementById('action-fill');
   fill.style.width = pct + '%';
   fill.style.background = count >= 9 ? 'var(--amber)' : count >= 7 ? 'var(--purple)' : 'var(--accent)';
-  document.getElementById('action-text').textContent = `${count}/50 gratuit`;
+  document.getElementById('action-text').textContent = `${count}/50`;
   saveState();
 }
 
@@ -651,54 +647,64 @@ async function sendMessage() {
 
 const QA_DATA = {
   coding: { color:'#22d3a0', btns:[
-    ['🤖 Instalează Agent AI','Vreau sa instalez un agent AI pe VPS-ul meu'],
-    ['🖥️ Setup VPS Ubuntu','Configureaza-mi VPS-ul Ubuntu 24 de la zero complet'],
-    ['⚡ Automatizez proces','Vreau sa automatizez un proces repetitiv cu AI pe VPS'],
-    ['🐛 Debug eroare server','Am o eroare pe server, ajuta-ma sa o rezolv pas cu pas'],
-    ['🔒 Nginx + SSL domeniu','Configureaza nginx si SSL pentru domeniul meu'],
-    ['📦 Deploy aplicatie Node','Vreau sa deploy-ez o aplicatie Node.js cu PM2 pe VPS'],
-    ['🔗 Conectez API la backend','Ajuta-ma sa conectez un API extern la backend-ul meu'],
-    ['🗄️ Setup Supabase + Node','Configureaza Supabase cu Node.js pentru proiectul meu']
+    ['🤖 Vreau un agent AI','Vreau sa am un agent AI personal care sa lucreze pentru mine. De unde incep?','OpenClaw VPS Setup'],
+    ['🌐 Vreau un site web','Ajuta-ma sa imi fac un site web simplu pas cu pas de la zero','React + Nginx + SSL Deploy'],
+    ['🎮 Fac primul meu joc','Vreau sa fac un joc simplu. Ce limbaj sa folosesc si cum incep?','Game Dev cu Python Pygame'],
+    ['📱 Fac o aplicatie','Vreau sa fac o aplicatie simpla. Cum incep daca nu stiu sa programez?','React Native / PWA Build'],
+    ['🐛 Am o eroare','Am o eroare si nu stiu ce inseamna. Ajuta-ma sa o rezolv','Debug Stack Trace + Fix'],
+    ['⚡ Automatizez ceva','Vreau sa automatizez un task plictisitor pe care il fac zilnic','Python Script + Cron Job VPS'],
+    ['📊 Fac un calculator','Vreau sa fac un calculator sau convertor simplu in Python','CLI Tool + Web App Deploy'],
+    ['🗄️ Salvez date','Vreau sa salvez date dintr-o aplicatie. Cum fac o baza de date simpla?','Supabase + PostgreSQL Schema'],
+    ['🕷️ Extrag date de pe net','Vreau sa extrag automat informatii de pe un site web','Web Scraping SaaS + API'],
+    ['📁 Organizez fisiere auto','Vreau sa imi organizeze automat fisierele si pozele de pe calculator','Python File Organizer Script']
   ]},
   marketing: { color:'#f97316', btns:[
-    ['📊 Strategie marketing AI','Fa-mi o strategie completa de marketing cu AI pentru business-ul meu'],
-    ['✍️ Prompts social media','Scrie-mi 10 prompturi AI gata de folosit pentru social media'],
-    ['💰 Funnel vanzari complet','Construieste-mi un funnel de vanzari complet cu AI pas cu pas'],
-    ['🔍 Strategie SEO cu AI','Fa-mi o strategie SEO completa cu AI pentru site-ul meu'],
-    ['📧 Secventa 7 emailuri','Scrie-mi o secventa de 7 emailuri de vanzare gata de trimis'],
-    ['📱 Plan content LinkedIn','Fa-mi un plan de continut pentru LinkedIn pentru 30 de zile'],
-    ['🎯 Campanie Google Ads','Ajuta-ma sa creez o campanie Google Ads cu AI pentru produsul meu'],
-    ['🤖 Agent marketing automat','Cum construiesc un agent AI care posteaza automat pe social media']
+    ['📣 Vreau mai multi clienti','Cum atrag mai multi clienti pentru afacerea mea fara sa cheltuiesc mult?','Lead Gen Funnel + CRM Auto'],
+    ['📱 Postez pe social media','Ajuta-ma sa postez constant pe Instagram Facebook TikTok fara sa pierd ore','Buffer API + AI Content Pipeline'],
+    ['📧 Trimit emailuri automat','Vreau sa trimit emailuri automat catre clientii mei. Cum fac asta gratuit?','Resend API + Drip Sequence'],
+    ['🔍 Apar pe Google','Cum fac sa apara site-ul meu in primele rezultate Google?','SEO Technical Audit + Schema'],
+    ['💰 Vand mai mult online','Cum imi cresc vanzarile online cu AI fara buget mare de reclame?','Conversion Rate Optimization'],
+    ['✍️ Scriu texte de vanzare','Ajuta-ma sa scriu texte convingatore pentru produsul sau serviciul meu','Copywriting Framework AIDA'],
+    ['🎯 Fac reclame pe Facebook','Cum fac o reclama pe Facebook care chiar functioneaza si aduce clienti?','Meta Ads + Pixel + Retargeting'],
+    ['📊 Inteleg datele mele','Am un business si nu inteleg ce imi spun cifrele. Ajuta-ma sa le analizez','GA4 + Mixpanel Analytics'],
+    ['🌐 Promovez pe YouTube','Cum incep un canal YouTube pentru afacerea mea si cum il cresc cu AI?','YouTube SEO + AI Content Factory'],
+    ['🤝 Gasesc parteneri','Cum gasesc parteneri sau colaboratori pentru afacerea mea online?','B2B Outreach + LinkedIn API']
   ]},
   sidehustle: { color:'#ff6b6b', btns:[
-    ['🔴 Top 100 Side Hustle','Vreau sa incep un side hustle din top 100 cu AI, da-mi cel mai potrivit'],
-    ['💼 Meseria mea spre business','Ce meserie am si cum o transform in business cu AI in 30 de zile'],
-    ['💶 1000 euro luna cu AI','Cum fac primii 1000 euro pe luna cu AI, da-mi planul exact'],
-    ['🚀 Lansez Micro SaaS','Vreau sa lansez un Micro SaaS, da-mi ideea si stack-ul complet'],
-    ['👥 Monetizez comunitate','Cum monetizez o comunitate online cu AI si ce tools folosesc'],
-    ['🛒 Vand pe Etsy cu AI','Ce produse digitale pot vinde pe Etsy generate cu AI'],
-    ['📚 Lansez curs online','Cum lansez un curs online cu AI in 2 saptamani de la zero'],
-    ['🎬 Canal YouTube cu AI','Cum construiesc un canal YouTube automatizat cu AI care face bani']
+    ['💶 Fac bani online','Cum pot face bani online cu AI? Da-mi ideea cea mai simpla pentru inceput','Digital Products + Gumroad'],
+    ['💼 Transform meseria in bani','Am o meserie sau un skill. Cum il transform in sursa de venit extra?','Productized Service + Retainer'],
+    ['🛒 Vand ceva pe net','Vreau sa vand ceva online. Ce pot vinde si cum incep fara investitie?','Etsy Digital + Shopify Store'],
+    ['📚 Fac un curs online','Stiu ceva bine si vreau sa fac un curs online. Cum incep de la zero?','Course Platform + Email Funnel'],
+    ['🎬 Fac bani pe YouTube','Cum fac un canal YouTube care sa aduca bani chiar daca nu am experienta?','YouTube Automation + AdSense'],
+    ['🤖 Inchiriez un agent AI','Cum pot sa ofer servicii de AI altor firme si sa fac bani din asta?','AI Agency + White Label SaaS'],
+    ['🏠 Lucrez de acasa','Vreau sa lucrez de acasa si sa fac bani. Care sunt cele mai bune optiuni?','Remote Freelance + Upwork Pro'],
+    ['🚀 Lansez o mica afacere','Vreau sa lansez o mica afacere. Ajuta-ma sa aleg ideea si sa incep','MVP Launch + Product Hunt'],
+    ['💳 Primul 1000 de euro','Cum fac primii 1000 de euro online? Da-mi un plan concret saptamana asta','Sprint Plan + Quick Wins'],
+    ['📖 Scriu o carte cu AI','Vreau sa scriu si sa vand o carte sau ghid online. Cum fac asta cu AI?','Ebook + Amazon KDP Publish']
   ]},
   chat: { color:'#a855f7', btns:[
-    ['🧠 Brainstorming business RO','Fa-mi un brainstorming de 10 idei de business pentru Romania in 2025'],
-    ['⭐ Brand personal 90 zile','Cum construiesc un brand personal puternic cu AI in 90 de zile'],
-    ['🤝 AI Agents Stack complet','Ce agenti AI pot folosi sa lucrez mai putin si sa castig mai mult'],
-    ['📅 Plan lansare 30 zile','Fa-mi un plan complet sa lansez un produs digital in 30 de zile'],
-    ['💡 Idee validata de business','Ajuta-ma sa validez o idee de business inainte sa investesc timp'],
-    ['📈 Scalez de la 0 la 5000 euro','Cum scalez un business de la zero la 5000 euro pe luna cu AI'],
-    ['🎯 Nisa profitabila 2025','Care sunt cele mai profitabile nise pentru un business AI in 2025'],
-    ['🔄 Automatizez tot business-ul','Cum automatizez 85% din business-ul meu cu AI si ce tools folosesc']
+    ['🧠 Idei de business','Da-mi 10 idei de business simple pe care le pot incepe saptamana asta','Market Research + Validation'],
+    ['❓ Ce sa fac cu viata mea','Am experienta dar nu stiu ce urmeaza. Ajuta-ma sa gasesc o directie','Career Pivot + AI Positioning'],
+    ['📋 Plan pentru 90 zile','Ajuta-ma sa fac un plan concret pentru urmatoarele 90 zile','OKR Framework + Daily Sprints'],
+    ['💡 Am o idee buna?','Am o idee de business. Crezi ca e buna? Analizeaz-o sincer','SWOT + TAM SAM SOM Analysis'],
+    ['🎯 Aleg o nisa','Nu stiu in ce domeniu sa ma lansez. Ajuta-ma sa aleg nisa potrivita','Niche Scoring + Competitor Gap'],
+    ['⭐ Devin cunoscut online','Cum devin cunoscut online si imi construiesc un nume in domeniul meu?','Personal Brand + Content Moat'],
+    ['😰 Mi-e frica sa incep','Vreau sa incep ceva dar mi-e frica. Cum depasesc frica de esec?','Risk Matrix + First Step Plan'],
+    ['💰 Stabilesc pretul corect','Nu stiu cat sa cer pe serviciile mele. Ajuta-ma sa stabilesc pretul','Value-Based Pricing Strategy'],
+    ['🔄 Schimb cariera','Am lucrat 20 de ani intr-un domeniu. Cum ma reprofilez cu AI?','Skills Transfer + AI Leverage'],
+    ['🚀 Incep azi','Vreau sa incep ceva chiar azi. Da-mi primul pas concret pe care il fac acum','Zero to MVP in 24h Plan']
   ]},
   creator: { color:'#3b82f6', btns:[
-    ['🚀 Lansez SaaS cu API-uri','Vreau sa lansez un SaaS cu API-uri gratuite, da-mi stack-ul complet'],
-    ['💡 Business din API gratuite','Cum construiesc un business din API-uri gratuite cu cost zero lunar'],
-    ['📦 Produs digital de la zero','Fa-mi planul complet pentru un produs digital de la zero la primul client'],
-    ['🔌 Combin API-uri gratis','Ce API-uri gratuite pot combina sa fac un tool vandabil si util'],
-    ['💰 Creator Economy Romania','Cum devin creator si fac bani din continut cu AI in Romania in 2025'],
-    ['🤖 Agent AI pentru clienti','Cum construiesc si vand un agent AI custom pentru clienti business'],
-    ['📊 Dashboard SaaS cu Supabase','Ajuta-ma sa construiesc un dashboard SaaS cu Supabase si React'],
-    ['🏭 AI Content Factory','Cum construiesc o AI Content Factory care genereaza continut automat']
+    ['⚡ Automatizez tot','Ce pot automatiza in viata sau business-ul meu ca sa am mai mult timp liber?','n8n + Zapier Full Automation'],
+    ['📧 Email-uri automate','Cum trimit email-uri automat fara sa scriu fiecare unul manual?','Resend + Sequences + Templates'],
+    ['📱 Postari automate','Cum postez automat pe toate retelele sociale fara sa stau zilnic la telefon?','Buffer API + AI Post Generator'],
+    ['🗂️ Organizez haosul','Ajuta-ma sa imi organizez fisierele emailurile si task-urile cu AI','Notion AI + File Organizer'],
+    ['💳 Facturi automate','Cum generez si trimit facturi automat catre clientii mei?','Stripe + Invoice Automation'],
+    ['🔔 Monitorizez afacerea','Cum stiu automat cand se intampla ceva important in business-ul meu?','KPI Dashboard + Alerts Bot'],
+    ['🎯 Gasesc clienti auto','Cum gasesc clienti noi automat fara sa stau eu sa caut zilnic?','Lead Scraper + Outreach Bot'],
+    ['📊 Rapoarte automate','Cum generez automat rapoarte lunare fara sa fac manual Excel?','Python + Supabase + PDF Report'],
+    ['🤖 Angajez un AI','Vreau sa am un AI care sa lucreze pentru mine 24 ore. Cum il configurez?','Hermes Agent + VPS 24/7'],
+    ['🔗 Conectez aplicatiile','Cum conectez toate aplicatiile pe care le folosesc sa lucreze impreuna?','Zapier + Make + Webhook Stack']
   ]}
 };
 let activePopupCat = null;
@@ -709,7 +715,7 @@ function togglePopup(cat, title) {
   document.getElementById('qa-popup-label').textContent = title;
   const btns = document.getElementById('qa-popup-btns');
   btns.innerHTML = data.btns.map(function(b) {
-    return '<button class="qa" style="border-color:'+data.color+';color:'+data.color+'" onclick="quickSend(this.dataset.msg)" data-msg="'+b[1]+'">'+b[0]+'</button>';
+    return '<button class="qa" style="border-color:'+data.color+';color:'+data.color+';flex-direction:column;align-items:flex-start;gap:1px;height:auto;padding:8px 12px" onclick="quickSend(this.dataset.msg)" data-msg="'+b[1]+'">'+b[0]+(b[2]?'<span style="font-size:9px;opacity:0.7;font-weight:500;color:#ccc">('+b[2]+')</span>':'')+'</button>';
   }).join('');
   document.getElementById('qa-popup').classList.add('open');
   document.getElementById('qa-overlay').classList.add('open');
