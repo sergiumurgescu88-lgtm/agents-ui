@@ -7,3 +7,4 @@ public/*.log
 .env
 node_modules/
 usage.json
+ecosystem.config.js
