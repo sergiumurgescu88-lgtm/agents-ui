@@ -484,6 +484,14 @@ body.mode-marketing #send-btn{color:#fff;}
 #kilo-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:16px;box-sizing:border-box;}
 #kilo-overlay.active{display:flex;}
 #kilo-window{width:min(1100px,92vw);height:85vh;background:#0d1117;border:2px solid #00ff87;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 80px rgba(0,255,135,0.25);}
+@media(max-width:600px){
+  #kilo-overlay{padding:0!important;}
+  #kilo-window{width:100vw!important;height:100dvh!important;border-radius:0!important;border:none!important;}
+  #kilo-xterm-container{-webkit-overflow-scrolling:touch;overflow-y:auto!important;}
+  #kilo-inject-input{font-size:16px!important;}
+  #kilo-titlebar{padding:8px 12px!important;}
+  .kilo-dot{width:16px!important;height:16px!important;}
+}
 #kilo-titlebar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d;user-select:none;}
 .kilo-dot{width:13px;height:13px;border-radius:50%;cursor:pointer;}
 .kilo-dot.r{background:#ff5f57;}.kilo-dot.y{background:#febc2e;}.kilo-dot.g{background:#28c840;}
@@ -968,32 +976,61 @@ async function startVoice() {
   const statusEl = document.getElementById('voice-status');
   const transcriptEl = document.getElementById('voice-transcript');
   const voiceBtn = document.getElementById('voice-btn');
-
   overlay.style.display = 'flex';
   voiceBtn.style.borderColor = '#ef4444';
   voiceBtn.style.color = '#ef4444';
   _voiceActive = true;
   transcriptEl.textContent = '';
 
-  // Waveform
-  try {
-    _voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    _voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    _voiceAnalyser = _voiceAudioCtx.createAnalyser();
-    _voiceAnalyser.fftSize = 64;
-    const src = _voiceAudioCtx.createMediaStreamSource(_voiceStream);
-    src.connect(_voiceAnalyser);
-    drawWaveform();
-  } catch(e) { console.warn('Mic access denied', e); }
-
-  // Speech Recognition
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { statusEl.textContent = '❌ Browser incompatibil'; return; }
+  if (!SR) {
+    statusEl.textContent = '❌ Browser incompatibil — folosește Chrome';
+    return;
+  }
+
+  // Cerem permisiunea microfonului o singura data
+  try {
+    statusEl.textContent = '🎙️ Permite microfonul...';
+    const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Eliberam imediat — SpeechRecognition are nevoie de mic liber
+    testStream.getTracks().forEach(t => t.stop());
+  } catch(e) {
+    statusEl.textContent = '❌ Microfon blocat — permite din 🔒 bara browser';
+    voiceBtn.style.borderColor = '';
+    voiceBtn.style.color = '';
+    _voiceActive = false;
+    overlay.style.display = 'none';
+    return;
+  }
+
+  // Animatie waveform simpla CSS (nu mai tine mic-ul ocupat)
+  const canvas = document.getElementById('voice-canvas');
+  if (canvas) {
+    const ctx2 = canvas.getContext('2d');
+    let frame = 0;
+    function fakeWave() {
+      if (!_voiceActive) return;
+      ctx2.clearRect(0, 0, canvas.width, canvas.height);
+      ctx2.strokeStyle = '#00ff87';
+      ctx2.lineWidth = 2;
+      ctx2.beginPath();
+      for (let x = 0; x < canvas.width; x++) {
+        const y = canvas.height/2 + Math.sin((x + frame) * 0.15) * (10 + Math.random() * 8);
+        x === 0 ? ctx2.moveTo(x, y) : ctx2.lineTo(x, y);
+      }
+      ctx2.stroke();
+      frame += 3;
+      _voiceAnim = requestAnimationFrame(fakeWave);
+    }
+    fakeWave();
+  }
 
   _voiceRecog = new SR();
   _voiceRecog.lang = 'ro-RO';
   _voiceRecog.continuous = true;
   _voiceRecog.interimResults = true;
+
+  let sendTimer = null;
 
   _voiceRecog.onresult = function(e) {
     let interim = '', final = '';
@@ -1003,14 +1040,28 @@ async function startVoice() {
     }
     transcriptEl.textContent = final || interim;
     if (final) {
-      document.getElementById('input').value += (document.getElementById('input').value ? ' ' : '') + final;
+      const inputEl = document.getElementById('input');
+      inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + final.trim();
+      // Trimite automat dupa 1.5s de pauza
+      clearTimeout(sendTimer);
+      sendTimer = setTimeout(function() {
+        stopVoice();
+        sendMessage();
+      }, 1500);
     }
   };
 
-  _voiceRecog.onerror = function(e) { statusEl.textContent = '❌ Eroare: ' + e.error; };
+  _voiceRecog.onerror = function(e) {
+    statusEl.textContent = '❌ Eroare: ' + e.error;
+    if (e.error === 'not-allowed') {
+      statusEl.textContent = '❌ Microfon blocat — permite din 🔒 bara browser';
+      stopVoice();
+    }
+  };
+
   _voiceRecog.onend = function() { if (_voiceActive) _voiceRecog.start(); };
   _voiceRecog.start();
-  statusEl.textContent = '🎙️ ASCULT...';
+  statusEl.textContent = '🎙️ ASCULT... (vorbește, se trimite automat)';
 }
 
 function stopVoice() {
@@ -1347,13 +1398,13 @@ function kiloOpen(initialPrompt) {
   if (kiloWS) { kiloWS.close(); kiloWS = null; }
   kiloTerm = new Terminal({
     cursorBlink: true,
-    fontSize: 14,
+    fontSize: window.innerWidth < 600 ? 11 : 14,
     fontFamily: "'Space Mono','Courier New',monospace",
     theme: {
       background: '#0d1117', foreground: '#e6edf3', cursor: '#00ff87',
       selectionBackground: 'rgba(0,255,135,0.3)'
     },
-    scrollback: 5000, cols: 100, rows: 32
+    scrollback: 5000, cols: window.innerWidth < 600 ? 45 : 100, rows: window.innerWidth < 600 ? 28 : 32
   });
   kiloFitAddon = new FitAddon.FitAddon();
   kiloTerm.loadAddon(kiloFitAddon);
@@ -1513,10 +1564,19 @@ async function pipelineNext() {
   switchMode(nextMode);
   document.getElementById('pipe-next-btn').style.display = 'none';
 
-  // Pre-fill input cu context curat - userul apasa send manual
+  // Auto-trimite context la modul urmator
   const ctx = 'Pe baza planului anterior: ' + lastMsg.replace(/[`#*\[\]${}|]/g,'').replace(/\n+/g,' ').trim().slice(0,200);
   inputEl.value = ctx;
   inputEl.focus();
+  // Auto-send + auto-open Kilo daca urmatorul mod e coding
+  setTimeout(function() {
+    sendMessage();
+    if (nextMode === 'coding') {
+      setTimeout(function() {
+        openKiloTerminal(encodeURIComponent(ctx));
+      }, 3500);
+    }
+  }, 600);
 }
 
 // ══════ VPS MODAL ══════
