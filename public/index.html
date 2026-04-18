@@ -1014,48 +1014,76 @@ const QA_DATA = {
   coding: {
     label: '🟢 PASUL 2: CODING (Kilo Engine)',
     items: [
-      ['📁 Proiect Nou de la zero', 'Vreau sa construiesc un proiect nou. Ajuta-ma cu structura, stack-ul tehnic si .env.example'],
-      ['🐍 FastAPI + JWT + Swagger', 'Construieste un API FastAPI complet cu autentificare JWT, CRUD, modele Pydantic si Swagger'],
-      ['🕷️ Scraper Async + Playwright', 'Scrie un scraper async cu Playwright sau BeautifulSoup cu retry logic si export CSV'],
-      ['🤖 Agent AI cu Memorie', 'Construieste un agent AI cu OpenAI function calling si memorie persistenta in JSON'],
-      ['🚀 Deploy VPS Ubuntu + nginx', 'Ajuta-ma sa fac deploy pe VPS Ubuntu cu nginx, SSL LetsEncrypt si pm2'],
-      ['🐛 Debug & Profiling', 'Am o eroare in codul meu. Ajuta-ma sa o depanez si sa optimizez performanta']
+      ['📁 Pornesc un proiect nou\n<small>scaffold fullstack + .env + git init</small>', 'Vreau sa construiesc un proiect nou. Genereaza structura de foldere, stack-ul recomandat, .env.example si README'],
+      ['🐍 Vreau un API complet\n<small>FastAPI + JWT + CRUD + Swagger + Pydantic</small>', 'Construieste un API FastAPI complet cu autentificare JWT, CRUD endpoints, modele Pydantic si Swagger UI'],
+      ['🕷️ Culeg date de pe web\n<small>async scraper + Playwright + retry + CSV export</small>', 'Scrie un scraper async cu Playwright sau BeautifulSoup cu retry logic, rate limiting si export CSV/JSON'],
+      ['🤖 Construiesc un agent AI\n<small>OpenAI function calling + memorie JSON persistenta</small>', 'Construieste un agent AI cu OpenAI function calling, tool use si memorie persistenta in JSON sau SQLite'],
+      ['🚀 Fac deploy pe server\n<small>VPS Ubuntu + nginx reverse proxy + SSL + pm2</small>', 'Ajuta-ma sa fac deploy complet pe VPS Ubuntu: nginx, SSL LetsEncrypt, pm2, firewall ufw'],
+      ['🐛 Am o eroare, ajuta-ma\n<small>debug + stack trace analysis + fix + optimizare</small>', 'Am o eroare in cod. Analizeaza stack trace-ul, identifica cauza si propune fix + optimizare'],
+      ['🗄️ Configurez o baza de date\n<small>PostgreSQL / SQLite + migrations + ORM setup</small>', 'Ajuta-ma sa configurez baza de date: schema, migrations cu Alembic sau Prisma, conexiune ORM'],
+      ['🔐 Adaug autentificare\n<small>OAuth2 + refresh tokens + role-based access control</small>', 'Implementeaza autentificare completa: OAuth2, JWT refresh tokens, RBAC cu roluri admin/user'],
+      ['⚡ Optimizez performanta\n<small>profiling + caching Redis + async + query optimization</small>', 'Profileaza aplicatia mea, identifica bottleneck-urile si implementeaza caching Redis + optimizare queries'],
+      ['🧪 Scriu teste automate\n<small>pytest / Jest + mocks + CI pipeline GitHub Actions</small>', 'Scrie teste unitare si de integrare cu pytest sau Jest, mocks, fixtures si pipeline CI pe GitHub Actions']
     ]
   },
   marketing: {
     label: '🟡 PASUL 3: MARKETING (Hermes+Herald)',
     items: [
-      ['🎯 Pozitionare + Mesaj Principal', 'Ajuta-ma sa definesc pozitionarea proiectului meu: cine e clientul ideal si ce problema rezolva'],
-      ['📅 Calendar Editorial 30 Zile', 'Creaza un calendar editorial complet pe 30 de zile: LinkedIn + YouTube + Email'],
-      ['💰 Pipeline Monetizare', 'Construieste funnel-ul de vanzari: awareness → engagement → conversie → retentie'],
-      ['📧 Campanie Cold Outreach', 'Scrie o secventa de 5 emailuri cold outreach pentru B2B cu subject lines si CTA-uri']
+      ['🎯 Definesc cine sunt clientii mei\n<small>ICP + buyer persona + job-to-be-done framework</small>', 'Ajuta-ma sa definesc ICP-ul exact: demografice, psihografice, pain points si job-to-be-done'],
+      ['📅 Vreau un plan de continut\n<small>calendar editorial 30 zile LinkedIn + YouTube + Email</small>', 'Creaza un calendar editorial complet pe 30 de zile cu teme, formate si CTA-uri pentru LinkedIn, YouTube si Email'],
+      ['💰 Construiesc un funnel de vanzari\n<small>TOFU/MOFU/BOFU + lead magnet + email sequences</small>', 'Construieste funnel-ul complet: lead magnet, landing page copy, secventa email nurturing, pagina de vanzare'],
+      ['📧 Trimit emailuri de prospectare\n<small>cold outreach B2B + 5 emailuri + subject lines + CTA</small>', 'Scrie o secventa de 5 emailuri cold outreach B2B cu subject lines testate, personalizare si CTA-uri clare'],
+      ['📱 Cresc pe social media\n<small>growth hacking organic + hook formula + algoritm triggers</small>', 'Da-mi o strategie de crestere organica pe [platforma]: hook formula, frecventa postare, engagement triggers'],
+      ['💬 Scriu copy care vinde\n<small>copywriting AIDA/PAS + headlines + landing page</small>', 'Scrie copy persuasiv pentru landing page-ul meu folosind formula AIDA sau PAS cu headlines si social proof'],
+      ['🔍 Analizez concurenta\n<small>competitor analysis + gap analysis + positioning map</small>', 'Analizeaza top 5 competitori din nisa mea: mesaj, canale, preturi, puncte slabe si oportunitati pentru mine'],
+      ['🎙️ Pregatesc un pitch\n<small>elevator pitch 60s + deck structura + story arc</small>', 'Ajuta-ma sa construiesc un pitch complet: elevator pitch 60 secunde, structura deck si story arc convingator'],
+      ['📊 Masur ce functioneaza\n<small>KPI dashboard + UTM tracking + conversion metrics</small>', 'Defineste KPI-urile corecte pentru campania mea, setup UTM tracking si dashboard de monitorizare conversii'],
+      ['🤝 Fac parteneriate strategice\n<small>co-marketing + JV outreach + affiliate program setup</small>', 'Identifica parteneri complementari pentru co-marketing, scrie outreach JV si configureaza program de afiliere']
     ]
   },
   sidehustle: {
     label: '🔴 PASUL 5: HUSTLE (Hunter Engine)',
     items: [
-      ['🔍 Research Clienti Noi', 'Gaseste-mi 50 de clienti potentiali pentru [nisa mea] din LinkedIn + Google Maps'],
-      ['📤 Campanie Outreach WhatsApp', 'Configureaza SSociety Wild Bot pentru 300 mesaje/zi personalizate, anti-ban'],
-      ['📢 Postare 6 Platforme Simultan', 'Configureaza Blotato sa posteze automat pe LinkedIn, Instagram, TikTok, YouTube, Facebook, Twitter'],
-      ['💰 Monetizare Skills IT', 'Am skills in Python si DevOps. Cum le monetizez rapid cu un side hustle scalabil?']
+      ['🔍 Gasesc clienti noi azi\n<small>lead scraping LinkedIn + Google Maps + Apollo.io</small>', 'Gaseste-mi 50 de clienti potentiali pentru nisa mea din LinkedIn Sales Navigator si Google Maps cu contacte'],
+      ['📤 Trimit mesaje in masa\n<small>SSociety Wild Bot + 300 msg/zi + personalizare + anti-ban</small>', 'Configureaza SSociety Wild Bot pentru campanie WhatsApp: 300 mesaje/zi, personalizare dinamica, anti-ban logic'],
+      ['📢 Postez pe toate platformele\n<small>Blotato multi-platform + scheduling + format adaptat</small>', 'Configureaza Blotato sa posteze automat continut adaptat pe LinkedIn, Instagram, TikTok, YouTube, Facebook, Twitter'],
+      ['💰 Monetizez ce stiu deja\n<small>productizare skills + pricing + primul client in 7 zile</small>', 'Am skills in [domeniu]. Ajuta-ma sa le productizez: serviciu clar, pret, propozitie de valoare si primul client'],
+      ['🧾 Emit facturi si gestionez banii\n<small>invoicing automation + cashflow tracking + TVA</small>', 'Ajuta-ma sa configurez un sistem simplu de facturare, tracking cashflow si obligatii TVA pentru freelancer'],
+      ['🏆 Construiesc autoritate rapida\n<small>thought leadership + case studies + social proof sistem</small>', 'Construieste-mi o strategie de autoritate in 30 zile: articole LinkedIn, case studies si testimoniale'],
+      ['🔄 Automatizez task-uri repetitive\n<small>n8n / Make workflows + webhook triggers + Zapier</small>', 'Identifica task-urile repetitive din business-ul meu si construieste automatizari cu n8n sau Make'],
+      ['📦 Creez un produs digital\n<small>ebook / curs / template pack + Gumroad + launch plan</small>', 'Ajuta-ma sa creez si lansez un produs digital: structura, pret, pagina Gumroad si plan de launch'],
+      ['🌍 Caut clienti internationali\n<small>Upwork + Toptal + cold email EN + rate positioning</small>', 'Ajuta-ma sa atrag clienti internationali: profil Upwork optimizat, cold email in engleza si pozitionare rate'],
+      ['📈 Scalez ce merge deja\n<small>SOPs + delegation + hiring VA + systems pentru scale</small>', 'Am ceva care functioneaza. Ajuta-ma sa scalez: SOP-uri, delegare, hiring VA si sisteme pentru crestere']
     ]
   },
   chat: {
     label: '💬 Brainstorming + Start Plan',
     items: [
-      ['🧭 Blueprint Proiect Nou', 'Vreau sa construiesc ceva nou. Ajuta-ma sa definesc ICP, stack-ul tehnic si primul pas'],
-      ['✅ Validare Idee de Business', 'Am o idee de business. Ajuta-ma sa o validez rapid: piata, concurenta, monetizare'],
-      ['🗺️ Roadmap Personal 6 Luni', 'Construieste-mi un roadmap tehnic realist pentru urmatoarele 6 luni'],
-      ['⚡ Prioritizare si Focus', 'Am prea multe idei si ma imprastii. Ajuta-ma sa prioritizez ce atac primul']
+      ['🧭 Vreau sa construiesc ceva nou\n<small>ICP + MVP scope + tech stack + primul pas concret</small>', 'Vreau sa construiesc ceva nou. Ajuta-ma sa definesc ICP, MVP-ul minim, stack-ul tehnic si primul pas azi'],
+      ['✅ Validez o idee rapid\n<small>market size + competitor scan + monetizare + go/no-go</small>', 'Am o idee de business. Ajuta-ma sa o validez: piata, concurenta, model de monetizare si decizie go/no-go'],
+      ['🗺️ Vreau un plan pe 6 luni\n<small>roadmap tehnic + milestones + KPIs + resurse necesare</small>', 'Construieste-mi un roadmap realist pentru urmatoarele 6 luni cu milestones lunare, KPIs si resurse necesare'],
+      ['⚡ Am prea multe idei\n<small>prioritizare ICE scoring + focus matrix + next action</small>', 'Am prea multe idei si ma imprastii. Ajuta-ma sa prioritizez cu ICE scoring si sa aleg ce atac azi'],
+      ['💡 Brainstorming fara filtru\n<small>expansive ideation + lateral thinking + 10x thinking</small>', 'Fa brainstorming cu mine fara filtru despre [subiect]. Vreau idei curajoase, neconventionale si 10x'],
+      ['🧩 Rezolv o problema complexa\n<small>first principles thinking + root cause + solution tree</small>', 'Am o problema complexa in business. Ajuta-ma sa o deconstructiez din principii prime si sa gasesc solutii'],
+      ['💼 Pregatesc o intalnire importanta\n<small>agenda + talking points + obiectii anticipate + follow-up</small>', 'Am o intalnire importanta cu [client/investitor]. Ajuta-ma cu agenda, talking points si obiectii posibile'],
+      ['🎯 Definesc obiectivele anului\n<small>OKRs + SMART goals + quarterly breakdown + accountability</small>', 'Ajuta-ma sa definesc obiectivele pentru acest an in format OKR cu breakdown trimestrial si sistem de accountability'],
+      ['🔍 Cercetez o piata noua\n<small>market research + TAM/SAM/SOM + early adopters</small>', 'Vreau sa intru pe o piata noua. Ajuta-ma sa o cercetez: dimensiune, segmente, early adopters si bariere de intrare'],
+      ['🤔 Iau o decizie dificila\n<small>decision matrix + second order effects + regret minimization</small>', 'Am o decizie grea de luat. Ajuta-ma cu un decision matrix, efecte de ordinul 2 si regret minimization framework']
     ]
   },
   creator: {
     label: '🟣 PASUL 4: CREATOR (Gemini Suprem)',
     items: [
-      ['🎤 Voiceover in Romana', 'Transforma textul meu in voiceover natural in romana pentru video sau podcast'],
-      ['🖼️ Thumbnail HD pentru Platforma', 'Genereaza un thumbnail profesional optimizat pentru YouTube / LinkedIn / Instagram'],
-      ['🎬 Video Text-to-Video 30s', 'Creaza un video de 30 secunde din textul/scriptul meu pentru TikTok sau YouTube'],
-      ['🔍 Google Search + Analiza', 'Cauta tendinte si date actuale despre [subiectul meu] si sintetizeaza insight-urile']
+      ['🎤 Generez voiceover profesional\n<small>Gemini TTS Zephyr/Puck + WAV 24kHz + romana nativa</small>', 'Transforma textul meu in voiceover natural in romana. Foloseste vocea cea mai potrivita pentru ton profesional'],
+      ['🖼️ Generez o imagine HD\n<small>Imagen 4 Ultra + aspect ratio 1:1 + JPEG high quality</small>', 'Genereaza o imagine profesionala HD pentru [scop]: thumbnail YouTube, post Instagram sau banner LinkedIn'],
+      ['🎵 Compun muzica originala\n<small>Lyria 3 Pro + prompt muzical + WAV output</small>', 'Compune muzica de fundal originala pentru videoul meu: [gen muzical], [mood], [durata aproximativa]'],
+      ['✍️ Scriu caption viral\n<small>Gemini 2.5 Flash + hook formula + hashtag research</small>', 'Scrie un caption viral pentru postarea mea pe [platforma] despre [subiect] cu hook puternic si hashtag-uri'],
+      ['🎬 Scriptez un video\n<small>hook 3s + structura narativa + CTA + scene breakdown</small>', 'Scrie scriptul complet pentru un video de [durata] pe [platforma]: hook 3 secunde, structura narativa si CTA'],
+      ['🖼️ Creez un thumbnail care atrage\n<small>Imagen 4 + contrast vizual + text overlay suggestions</small>', 'Genereaza un thumbnail care atrage click-uri pentru videoul meu despre [subiect]. Stil: [minimalist/bold/colorat]'],
+      ['🎙️ Produc un episod de podcast\n<small>TTS multi-voice + intro/outro + chapter markers</small>', 'Ajuta-ma sa produc un episod de podcast: structura, intro voiceover, continut principal si outro'],
+      ['📸 Creez continut pentru Stories\n<small>format vertical 9:16 + text scurt + engagement hooks</small>', 'Genereaza idei si vizualuri pentru 5 Stories pe [platforma] despre [subiect]. Format vertical, text scurt'],
+      ['🎨 Definesc identitatea vizuala\n<small>color palette + font pairing + brand moodboard prompt</small>', 'Ajuta-ma sa definesc identitatea vizuala a brandului meu: paleta culori, fonturi, stil fotografic si mood'],
+      ['🔁 Refolosesc continut existent\n<small>content repurposing + multi-format + distribution plan</small>', 'Am un [articol/video/podcast] existent. Ajuta-ma sa il transform in 10 formate diferite pentru toate platformele']
     ]
   }
 };
@@ -1085,7 +1113,15 @@ function togglePopup(mode, label) {
   popupLabel.textContent = data.label;
 
   popupBtns.innerHTML = data.items.map(function(item, idx) {
-    return '<button class="qa qa-tab-' + mode + '" data-idx="' + idx + '" data-mode="' + mode + '" style="background:rgba(255,255,255,0.04);border:1px solid #333;color:#ccc;cursor:pointer;border-radius:10px;padding:9px 12px;font-size:12px;text-align:left;line-height:1.3;width:100%;">' + item[0] + '</button>';
+    var parts = item[0].split('\n');
+    var title = parts[0];
+    var sub = parts[1] ? parts[1].replace('<small>','').replace('</small>','') : '';
+    var colors = {chat:'#3b82f6',coding:'#22c55e',marketing:'#eab308',creator:'#a855f7',sidehustle:'#ef4444'};
+    var col = colors[mode] || '#666';
+    return '<button class="qa qa-tab-' + mode + '" data-idx="' + idx + '" data-mode="' + mode + '" style="background:rgba(255,255,255,0.03);border:1.5px solid #333;color:#aaa;cursor:pointer;border-radius:20px;padding:6px 14px;text-align:left;line-height:1.3;width:100%;display:flex;flex-direction:column;gap:2px;transition:all .2s;" onmouseover="this.style.borderColor='' + col + '';this.style.color='' + col + '';this.style.background='rgba(0,0,0,0.2)';" onmouseout="this.style.borderColor='#333';this.style.color='#aaa';this.style.background='rgba(255,255,255,0.03)';">'
+      + '<span style="font-size:11px;font-weight:700;">' + title + '</span>'
+      + (sub ? '<span style="font-size:9px;opacity:0.4;font-family:Space Mono,monospace;">' + sub + '</span>' : '')
+      + '</button>';
   }).join('');
 
   popupBtns.querySelectorAll('button[data-idx]').forEach(function(btn) {
