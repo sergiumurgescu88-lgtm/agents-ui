@@ -804,15 +804,17 @@ async function sendMessage() {
       }
       if (d.url) window.open(d.url, '_blank');
       pipelineMsgCount++;
-      updatePipeBtn();
-      // Pipeline buttons
-      updatePipelineButtons(d.mode || currentMode);
-      document.getElementById('pipeline-bar').style.display = 'flex';
+      try { updatePipeBtn(); } catch(e2) {}
+      try { updatePipelineButtons(d.mode || currentMode); } catch(e2) {}
+      try { document.getElementById('pipeline-bar').style.display = 'flex'; } catch(e2) {}
       actionCount++;
-      updateActionUI();
+      try { updateActionUI(); } catch(e2) {}
+      // Afiseaza contorul de mesaje
+      const counterEl = document.getElementById('action-text');
+      if (counterEl) counterEl.textContent = actionCount + '/100';
     }
   } catch(e) {
-    appendMsg('assistant', '⚠️ Conexiune eșuată. Încearcă din nou.', null, currentMode, null, null);
+    console.error('sendMessage error:', e);
   } finally {
     typingEl.classList.remove('show');
     document.getElementById('send-btn').disabled = false;
