@@ -325,7 +325,7 @@ body.mode-marketing #buddy-name{letter-spacing:.04em;}
   border-radius:12px;color:var(--text);
   font-family:inherit;font-size:15px;
   padding:10px 13px;resize:none;outline:none;
-  line-height:1.45;min-height:44px;max-height:120px;
+  line-height:1.45;min-height:44px;max-height:60px;
   overflow-y:auto;-webkit-appearance:none;
   transition:border-color .15s,font-family .4s;
 }
@@ -536,7 +536,7 @@ body.mode-marketing #send-btn{color:#fff;}
 <div id="app">
 
   <!-- HEADER -->
-  <div id="header" style="flex-direction:column;padding:8px 10px;gap:6px;min-height:auto;">
+  <div id="header" style="flex-direction:column;padding:4px 10px;gap:3px;min-height:auto;">
     <!-- RAND 1: Avatar + Info + Counter + Actiuni -->
     <div style="display:flex;align-items:center;gap:6px;width:100%;">
       <div id="buddy-avatar" style="width:30px;height:30px;font-size:15px;flex-shrink:0;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;">🤖</div>
@@ -551,13 +551,15 @@ body.mode-marketing #send-btn{color:#fff;}
         <div id="action-text" style="font-size:12px;font-weight:800;color:#fff;">0/100</div>
         <div id="action-bar" style="width:36px;height:2px;background:#333;border-radius:3px;overflow:hidden;"><div id="action-fill" style="width:0%;height:100%;background:var(--accent);border-radius:3px;transition:width .4s;"></div></div>
       </div>
+      <button onclick="var r=document.getElementById('premium-row');r.style.display=r.style.display==='none'?'flex':'none';" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;" title="Oferte">🎯</button>
       <button id="btn-vps" onclick="openVpsModal()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;" title="Conectează VPS">🖥️</button>
       <button id="btn-export" onclick="exportChat()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;">💾</button>
-      <button id="btn-close" onclick="window.close()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;">✕</button>
       <a href="https://ssociety.eu/" target="_blank" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center;">📊</a>
+      <a href="https://daromania.online" target="_blank" style="background:none;border:1px solid #a855f6;border-radius:7px;color:#a855f6;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center;" title="Daromania">🤖</a>
+      <button id="btn-close" onclick="window.close()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;">✕</button>
     </div>
     <!-- RAND 2: Butoane premium - scroll orizontal pe mobile, flex-wrap pe desktop -->
-    <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">
+    <div id="premium-row" style="display:none;gap:6px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px;">
       <button onclick="startCheckout()" style="flex-shrink:0;background:linear-gradient(135deg,#14532d,#166534);color:#fff;padding:8px 14px;border-radius:10px;border:1px solid #22c55e;cursor:pointer;text-align:left;box-shadow:0 2px 10px rgba(34,197,94,0.25);min-width:200px;">
         <div style="font-size:13px;font-weight:900;margin-bottom:3px;">🤖 $9/lună — Acces Nelimitat</div>
         <div style="font-size:10px;font-weight:500;opacity:.9;white-space:nowrap;">🟢 Coding &nbsp;🔵 Marketing &nbsp;🔴 Hustle &nbsp;💬 Idei &nbsp;🔵 Creator</div>
@@ -602,7 +604,7 @@ body.mode-marketing #send-btn{color:#fff;}
       <button class="qa-tab qa-tab-chat" onclick="togglePopup('chat','💬 Start Plan')">💬 Idei</button>
       <button class="qa-tab qa-tab-coding" onclick="togglePopup('coding','🟢 Coding')">🟢 Coding</button>
       <button class="qa-tab qa-tab-marketing" onclick="togglePopup('marketing','🟡 Marketing')">🟡 Marketing</button>
-      <button class="qa-tab qa-tab-creator" onclick="openCreatorStudio()">🟣 Creator</button>
+      <button class="qa-tab qa-tab-creator" onclick="togglePopup('creator','🟣 Creator')">🟣 Creator</button>
       <button class="qa-tab qa-tab-sidehustle" onclick="togglePopup('sidehustle','🔴 Hustle')">🔴 Hustle</button>
     </div>
     <!-- POPUP -->
@@ -666,8 +668,20 @@ body.mode-marketing #send-btn{color:#fff;}
       <div id="qa-popup-btns"></div>
     </div>
     <div id="input-row">
-      <textarea id="input" placeholder="Scrie un mesaj..." rows="1"></textarea>
+      <button id="file-btn" onclick="document.getElementById('file-input').click()" title="Atașează fișier" style="flex-shrink:0;width:38px;height:38px;border-radius:50%;border:1.5px solid #333;background:transparent;color:#888;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;">📎</button>
+      <input id="file-input" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.json,.md,.txt,.png,.jpg,.jpeg,.webp,.gif" style="display:none;" onchange="handleFileAttach(this)">
+      <div style="flex:1;position:relative;">
+        <textarea id="input" placeholder="Scrie un mesaj..." rows="1" style="width:100%;box-sizing:border-box;"></textarea>
+        <div id="file-preview" style="display:none;padding:4px 8px;background:#111;border:1px solid #333;border-radius:8px;margin-top:4px;font-size:11px;color:#aaa;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"></div>
+      </div>
+      <button id="voice-btn" onclick="toggleVoice()" title="Comandă vocală" style="flex-shrink:0;width:38px;height:38px;border-radius:50%;border:1.5px solid #333;background:transparent;color:#888;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;">🎙️</button>
       <button id="send-btn" onclick="sendMessage()">➤</button>
+    </div>
+    <div id="voice-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9998;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
+      <div style="color:#fff;font-size:14px;font-weight:700;letter-spacing:.1em;" id="voice-status">🎙️ ASCULT...</div>
+      <canvas id="voice-canvas" width="300" height="80" style="border-radius:12px;background:#0a0a14;border:1px solid #333;"></canvas>
+      <div id="voice-transcript" style="color:#aaa;font-size:13px;max-width:320px;text-align:center;min-height:40px;line-height:1.5;"></div>
+      <button onclick="stopVoice()" style="padding:10px 28px;border-radius:20px;border:1.5px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;font-size:13px;font-weight:700;cursor:pointer;">⏹ Stop</button>
     </div>
   </div>
 
@@ -797,12 +811,16 @@ function appendMsg(role, text, name, mode, btns, pill) {
 
 async function sendMessage() {
   const text = inputEl.value.trim();
-  if (!text) return;
+  const fileCtx = buildFileContext();
+  if (!text && !fileCtx) return;
   inputEl.value = '';
+  _attachedFiles = [];
+  renderFilePreview();
   inputEl.style.height = 'auto';
   document.getElementById('send-btn').disabled = true;
-  history.push({ role:'user', content:text });
-  appendMsg('user', text, null, currentMode, null, null);
+  const fullUserText = fileCtx ? text + '\n\n' + fileCtx : text;
+  history.push({ role:'user', content:fullUserText });
+  appendMsg('user', fullUserText, null, currentMode, null, null);
   typingEl.classList.add('show');
   msgsEl.scrollTop = msgsEl.scrollHeight;
   try {
@@ -865,6 +883,173 @@ async function sendMessage() {
 }
 
 function sendQuick(text) { inputEl.value = text; sendMessage(); }
+
+// ── FILE ATTACH ──────────────────────────────────────────────────────────
+let _attachedFiles = [];
+
+const FILE_ICONS = {
+  pdf:'📄', doc:'📝', docx:'📝', xls:'📊', xlsx:'📊',
+  csv:'📊', json:'🗂️', md:'📋', txt:'📋',
+  png:'🖼️', jpg:'🖼️', jpeg:'🖼️', webp:'🖼️', gif:'🖼️'
+};
+
+async function handleFileAttach(input) {
+  const files = Array.from(input.files);
+  for (const file of files) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    const icon = FILE_ICONS[ext] || '📎';
+    const content = await readFile(file, ext);
+    _attachedFiles.push({ name: file.name, ext, icon, content, type: file.type });
+  }
+  renderFilePreview();
+  input.value = '';
+}
+
+function readFile(file, ext) {
+  return new Promise((res) => {
+    const reader = new FileReader();
+    const imgExts = ['png','jpg','jpeg','webp','gif'];
+    if (imgExts.includes(ext)) {
+      reader.onload = e => res({ type:'image', data: e.target.result });
+      reader.readAsDataURL(file);
+    } else {
+      reader.onload = e => res({ type:'text', data: e.target.result });
+      reader.readAsText(file, 'UTF-8');
+    }
+  });
+}
+
+function renderFilePreview() {
+  const el = document.getElementById('file-preview');
+  if (!_attachedFiles.length) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = _attachedFiles.map((f, i) =>
+    `<span style="background:#1a1a2e;border:1px solid #333;border-radius:6px;padding:3px 8px;display:inline-flex;align-items:center;gap:4px;">
+      ${f.icon} <span style="max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.name}</span>
+      <span onclick="removeFile(${i})" style="cursor:pointer;color:#666;margin-left:2px;">✕</span>
+    </span>`
+  ).join('');
+}
+
+function removeFile(idx) {
+  _attachedFiles.splice(idx, 1);
+  renderFilePreview();
+}
+
+function buildFileContext() {
+  if (!_attachedFiles.length) return '';
+  let ctx = '\n\n--- FISIERE ATASATE ---\n';
+  _attachedFiles.forEach(f => {
+    if (f.content.type === 'image') {
+      ctx += `\n[Imagine: ${f.name}] — descrie sau analizeaza imaginea atasata.`;
+    } else {
+      const preview = f.content.data.slice(0, 8000);
+      ctx += `\n\n[${f.icon} ${f.name}]:\n\`\`\`\n${preview}\n\`\`\``;
+    }
+  });
+  return ctx;
+}
+
+// ── VOICE INPUT ───────────────────────────────────────────────────────────
+let _voiceRecog = null;
+let _voiceActive = false;
+let _voiceAnim = null;
+let _voiceAudioCtx = null;
+let _voiceAnalyser = null;
+let _voiceStream = null;
+
+function toggleVoice() {
+  if (_voiceActive) { stopVoice(); return; }
+  startVoice();
+}
+
+async function startVoice() {
+  const overlay = document.getElementById('voice-overlay');
+  const statusEl = document.getElementById('voice-status');
+  const transcriptEl = document.getElementById('voice-transcript');
+  const voiceBtn = document.getElementById('voice-btn');
+
+  overlay.style.display = 'flex';
+  voiceBtn.style.borderColor = '#ef4444';
+  voiceBtn.style.color = '#ef4444';
+  _voiceActive = true;
+  transcriptEl.textContent = '';
+
+  // Waveform
+  try {
+    _voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _voiceAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    _voiceAnalyser = _voiceAudioCtx.createAnalyser();
+    _voiceAnalyser.fftSize = 64;
+    const src = _voiceAudioCtx.createMediaStreamSource(_voiceStream);
+    src.connect(_voiceAnalyser);
+    drawWaveform();
+  } catch(e) { console.warn('Mic access denied', e); }
+
+  // Speech Recognition
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { statusEl.textContent = '❌ Browser incompatibil'; return; }
+
+  _voiceRecog = new SR();
+  _voiceRecog.lang = 'ro-RO';
+  _voiceRecog.continuous = true;
+  _voiceRecog.interimResults = true;
+
+  _voiceRecog.onresult = function(e) {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    transcriptEl.textContent = final || interim;
+    if (final) {
+      document.getElementById('input').value += (document.getElementById('input').value ? ' ' : '') + final;
+    }
+  };
+
+  _voiceRecog.onerror = function(e) { statusEl.textContent = '❌ Eroare: ' + e.error; };
+  _voiceRecog.onend = function() { if (_voiceActive) _voiceRecog.start(); };
+  _voiceRecog.start();
+  statusEl.textContent = '🎙️ ASCULT...';
+}
+
+function stopVoice() {
+  _voiceActive = false;
+  if (_voiceRecog) { _voiceRecog.onend = null; _voiceRecog.stop(); _voiceRecog = null; }
+  if (_voiceAnim) { cancelAnimationFrame(_voiceAnim); _voiceAnim = null; }
+  if (_voiceStream) { _voiceStream.getTracks().forEach(t => t.stop()); _voiceStream = null; }
+  if (_voiceAudioCtx) { _voiceAudioCtx.close(); _voiceAudioCtx = null; }
+  document.getElementById('voice-overlay').style.display = 'none';
+  const voiceBtn = document.getElementById('voice-btn');
+  voiceBtn.style.borderColor = '#333';
+  voiceBtn.style.color = '#888';
+  // Trimite automat daca e text
+  const txt = document.getElementById('input').value.trim();
+  if (txt) sendMessage();
+}
+
+function drawWaveform() {
+  if (!_voiceAnalyser) return;
+  const canvas = document.getElementById('voice-canvas');
+  const ctx = canvas.getContext('2d');
+  const buf = new Uint8Array(_voiceAnalyser.frequencyBinCount);
+
+  function draw() {
+    _voiceAnim = requestAnimationFrame(draw);
+    _voiceAnalyser.getByteFrequencyData(buf);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0a0a14';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const bw = canvas.width / buf.length;
+    buf.forEach((v, i) => {
+      const h = (v / 255) * canvas.height;
+      const hue = 260 + (v / 255) * 60; // violet -> cyan
+      ctx.fillStyle = 'hsl(' + hue + ',80%,60%)';
+      ctx.fillRect(i * bw, canvas.height - h, bw - 1, h);
+    });
+  }
+  draw();
+}
 function closePopup() { document.getElementById('qa-popup').style.display = 'none'; }
 
 function openCreatorStudio() {
@@ -1074,16 +1259,16 @@ const QA_DATA = {
   creator: {
     label: '🟣 PASUL 4: CREATOR (Gemini Suprem)',
     items: [
-      ['🎤 Generez voiceover profesional\n<small>Gemini TTS Zephyr/Puck + WAV 24kHz + romana nativa</small>', 'Transforma textul meu in voiceover natural in romana. Foloseste vocea cea mai potrivita pentru ton profesional'],
-      ['🖼️ Generez o imagine HD\n<small>Imagen 4 Ultra + aspect ratio 1:1 + JPEG high quality</small>', 'Genereaza o imagine profesionala HD pentru [scop]: thumbnail YouTube, post Instagram sau banner LinkedIn'],
-      ['🎵 Compun muzica originala\n<small>Lyria 3 Pro + prompt muzical + WAV output</small>', 'Compune muzica de fundal originala pentru videoul meu: [gen muzical], [mood], [durata aproximativa]'],
-      ['✍️ Scriu caption viral\n<small>Gemini 2.5 Flash + hook formula + hashtag research</small>', 'Scrie un caption viral pentru postarea mea pe [platforma] despre [subiect] cu hook puternic si hashtag-uri'],
-      ['🎬 Scriptez un video\n<small>hook 3s + structura narativa + CTA + scene breakdown</small>', 'Scrie scriptul complet pentru un video de [durata] pe [platforma]: hook 3 secunde, structura narativa si CTA'],
-      ['🖼️ Creez un thumbnail care atrage\n<small>Imagen 4 + contrast vizual + text overlay suggestions</small>', 'Genereaza un thumbnail care atrage click-uri pentru videoul meu despre [subiect]. Stil: [minimalist/bold/colorat]'],
-      ['🎙️ Produc un episod de podcast\n<small>TTS multi-voice + intro/outro + chapter markers</small>', 'Ajuta-ma sa produc un episod de podcast: structura, intro voiceover, continut principal si outro'],
-      ['📸 Creez continut pentru Stories\n<small>format vertical 9:16 + text scurt + engagement hooks</small>', 'Genereaza idei si vizualuri pentru 5 Stories pe [platforma] despre [subiect]. Format vertical, text scurt'],
-      ['🎨 Definesc identitatea vizuala\n<small>color palette + font pairing + brand moodboard prompt</small>', 'Ajuta-ma sa definesc identitatea vizuala a brandului meu: paleta culori, fonturi, stil fotografic si mood'],
-      ['🔁 Refolosesc continut existent\n<small>content repurposing + multi-format + distribution plan</small>', 'Am un [articol/video/podcast] existent. Ajuta-ma sa il transform in 10 formate diferite pentru toate platformele']
+      ['🎤 Generez voiceover profesional\n<small>Gemini TTS + WAV 24kHz + romana nativa</small>', 'Genereaza un voiceover natural in romana pentru textul meu. Scrie si textul optimizat pentru audio, ton profesional si cald'],
+      ['🖼️ Generez o imagine pentru post\n<small>Imagen 4 Ultra + prompt optimizat + 1:1</small>', 'Genereaza o imagine profesionala HD pentru postarea mea pe Instagram/LinkedIn. Descrie si promptul Imagen 4 folosit'],
+      ['🎵 Compun muzica de fundal\n<small>Lyria 3 Pro + gen muzical + mood + BPM</small>', 'Ajuta-ma sa compun muzica de fundal originala pentru videoul meu. Descrie stilul, mood-ul si BPM-ul recomandat si genereaza promptul Lyria'],
+      ['✍️ Scriu caption viral\n<small>hook formula + storytelling + hashtag research</small>', 'Scrie 3 variante de caption viral pentru postarea mea pe Instagram despre [subiect]. Hook puternic, storytelling si hashtag-uri relevante'],
+      ['🎬 Scriptez un video TikTok/YouTube\n<small>hook 3s + structura narativa + CTA + B-roll</small>', 'Scrie scriptul complet pentru un video de 60 secunde pe TikTok despre [subiect]: hook 3 secunde, structura, CTA si indicatii B-roll'],
+      ['🖼️ Creez thumbnail care atrage clickuri\n<small>contrast vizual + text overlay + color psychology</small>', 'Ajuta-ma sa creez un thumbnail irezistibil pentru videoul meu despre [subiect]. Descrie compozitia, culorile si textul overlay'],
+      ['🎙️ Produc un episod de podcast\n<small>structura episod + intro/outro + show notes</small>', 'Ajuta-ma sa structurez un episod de podcast pe tema [subiect]: intro, segmente, intrebari, outro si show notes complete'],
+      ['📱 Creez un Reel/Story viral\n<small>format vertical 9:16 + hook vizual + trending audio</small>', 'Scrie scenariul complet pentru un Reel viral despre [subiect]: hook vizual primele 2 secunde, actiune, text overlay si audio recomandat'],
+      ['🎨 Definesc brandul meu vizual\n<small>paleta culori + font pairing + moodboard + guidelines</small>', 'Ajuta-ma sa definesc identitatea vizuala completa a brandului meu: paleta de culori, fonturi, stil foto si guidelines pentru consistenta'],
+      ['🔁 Transform un continut in 10 formate\n<small>repurposing strategy + adaptat per platforma</small>', 'Am un [articol/video/episod podcast]. Transforma-l in 10 formate diferite adaptate pentru LinkedIn, Instagram, TikTok, YouTube si Email']
     ]
   }
 };
@@ -1116,9 +1301,7 @@ function togglePopup(mode, label) {
     var parts = item[0].split('\n');
     var title = parts[0];
     var sub = parts[1] ? parts[1].replace('<small>','').replace('</small>','') : '';
-    var colors = {chat:'#3b82f6',coding:'#22c55e',marketing:'#eab308',creator:'#a855f7',sidehustle:'#ef4444'};
-    var col = colors[mode] || '#666';
-    return '<button class="qa qa-tab-' + mode + '" data-idx="' + idx + '" data-mode="' + mode + '" style="background:rgba(255,255,255,0.03);border:1.5px solid #333;color:#aaa;cursor:pointer;border-radius:20px;padding:6px 14px;text-align:left;line-height:1.3;width:100%;display:flex;flex-direction:column;gap:2px;transition:all .2s;" onmouseover="this.style.borderColor='' + col + '';this.style.color='' + col + '';this.style.background='rgba(0,0,0,0.2)';" onmouseout="this.style.borderColor='#333';this.style.color='#aaa';this.style.background='rgba(255,255,255,0.03)';">'
+    return '<button class="qa qa-tab-' + mode + '" data-idx="' + idx + '" data-mode="' + mode + '" style="background:rgba(255,255,255,0.03);border:1.5px solid #333;color:#aaa;cursor:pointer;border-radius:20px;padding:6px 14px;text-align:left;line-height:1.3;width:100%;display:flex;flex-direction:column;gap:2px;">'
       + '<span style="font-size:11px;font-weight:700;">' + title + '</span>'
       + (sub ? '<span style="font-size:9px;opacity:0.4;font-family:Space Mono,monospace;">' + sub + '</span>' : '')
       + '</button>';
