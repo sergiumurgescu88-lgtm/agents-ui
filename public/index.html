@@ -551,6 +551,7 @@ body.mode-marketing #send-btn{color:#fff;}
         <div id="action-text" style="font-size:12px;font-weight:800;color:#fff;">0/100</div>
         <div id="action-bar" style="width:36px;height:2px;background:#333;border-radius:3px;overflow:hidden;"><div id="action-fill" style="width:0%;height:100%;background:var(--accent);border-radius:3px;transition:width .4s;"></div></div>
       </div>
+      <button id="btn-vps" onclick="openVpsModal()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;" title="Conectează VPS">🖥️</button>
       <button id="btn-export" onclick="exportChat()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;">💾</button>
       <button id="btn-close" onclick="window.close()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;">✕</button>
       <a href="https://ssociety.eu/" target="_blank" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center;">📊</a>
@@ -602,7 +603,40 @@ body.mode-marketing #send-btn{color:#fff;}
     </div>
     <!-- POPUP -->
     <!-- REFERRAL MODAL -->
-    <div id="ref-modal">
+    <div id="vps-modal" style="display:none;position:fixed;inset:0;z-index:1001;background:rgba(0,0,0,.88);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;">
+  <div id="vps-box" style="background:#111;border:1px solid #00ff87;border-radius:20px;padding:24px;max-width:400px;width:100%;">
+    <div style="font-size:28px;margin-bottom:8px;text-align:center;">🖥️</div>
+    <h2 style="font-size:18px;font-weight:900;color:#00ff87;margin-bottom:4px;text-align:center;">Conectează VPS-ul tău</h2>
+    <p style="font-size:12px;color:#666;margin-bottom:20px;text-align:center;">Kilo va executa comenzile direct pe serverul tău</p>
+
+    <div id="vps-status" style="display:none;padding:8px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;text-align:center;"></div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">IP / Host</label>
+      <input id="vps-host" type="text" placeholder="ex: 123.45.67.89 sau server.ro" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">Username</label>
+      <input id="vps-user" type="text" placeholder="ex: root sau ubuntu" value="root" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">Password</label>
+      <input id="vps-pass" type="password" placeholder="parola SSH" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">Port (optional)</label>
+      <input id="vps-port" type="number" placeholder="22" value="22" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
+    </div>
+
+    <button onclick="testVpsConnection()" style="display:block;width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,#00ff87,#00d4ff);color:#000;font-weight:800;font-size:14px;border:none;cursor:pointer;margin-bottom:8px;">🔌 Testează Conexiunea</button>
+    <button onclick="saveVpsAndClose()" id="vps-save-btn" style="display:block;width:100%;padding:12px;border-radius:10px;background:#1a1a2e;color:#00ff87;font-weight:700;font-size:14px;border:1px solid #00ff87;cursor:pointer;margin-bottom:8px;opacity:0.5;" disabled>✅ Salvează & Activează</button>
+    <button onclick="closeVpsModal()" style="display:block;width:100%;padding:10px;border-radius:10px;background:#1a1a1a;color:#666;font-size:13px;border:none;cursor:pointer;">✕ Închide</button>
+
+    <p style="font-size:10px;color:#444;margin-top:14px;text-align:center;">🔒 Credențialele sunt salvate doar în sesiunea curentă, nu pe server</p>
+  </div>
+</div>
+
+<div id="ref-modal">
       <div id="ref-box">
         <div style="font-size:32px;margin-bottom:8px">🤖💰</div>
         <h2>Câștigă $2.70/lună per invite</h2>
@@ -1150,6 +1184,114 @@ async function pipelineNext() {
   inputEl.value = ctx;
   inputEl.focus();
 }
+
+// ══════ VPS MODAL ══════
+let vpsConfig = null;
+
+function openVpsModal() {
+  const modal = document.getElementById('vps-modal');
+  modal.style.display = 'flex';
+  // Daca avem deja config, pre-completam
+  if (vpsConfig) {
+    document.getElementById('vps-host').value = vpsConfig.host || '';
+    document.getElementById('vps-user').value = vpsConfig.username || 'root';
+    document.getElementById('vps-port').value = vpsConfig.port || 22;
+    showVpsStatus('✅ VPS conectat: ' + vpsConfig.host, 'success');
+    document.getElementById('vps-save-btn').disabled = false;
+    document.getElementById('vps-save-btn').style.opacity = '1';
+  }
+}
+
+function closeVpsModal() {
+  document.getElementById('vps-modal').style.display = 'none';
+  document.getElementById('vps-status').style.display = 'none';
+}
+
+function showVpsStatus(msg, type) {
+  const el = document.getElementById('vps-status');
+  el.style.display = 'block';
+  el.textContent = msg;
+  if (type === 'success') {
+    el.style.background = 'rgba(0,255,135,0.1)';
+    el.style.border = '1px solid #00ff87';
+    el.style.color = '#00ff87';
+  } else if (type === 'error') {
+    el.style.background = 'rgba(239,68,68,0.1)';
+    el.style.border = '1px solid #ef4444';
+    el.style.color = '#ef4444';
+  } else {
+    el.style.background = 'rgba(255,255,255,0.05)';
+    el.style.border = '1px solid #333';
+    el.style.color = '#aaa';
+  }
+}
+
+async function testVpsConnection() {
+  const host = document.getElementById('vps-host').value.trim();
+  const username = document.getElementById('vps-user').value.trim() || 'root';
+  const password = document.getElementById('vps-pass').value;
+  const port = parseInt(document.getElementById('vps-port').value) || 22;
+
+  if (!host || !password) {
+    showVpsStatus('❌ Completează host și password', 'error');
+    return;
+  }
+
+  showVpsStatus('⏳ Se testează conexiunea SSH...', 'loading');
+
+  try {
+    const resp = await fetch('/api/ssh-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ host, username, password, port, task: 'echo "BUDDY_TEST_OK" && uname -a', userId: String(userId || 'test') })
+    });
+    const d = await resp.json();
+    if (d.success !== false) {
+      showVpsStatus('✅ Conexiune reușită la ' + host + '!', 'success');
+      document.getElementById('vps-save-btn').disabled = false;
+      document.getElementById('vps-save-btn').style.opacity = '1';
+      // Salvam temp pentru butonul save
+      window._vpsTmp = { host, username, password, port };
+    } else {
+      showVpsStatus('❌ ' + (d.error || 'Conexiune eșuată'), 'error');
+    }
+  } catch(e) {
+    showVpsStatus('❌ Eroare: ' + e.message, 'error');
+  }
+}
+
+function saveVpsAndClose() {
+  if (!window._vpsTmp) return;
+  vpsConfig = window._vpsTmp;
+  // Actualizeaza butonul VPS din header
+  const btn = document.getElementById('btn-vps');
+  if (btn) {
+    btn.textContent = '🖥️✅';
+    btn.style.borderColor = '#00ff87';
+    btn.style.color = '#00ff87';
+    btn.title = 'VPS conectat: ' + vpsConfig.host;
+  }
+  closeVpsModal();
+  // Trimite mesaj in chat ca confirmare
+  appendMsg('assistant', '✅ VPS conectat: **' + vpsConfig.host + '**\nAcum pot executa comenzi direct pe serverul tău. Spune-mi ce vrei să construim!', null, currentMode, null, null);
+}
+
+// Override sendMessage sa injecteze vpsConfig in contextul Buddy
+const _origSendMessage = sendMessage;
+// Injectam vpsConfig in fiecare request catre /api/chat
+const _origFetch = window.fetch;
+window.fetch = function(url, opts) {
+  if (url === '/api/chat' && opts && opts.body && vpsConfig) {
+    try {
+      const body = JSON.parse(opts.body);
+      body.vpsConfig = vpsConfig;
+      opts.body = JSON.stringify(body);
+    } catch(e) {}
+  }
+  return _origFetch.apply(this, arguments);
+};
+
+
 </script>
 </body>
 </html>

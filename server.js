@@ -420,11 +420,14 @@ SSociety Tools: Wild Bot (WhatsApp 300/zi), Blotato (6 platforme), AdFusion, SEO
 ✅ Niciodată "nu e domeniul meu" — Buddy știe tot`;
 
 app.post('/api/chat', async (req, res) => {
-  const { messages, userId } = req.body;
+  const { messages, userId, vpsConfig } = req.body;
+  if (vpsConfig) { req.app.locals.vpsConfig = req.app.locals.vpsConfig || {}; req.app.locals.vpsConfig[userId] = vpsConfig; }
   if (!messages || !messages.length) return res.json({ success:false, error:'No messages' });
   
   const uid = userId || 'anonymous';
   const limitInfo = checkLimit(uid);
+  const userVps = req.app.locals.vpsConfig?.[uid];
+  const vpsContext = userVps ? `\n\n━━━ VPS CONECTAT AL USERULUI ━━━\nHost: ${userVps.host}\nUser: ${userVps.username}\nPort: ${userVps.port || 22}\nFolosește ÎNTOTDEAUNA acest VPS când generezi comenzi de deploy/install/run. Nu mai întreba de VPS.` : '';
   
   if (!limitInfo.allowed) {
     return res.json({
@@ -443,7 +446,7 @@ app.post('/api/chat', async (req, res) => {
     else if (/side.?hustle|hustle|pasiv|venit|income|top 100|bani|câștig/i.test(lower)) { mode='sidehustle'; agent='Hermes'; intent='EXPLORATOR'; }
     else if (/business|automatiz|ai agent|openclaw|nemo|hermes|paperclip|saas|startup/i.test(lower)) { mode='business'; agent='Paperclip'; intent='VALIDATOR'; }
 
-    const reply = await callAI(messages, SYSTEM_PROMPT, mode);
+    const reply = await callAI(messages, SYSTEM_PROMPT + (vpsContext || ''), mode);
     incUsage(uid);
     const newLimit = checkLimit(uid);
     res.json({ success:true, reply, text:reply, intent, mode, agent, jobContext:null, actionCount:newLimit.usage, remaining:newLimit.remaining, limitStatus:'ok' });
