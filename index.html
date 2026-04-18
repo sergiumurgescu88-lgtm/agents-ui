@@ -981,9 +981,203 @@ footer a:hover { color: var(--text); }
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ── KILO TERMINAL ──────────────────────────────── */
+#kilo-terminal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+#kilo-terminal-overlay.active { display: flex; }
+#kilo-terminal-box {
+  width: min(860px, 96vw);
+  max-height: 80vh;
+  background: #0d1117;
+  border: 1px solid #00ff87;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 40px rgba(0,255,135,0.15);
+}
+#kilo-terminal-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  color: #8b949e;
+}
+#kilo-terminal-titlebar .dot {
+  width: 12px; height: 12px; border-radius: 50%;
+}
+.dot.red { background: #ff5f57; }
+.dot.yellow { background: #febc2e; }
+.dot.green { background: #28c840; }
+#kilo-terminal-title {
+  flex: 1;
+  text-align: center;
+  color: #00ff87;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+#kilo-close-btn {
+  cursor: pointer;
+  color: #8b949e;
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color .2s;
+}
+#kilo-close-btn:hover { color: #ff5f57; }
+#kilo-terminal-ssh-form {
+  display: none;
+  padding: 16px;
+  background: #0d1117;
+  border-bottom: 1px solid #30363d;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#kilo-terminal-ssh-form.visible { display: flex; }
+#kilo-terminal-ssh-form input {
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: #e6edf3;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  outline: none;
+  flex: 1;
+  min-width: 120px;
+}
+#kilo-terminal-ssh-form input:focus { border-color: #00ff87; }
+#kilo-ssh-connect-btn {
+  background: #00ff87;
+  color: #000;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#kilo-terminal-output {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e6edf3;
+  min-height: 300px;
+  max-height: 60vh;
+}
+#kilo-terminal-output .line-status { color: #8b949e; }
+#kilo-terminal-output .line-token { color: #e6edf3; }
+#kilo-terminal-output .line-plan { color: #00d4ff; font-style: italic; }
+#kilo-terminal-output .line-error { color: #ff4757; }
+#kilo-terminal-output .line-done { color: #00ff87; font-weight: 700; }
+#kilo-terminal-output .line-stderr { color: #ffb800; }
+#kilo-cursor {
+  display: inline-block;
+  width: 8px; height: 14px;
+  background: #00ff87;
+  animation: blink 1s step-end infinite;
+  vertical-align: text-bottom;
+  margin-left: 2px;
+}
+@keyframes blink { 50% { opacity: 0; } }
+#kilo-terminal-input-row {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid #30363d;
+  gap: 8px;
+}
+#kilo-prompt-label {
+  color: #00ff87;
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+#kilo-user-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e6edf3;
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  caret-color: #00ff87;
+}
+#kilo-run-btn {
+  background: #00ff87;
+  color: #000;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+#kilo-ssh-toggle {
+  background: transparent;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: 'Space Mono', monospace;
+}
+#kilo-ssh-toggle:hover { border-color: #00d4ff; color: #00d4ff; }
+
 </style>
 </head>
 <body>
+
+<!-- KILO TERMINAL -->
+<div id="kilo-terminal-overlay">
+  <div id="kilo-terminal-box">
+    <div id="kilo-terminal-titlebar">
+      <div class="dot red"></div>
+      <div class="dot yellow"></div>
+      <div class="dot green"></div>
+      <span id="kilo-terminal-title">⚡ KILO CLI — Buddy Coding Agent</span>
+      <span id="kilo-close-btn" onclick="kiloTerminal.close()">✕</span>
+    </div>
+    <div id="kilo-terminal-ssh-form">
+      <input id="kilo-ssh-host" placeholder="IP VPS (ex: 187.77.64.99)" />
+      <input id="kilo-ssh-user" placeholder="username" value="root" />
+      <input id="kilo-ssh-pass" type="password" placeholder="password" />
+      <input id="kilo-ssh-port" placeholder="port" value="22" style="max-width:70px" />
+      <button id="kilo-ssh-connect-btn" onclick="kiloTerminal.testSSH()">🔌 Conectare</button>
+    </div>
+    <div id="kilo-terminal-output">
+      <span class="line-status">Buddy Kilo CLI v1.0 — ready<br>Scrie un task sau conectează-te la un VPS remote.<br><br></span>
+    </div>
+    <div id="kilo-terminal-input-row">
+      <span id="kilo-prompt-label">buddy@kilo:~$</span>
+      <input id="kilo-user-input" placeholder="descrie ce vrei să faci..." autocomplete="off" />
+      <button id="kilo-ssh-toggle" onclick="kiloTerminal.toggleSSH()" title="SSH Remote">🖥️ SSH</button>
+      <button id="kilo-run-btn" onclick="kiloTerminal.run()">▶ Run</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- NAV -->
 <nav>
@@ -1891,5 +2085,159 @@ function toggleFaq(el) {
   if (!isOpen) item.classList.add('open');
 }
 </script>
+
+<script>
+const kiloTerminal = {
+  sshMode: false,
+  sshConnected: false,
+  sshConfig: null,
+  eventSource: null,
+
+  open(initialPrompt) {
+    document.getElementById('kilo-terminal-overlay').classList.add('active');
+    const input = document.getElementById('kilo-user-input');
+    if (initialPrompt) {
+      input.value = initialPrompt;
+      setTimeout(() => this.run(), 300);
+    } else {
+      input.focus();
+    }
+  },
+
+  close() {
+    document.getElementById('kilo-terminal-overlay').classList.remove('active');
+    if (this.eventSource) { this.eventSource.close(); this.eventSource = null; }
+  },
+
+  toggleSSH() {
+    const form = document.getElementById('kilo-terminal-ssh-form');
+    this.sshMode = !this.sshMode;
+    form.classList.toggle('visible', this.sshMode);
+    const btn = document.getElementById('kilo-ssh-toggle');
+    btn.style.color = this.sshMode ? '#00d4ff' : '';
+    btn.style.borderColor = this.sshMode ? '#00d4ff' : '';
+  },
+
+  testSSH() {
+    const host = document.getElementById('kilo-ssh-host').value.trim();
+    const user = document.getElementById('kilo-ssh-user').value.trim();
+    const pass = document.getElementById('kilo-ssh-pass').value;
+    const port = document.getElementById('kilo-ssh-port').value || '22';
+    if (!host || !pass) { this.print('❌ Completează host și password\n', 'error'); return; }
+    this.sshConfig = { host, username: user, password: pass, port: parseInt(port) };
+    this.print('🔌 Testare conexiune SSH la ' + host + '...\n', 'status');
+    this.runSSHTask('echo "SSH OK - $(hostname) - $(date)"');
+  },
+
+  print(text, type='token') {
+    const out = document.getElementById('kilo-terminal-output');
+    const span = document.createElement('span');
+    span.className = 'line-' + type;
+    span.textContent = text;
+    out.appendChild(span);
+    out.scrollTop = out.scrollHeight;
+  },
+
+  clearOutput() {
+    document.getElementById('kilo-terminal-output').innerHTML = '';
+  },
+
+  run() {
+    const input = document.getElementById('kilo-user-input');
+    const task = input.value.trim();
+    if (!task) return;
+    this.clearOutput();
+    this.print('buddy@kilo:~$ ' + task + '\n', 'status');
+    input.value = '';
+
+    if (this.sshMode && this.sshConfig) {
+      this.runSSHTask(task);
+    } else {
+      this.runKiloLocal(task);
+    }
+  },
+
+  runKiloLocal(prompt) {
+    this.print('⚡ Kilo thinking...\n', 'status');
+    if (this.eventSource) this.eventSource.close();
+
+    const url = '/api/kilo-stream?prompt=' + encodeURIComponent(prompt) + '&userId=' + (window.userId || 'user');
+    this.eventSource = new EventSource(url);
+
+    this.eventSource.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'token') this.print(msg.data, 'token');
+      else if (msg.type === 'status') this.print(msg.data, 'status');
+      else if (msg.type === 'error') this.print(msg.data, 'error');
+      else if (msg.type === 'done') {
+        this.print('\n' + msg.data + '\n', 'done');
+        this.eventSource.close();
+      }
+    };
+
+    this.eventSource.onerror = () => {
+      this.print('\n❌ Conexiune pierdută\n', 'error');
+      this.eventSource.close();
+    };
+  },
+
+  runSSHTask(task) {
+    if (!this.sshConfig) { this.print('❌ Configurează SSH mai întâi\n', 'error'); return; }
+    this.print('🖥️ SSH → ' + this.sshConfig.host + '\n', 'status');
+
+    fetch('/api/ssh-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...this.sshConfig, task, userId: window.userId || 'user' })
+    }).then(response => {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      const read = () => reader.read().then(({ done, value }) => {
+        if (done) return;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+        lines.forEach(line => {
+          if (line.startsWith('data: ')) {
+            try {
+              const msg = JSON.parse(line.slice(6));
+              if (msg.type === 'token') this.print(msg.data, 'token');
+              else if (msg.type === 'stderr') this.print(msg.data, 'stderr');
+              else if (msg.type === 'status') this.print(msg.data, 'status');
+              else if (msg.type === 'error') this.print(msg.data, 'error');
+              else if (msg.type === 'plan') {
+                try {
+                  const plan = JSON.parse(msg.data);
+                  this.print('📋 ' + plan.description + '\n', 'plan');
+                } catch(e) {}
+              }
+              else if (msg.type === 'done') this.print('\n' + msg.data + '\n', 'done');
+            } catch(e) {}
+          }
+        });
+        read();
+      });
+      read();
+    }).catch(e => this.print('❌ ' + e.message + '\n', 'error'));
+  }
+};
+
+// Enter key in terminal input
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('kilo-user-input');
+  if (inp) {
+    inp.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') kiloTerminal.run();
+    });
+  }
+  // ESC inchide terminalul
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') kiloTerminal.close();
+  });
+});
+</script>
+
 </body>
 </html>

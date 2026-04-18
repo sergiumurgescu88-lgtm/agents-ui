@@ -1,0 +1,587 @@
+require('dotenv').config({ path: '/opt/agents-ui/.env' });
+const { kiloChat, sshExecuteStream, kiloGenerateCommands } = require('./kilo-bridge');
+const { startKiloTerminalServer } = require('./kilo-terminal-server');
+const Stripe = require('stripe');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const axios = require('axios');
+const app = express();
+app.use(express.json({ limit: '50mb' }));
+
+// PIPELINE ROUTES INLINE
+const Database = require('better-sqlite3');
+const _pdb = new Database('/opt/agents-ui/pipeline.db');
+app.post('/api/pipeline/save', (req, res) => {
+  try {
+    const { userId, step, data, sessionId } = req.body;
+    let sid = sessionId;
+    if (!sid) {
+      sid = _pdb.prepare('INSERT INTO sessions (user_id) VALUES (?)').run(userId).lastInsertRowid;
+    }
+    _pdb.prepare('INSERT OR REPLACE INTO pipeline_steps (session_id, step, data, status) VALUES (?,?,?,?)').run(sid, step, JSON.stringify(data), 'done');
+    _pdb.prepare('UPDATE sessions SET updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(sid);
+    res.json({ ok: true, sessionId: sid });
+  } catch(e) { res.json({ ok: false, error: e.message }); }
+});
+app.get('/api/pipeline/session/:id', (req, res) => {
+  const steps = _pdb.prepare('SELECT * FROM pipeline_steps WHERE session_id = ? ORDER BY id').all(req.params.id);
+  res.json({ steps: steps.map(s => ({ ...s, data: JSON.parse(s.data) })) });
+});
+app.get('/api/pipeline/sessions/:userId', (req, res) => {
+  res.json({ sessions: _pdb.prepare('SELECT * FROM sessions WHERE user_id = ? ORDER BY updated_at DESC LIMIT 20').all(req.params.userId) });
+});
+// END PIPELINE ROUTES
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+const USAGE_FILE = '/opt/agents-ui/usage.json';
+let usageMap = (() => { try { return JSON.parse(fs.readFileSync(USAGE_FILE,'utf8')); } catch(e) { return {}; } })();
+
+const PREMIUM_FILE = '/opt/agents-ui/premium.json';
+let premiumUsers = (() => { try { return JSON.parse(fs.readFileSync(PREMIUM_FILE,'utf8')); } catch(e) { return {}; } })();
+const savePremium = () => { try { fs.writeFileSync(PREMIUM_FILE, JSON.stringify(premiumUsers)); } catch(e) {} };
+const isPremium = (uid) => !!premiumUsers[uid];
+
+// ==========================================
+// REFERRAL SYSTEM
+// ==========================================
+const REFERRAL_FILE = '/opt/agents-ui/referrals.json';
+let referrals = (() => { try { return JSON.parse(fs.readFileSync(REFERRAL_FILE,'utf8')); } catch(e) { return {}; } })();
+const saveReferrals = () => { try { fs.writeFileSync(REFERRAL_FILE, JSON.stringify(referrals, null, 2)); } catch(e) {} };
+
+function getOrCreateRefCode(uid) {
+  if (!referrals[uid]) {
+    referrals[uid] = {
+      code: 'BUDDY' + uid.substr(-6).toUpperCase(),
+      referredUsers: [],
+      totalEarned: 0,
+      pendingPayout: 0,
+      paidOut: 0,
+      createdAt: new Date().toISOString()
+    };
+    saveReferrals();
+  }
+  return referrals[uid];
+}
+
+function getReferralByCode(code) {
+  return Object.entries(referrals).find(([uid, r]) => r.code === code.toUpperCase())?.[0];
+}
+const saveUsage = () => { try { fs.writeFileSync(USAGE_FILE, JSON.stringify(usageMap)); } catch(e) {} };
+const checkLimit = (uid) => { 
+  if (isPremium(uid)) return { allowed: true, remaining: 999, usage: usageMap[uid]||0, premium: true };
+  const u = usageMap[uid]||0; 
+  return { allowed: u<50, remaining: 50-u, usage: u, premium: false }; 
+};
+const incUsage = (uid) => { usageMap[uid] = (usageMap[uid]||0)+1; saveUsage(); };
+
+async function callAI(messages, system, mode='chat') {
+  const msgs = messages.map(m => ({ role: m.role==='model'?'assistant':m.role, content: String(m.content||m.text||'') })).filter(m=>m.content);
+  const allMsgs = system ? [{role:'system',content:system},...msgs] : msgs;
+
+  // 🟢 CODING → Kilo CLI (gpt-4.1-mini) cu fallback OpenAI gpt-4o
+  if (mode === 'coding') {
+    try {
+      console.log('[AI] CODING → Kilo CLI gpt-4.1-mini...');
+      const lastUserMsg = messages.filter(m => m.role === 'user').pop();
+      const prompt = lastUserMsg?.content || lastUserMsg?.text || '';
+      const kiloReply = await kiloChat(prompt, system);
+      if (kiloReply) { console.log('[AI] Kilo CLI OK'); return kiloReply; }
+    } catch(e) { console.error('[AI] Kilo failed:', e.message); }
+    // Fallback la OpenAI direct
+    try {
+      console.log('[AI] CODING fallback → OpenAI gpt-4o...');
+      const r = await axios.post('https://api.openai.com/v1/chat/completions',
+        { model:'gpt-4o', messages:allMsgs, max_tokens:2000 },
+        { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
+      );
+      const reply = r.data?.choices?.[0]?.message?.content;
+      if (reply) { console.log('[AI] OpenAI gpt-4o fallback OK'); return reply; }
+    } catch(e) { console.error('[AI] OpenAI failed:', e.response?.data?.error?.message || e.message); }
+  }
+
+  // 🔵 MARKETING → xAI Grok (cel mai creativ)
+  if (mode === 'marketing') {
+    try {
+      console.log('[AI] MARKETING → xAI Grok...');
+      const r = await axios.post('https://api.x.ai/v1/chat/completions',
+        { model:'grok-3', messages:allMsgs, max_tokens:2000 },
+        { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.XAI_API_KEY}` }, timeout:30000 }
+      );
+      const reply = r.data?.choices?.[0]?.message?.content;
+      if (reply) { console.log('[AI] xAI Grok OK'); return reply; }
+    } catch(e) { console.error('[AI] xAI failed:', e.response?.data?.error?.message || e.message); }
+  }
+
+  // 💬 CHAT → OpenAI gpt-4.1-mini
+  try {
+    console.log('[AI] CHAT → OpenAI gpt-4.1-mini...');
+    const r = await axios.post('https://api.openai.com/v1/chat/completions',
+      { model:'gpt-4.1-mini', messages:allMsgs, max_tokens:2000 },
+      { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
+    );
+    const reply = r.data?.choices?.[0]?.message?.content;
+    if (reply) { console.log('[AI] gpt-4.1-mini OK'); return reply; }
+  } catch(e) { console.error('[AI] gpt-4.1-mini failed:', e.response?.data?.error?.message || e.message); }
+
+  // FALLBACK UNIVERSAL → OpenAI gpt-4o-mini
+  try {
+    console.log('[AI] FALLBACK → OpenAI gpt-4o-mini...');
+    const r = await axios.post('https://api.openai.com/v1/chat/completions',
+      { model:'gpt-4o-mini', messages:allMsgs, max_tokens:2000 },
+      { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
+    );
+    const reply = r.data?.choices?.[0]?.message?.content;
+    if (reply) { console.log('[AI] OpenAI fallback OK'); return reply; }
+  } catch(e) { console.error('[AI] OpenAI fallback failed:', e.message); }
+
+  // LAST RESORT → OpenAI gpt-4.1
+  try {
+    console.log('[AI] LAST RESORT → OpenAI gpt-4.1...');
+    const r = await axios.post('https://api.openai.com/v1/chat/completions',
+      { model:'gpt-4.1', messages:allMsgs, max_tokens:2000 },
+      { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
+    );
+    const reply = r.data?.choices?.[0]?.message?.content;
+    if (reply) return reply;
+  } catch(e) {}
+
+  return '⚠️ Toate modelele sunt indisponibile momentan.';
+}
+
+const SYSTEM_PROMPT = `Ești BUDDY — platforma DaRomania. Flow secvențial în 5 pași + OpenClaw base.
+
+Tu ești CREIERUL. Userul este MÂINILE.
+VIBE CODING = tu dai comenzi exacte gata de copy-paste, el rulează și îți trimite outputul.
+Userul NU modifică NICIODATĂ nimic manual.
+
+━━━ 🦅 FLOW SECVENȚIAL 5 PAȘI ━━━
+
+🔵 PASUL 1: START PLAN (entry point default)
+Când userul întreabă de meserie/idee/business/monetizare/arsenal/blueprint:
+Pune 2-3 întrebări per serie, max 2 serii. OBLIGATORIU variante a/b/c/d la fiecare întrebare.
+
+Serie 1:
+1. În ce domeniu vrei să monetizezi?
+   a) Tech/coding/SaaS
+   b) Content/creator/social media
+   c) Servicii/freelancing
+   d) Nu știu, recomandă tu
+
+2. Care e situația ta actuală?
+   a) Începător, zero experiență
+   b) Am skills, caut direcție
+   c) Am deja un proiect/client
+   d) Vreau să scalez ceva existent
+
+3. Cât timp poți aloca săptămânal?
+   a) 0-5 ore (side hustle mic)
+   b) 5-20 ore (semi-serios)
+   c) 20-40 ore (full focus)
+   d) Full-time, vreau rezultate rapide
+
+După răspunsuri: arată risc automatizare + 3 opțiuni monetizare cu venit estimat €/lună + stack tehnic + plan 30 zile.
+La final: "🟢 Vrei să activez Coding pentru a construi MVP-ul opțiunii [X]?"
+
+🟢 PASUL 2: CODING (Kilo Engine) — VibeCoding obligatoriu
+Când userul cere cod/script/API/scraper/deploy/debug:
+PAS 1 — ÎNȚELEGERE: Pune 2-3 întrebări pe serie, maxim 3 serii. OBLIGATORIU: fiecare întrebare are variante a/b/c/d clare. Userul răspunde doar cu litere (ex: "a", "bc", "a,c"). Format OBLIGATORIU pentru fiecare întrebare:
+
+1. Textul întrebării?
+   a) Varianta 1
+   b) Varianta 2
+   c) Varianta 3
+   d) Alta (specifică tu)
+
+Exemplu serie 1:
+1. Ce limbaj preferi?
+   a) Python
+   b) Node.js
+   c) PHP
+   d) Altul
+
+2. Unde va rula aplicația?
+   a) VPS propriu (Ubuntu)
+   b) Cloud (AWS/Vercel)
+   c) Local pe PC
+   d) Nu știu, recomandă tu
+
+3. Ai deja date sau API-uri de integrat?
+   a) Da, am API-uri gata
+   b) Da, am date în Excel/CSV
+   c) Nu, pornim de la zero
+   d) Nu știu încă
+
+Aștepți răspuns, apoi seria 2, apoi seria 3. La final: "✅ Am toate detaliile. Vrei să optimizăm ceva? a) Da b) Nu, începem direct"
+
+PAS 2 — STRUCTURĂ: Doar după confirmare, arată tree-ul complet al proiectului.
+PAS 3 — CONSTRUCȚIE: generează fișierele în ordine: .env.example → config.py → utils/ → models.py → services/ → main.py → tests/ → README.md
+PAS 4 — EXPLICARE: explică blocurile critice după fiecare fișier
+PAS 5 — INSTRUCȚIUNI: comenzi copy-paste gata de rulat (bash bloc separat, max 3 comenzi)
+NICIODATĂ nu pune 10 întrebări. NICIODATĂ nu cere framework/versiune (știi: Ubuntu 24.04 = python3 + node v22).
+
+🟡 PASUL 3: MARKETING (Hermes+Herald)
+Când userul cere strategie/calendar/funnel/SEO/LinkedIn/TikTok/email:
+Pune 2-3 întrebări per serie, max 3 serii. OBLIGATORIU variante a/b/c/d la fiecare întrebare.
+Serie 1 exemplu:
+1. Ce platformă vizezi? a) LinkedIn b) TikTok/IG c) Email d) Toate
+2. Obiectiv? a) Awareness b) Leads c) Vânzări d) Comunitate
+3. Buget lunar? a) 0-organic b) €50-200 c) €200-500 d) €500+
+După răspunsuri: generează poziționare + hook + calendar 30 zile + KPI + 3 A/B teste.
+La final: "🟣 Vrei să activez Creator pentru asset-uri multimedia?"
+
+🟣 PASUL 4: CREATOR (Gemini Suprem)
+Când userul cere thumbnail/voiceover/video/imagine/muzică:
+Pune 2-3 întrebări per serie, max 2 serii. OBLIGATORIU variante a/b/c/d.
+Serie 1:
+1. Ce conținut creăm? a) Imagine/thumbnail b) Video scurt c) Voiceover d) Muzică
+2. Stil vizual? a) Minimalist b) Colorat/energic c) Profesional d) Creativ
+3. Platformă? a) Instagram/TikTok b) YouTube c) LinkedIn d) Website
+După răspunsuri: specifică modelul Gemini + cost + brief complet.
+La final: "🔴 Vrei să activez Hustle pentru outreach și postare?"
+
+🔴 PASUL 5: HUSTLE (Hunter Engine)
+Când userul cere clienți/leads/outreach/WhatsApp/Blotato/postare/CRM:
+Pune 2-3 întrebări per serie, max 2 serii. OBLIGATORIU variante a/b/c/d.
+Serie 1:
+1. Ce facem? a) Postez pe social media b) Outreach leads c) CRM/contacte d) Toate
+2. Platforme? a) Instagram+TikTok b) LinkedIn+Twitter c) YouTube+Facebook d) Toate 6
+3. Frecvență? a) 1x/zi b) 2-3x/zi c) 1x/săptămână d) Campanie punctuală
+După răspunsuri: Research ICP + SSociety Wild Bot 300msg/zi + Blotato 6 platforme.
+Afișează preview ÎNAINTE de trimitere. Cere confirmare explicită.
+- CRM tracking: nou → contactat → interesat → apel → client
+
+━━━ 🟢 REGULI CODING (VibeCoding) ━━━
+- Maxim 3 comenzi per mesaj în bloc bash separat
+- Aștepți outputul înainte să continui
+- Fișiere întregi: python3 heredoc sau cat, NICIODATĂ sed manual
+- Sub fiecare bloc: 1 propoziție ce face
+- Niciodată credențiale hardcodate — doar .env via os.environ.get()
+- Type hints + docstrings concise + logging (nu print) + try/except
+
+━━━ 🔵 ARSENAL API ($9 one-time) ━━━
+AI: OpenAI GPT-4o/Codex/Whisper, Google Gemini (TTS+imagini+video+search), Groq, DeepSeek, Anthropic Claude, Cloudflare Workers AI
+Email/CRM: Amazon SES (300/zi gratis), Resend, SendGrid, Mailchimp
+Social: LinkedIn API, TikTok API, YouTube Data v3, Instagram Graph, Buffer API, Telegram Bot (gratis)
+Plăți: Stripe, PayPal, Lemon Squeezy
+DB/Storage: Supabase (PostgreSQL+auth gratis), Neon, Firebase, AWS S3, Google Drive API
+Maps: Google Maps API, Mapbox, OpenStreetMap (gratis)
+SSociety Tools: Wild Bot (WhatsApp 300/zi), Blotato (6 platforme), AdFusion, SEO Mastermind, Viral Architect
+
+━━━ 💰 MODELE BUSINESS ━━━
+1. Prompt Engineering Agency — €3.000-12.000/lună
+2. Social Media AI Agency — €299/client × 20 = €6.000
+3. Curs online cu AI tutor — €29/elev × 200 = €5.800 recurent
+4. SEO AI Agency — €499-2.999/client
+5. Micro SaaS din API-uri — $0 cost, €1.000-5.000 venit
+6. Content Factory AI — video+audio+text €5.000-25.000
+7. Email Newsletter AI — 500 abonați = €2.500 pasiv
+8. E-commerce Automat — descrieri+imagini+reclame generate
+
+━━━ 🔴 REGULI GLOBALE ━━━
+✅ Română întotdeauna
+✅ ZERO întrebări despre framework/versiune/scop dacă cererea e clară. MAXIM 1 întrebare DOAR dacă lipsește o informație critică (ex: URL-ul site-ului de scraped). Dacă userul spune 'scraper Python' → treci DIRECT la structura proiectului.
+✅ Direct la soluție — userul vrea să construiască, nu să discute teorii. Când primești 'vreau un scraper/API/agent/bot' → IMEDIAT structură proiect + cod. NU întreba de scop/producție/framework.
+✅ La finalul fiecărui răspuns: propune pasul următor din flow
+✅ Celebrezi succesul cu emoji
+✅ Codul e ÎNTOTDEAUNA complet, gata de rulat
+✅ Niciodată "nu e domeniul meu" — Buddy știe tot`;
+
+app.post('/api/chat', async (req, res) => {
+  const { messages, userId } = req.body;
+  if (!messages || !messages.length) return res.json({ success:false, error:'No messages' });
+  
+  const uid = userId || 'anonymous';
+  const limitInfo = checkLimit(uid);
+  
+  if (!limitInfo.allowed) {
+    return res.json({
+      success:true,
+      reply:'<div style="text-align:center;padding:20px"><p style="font-size:2rem">🔒</p><p style="font-weight:700;font-size:1.1rem">Ai folosit cele 50 de acțiuni gratuite</p><p style="color:#678;margin-bottom:16px">Deblochează acces complet pentru <strong>$9</strong></p><a href="https://buy.stripe.com/bJe14o1Ht3ZCamfedh5os00" target="_blank" style="display:inline-block;background:#635bff;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💳 Plătește $9 acum</a><br/><a href="https://wa.me/40768676141" target="_blank" style="display:inline-block;background:#25d366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💬 WhatsApp Sergiu</a></div>',
+      text:'', mode:'lock', limitStatus:'hard_stop', actionCount:50
+    });
+  }
+
+  try {
+    const lastMsg = messages[messages.length-1]?.content || '';
+    const lower = lastMsg.toLowerCase();
+    let mode = 'chat', agent = 'Buddy', intent = 'GENERAL';
+    if (/error|fix|debug|server|vps|nginx|pm2|deploy|docker|node|bash|terminal|cod|instal|python|flask|django|fastapi|script|programar|site|html|css|javascript|php|sql|database|api|git|linux/i.test(lower)) { mode='coding'; agent='OpenClaw'; intent='EXECUTOR'; }
+    else if (/marketing|content|prompts?|copywriting|social media|funnel|email|seo|ads/i.test(lower)) { mode='marketing'; agent='Paperclip'; intent='MARKETING'; }
+    else if (/side.?hustle|hustle|pasiv|venit|income|top 100|bani|câștig/i.test(lower)) { mode='sidehustle'; agent='Hermes'; intent='EXPLORATOR'; }
+    else if (/business|automatiz|ai agent|openclaw|nemo|hermes|paperclip|saas|startup/i.test(lower)) { mode='business'; agent='Paperclip'; intent='VALIDATOR'; }
+
+    const reply = await callAI(messages, SYSTEM_PROMPT, mode);
+    incUsage(uid);
+    const newLimit = checkLimit(uid);
+    res.json({ success:true, reply, text:reply, intent, mode, agent, jobContext:null, actionCount:newLimit.usage, remaining:newLimit.remaining, limitStatus:'ok' });
+  } catch(e) {
+    console.error('[CHAT] Error:', e.message);
+    res.json({ success:false, error: e.message });
+  }
+});
+
+app.get('/api/health', (req, res) => res.json({ status:'ok', version:'v14-clean', providers:{ anthropic:!!process.env.ANTHROPIC_API_KEY, openai:!!process.env.OPENAI_API_KEY } }));
+app.get('/api/limit/:userId', (req, res) => res.json(checkLimit(req.params.userId)));
+
+app.get('/api/referral/:userId', (req, res) => {
+  const ref = getOrCreateRefCode(req.params.userId);
+  res.json({
+    code: ref.code,
+    link: 'https://buddy.daeu.online?ref=' + ref.code,
+    referredCount: ref.referredUsers.length,
+    totalEarned: ref.totalEarned,
+    pendingPayout: ref.pendingPayout,
+    paidOut: ref.paidOut,
+    commission: '30%'
+  });
+});
+
+app.get('/api/referral/stats/all', (req, res) => {
+  const stats = Object.entries(referrals).map(([uid, r]) => ({
+    uid, code: r.code,
+    referredCount: r.referredUsers.length,
+    totalEarned: r.totalEarned,
+    pendingPayout: r.pendingPayout
+  })).sort((a,b) => b.referredCount - a.referredCount);
+  res.json({ total: stats.length, stats });
+});
+
+// ==========================================
+// STRIPE CHECKOUT
+// ==========================================
+app.post('/api/create-checkout', async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.json({ error: 'No userId' });
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
+      success_url: 'https://buddy.daeu.online?premium=success&uid=' + userId,
+      cancel_url: 'https://buddy.daeu.online?premium=cancel',
+      metadata: { userId, refCode: req.body.refCode || '' },
+      client_reference_id: userId,
+    });
+    res.json({ url: session.url });
+  } catch(e) {
+    console.error('[Stripe] Checkout error:', e.message);
+    res.json({ error: e.message });
+  }
+});
+
+// ==========================================
+// STRIPE WEBHOOK
+// ==========================================
+app.post('/webhook/stripe', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch(e) {
+    console.error('[Webhook] Signature fail:', e.message);
+    return res.status(400).send('Webhook Error');
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const uid = session.metadata?.userId || session.client_reference_id;
+    const refCode = session.metadata?.refCode;
+    if (uid) {
+      premiumUsers[uid] = { 
+        active: true, 
+        customerId: session.customer,
+        subscriptionId: session.subscription,
+        activatedAt: new Date().toISOString(),
+        refCode: refCode || null
+      };
+      savePremium();
+      console.log('[Premium] Activated:', uid);
+      
+      // Crediteaza referral-ul
+      if (refCode) {
+        const referrerUid = getReferralByCode(refCode);
+        if (referrerUid && referrerUid !== uid) {
+          const ref = referrals[referrerUid];
+          const commission = 9 * 0.30; // $2.70 per luna
+          ref.referredUsers.push({ uid, activatedAt: new Date().toISOString() });
+          ref.totalEarned += commission;
+          ref.pendingPayout += commission;
+          saveReferrals();
+          console.log('[Referral] Commission $' + commission + ' for:', referrerUid);
+        }
+      }
+    }
+  }
+
+  if (event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object;
+    const uid = Object.keys(premiumUsers).find(k => premiumUsers[k].subscriptionId === sub.id);
+    if (uid) {
+      delete premiumUsers[uid];
+      savePremium();
+      console.log('[Premium] Cancelled:', uid);
+    }
+  }
+
+  res.json({ received: true });
+});
+
+// ==========================================
+// CHECK PREMIUM STATUS
+// ==========================================
+app.get('/api/premium/:userId', (req, res) => {
+  res.json({ premium: isPremium(req.params.userId) });
+});
+
+// ==========================================
+// KILO CLI STREAMING — SSE endpoint
+// ==========================================
+const { spawn } = require('child_process');
+
+app.get('/api/kilo-stream', (req, res) => {
+  const prompt = req.query.prompt || '';
+  const userId = req.query.userId || 'anonymous';
+  if (!prompt) return res.status(400).end();
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.flushHeaders();
+
+  const send = (type, data) => res.write('data: ' + JSON.stringify({ type, data }) + '\n\n');
+
+  send('status', '⚡ Kilo CLI pornit...');
+  console.log('[Kilo SSE] Start pentru userId:', userId);
+
+  const proc = spawn('kilo', ['run', '-m', 'openai/gpt-4.1-mini', '--', prompt], {
+    env: { ...process.env, HOME: '/root' },
+    cwd: '/root'
+  });
+
+  proc.stdout.on('data', (chunk) => {
+    const text = chunk.toString();
+    text.split('\n').forEach(line => {
+      if (line.trim() && !line.startsWith('> code') && !line.startsWith('kilo')) {
+        send('token', line + '\n');
+      }
+    });
+  });
+
+  proc.stderr.on('data', (chunk) => {
+    const text = chunk.toString();
+    if (!text.includes('kilo_local_recall') && !text.includes('permission requested') && !text.includes('auto-rejecting')) {
+      send('log', text);
+    }
+  });
+
+  proc.on('close', (code) => {
+    send('done', '✅ Gata.');
+    console.log('[Kilo SSE] Done, exit code:', code);
+    res.end();
+  });
+
+  proc.on('error', (e) => {
+    send('error', '❌ ' + e.message);
+    res.end();
+  });
+
+  req.on('close', () => { proc.kill(); });
+
+  setTimeout(() => {
+    proc.kill();
+    send('error', '⏱️ Timeout 90s');
+    res.end();
+  }, 90000);
+});
+
+
+// ==========================================
+// SSH AGENT — Kilo executa pe VPS remote
+// ==========================================
+app.post('/api/ssh-agent', async (req, res) => {
+  const { host, username, password, port, task, userId } = req.body;
+  if (!host || !username || !password || !task) {
+    return res.json({ success: false, error: 'Lipsesc: host, username, password, task' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.flushHeaders();
+
+  const send = (type, data) => {
+    try { res.write('data: ' + JSON.stringify({ type, data }) + '\n\n'); } catch(e) {}
+  };
+
+  send('status', `🤖 Kilo analizează task-ul: ${task}\n`);
+  console.log('[SSH Agent] Task:', task, 'Host:', host);
+
+  // Pasul 1: Kilo generează comenzile
+  const plan = await kiloGenerateCommands(task, `Server: ${host}`);
+  if (!plan || !plan.commands) {
+    send('error', '❌ Nu am putut genera comenzile');
+    return res.end();
+  }
+
+  send('plan', JSON.stringify(plan));
+  send('status', `\n📋 Plan: ${plan.description}\n`);
+  send('status', `⚡ Comenzi: ${plan.commands.join(' && ')}\n\n`);
+
+  // Pasul 2: Executa pe VPS via SSH
+  sshExecuteStream(
+    { host, username, password, port: port || 22 },
+    plan.commands,
+    (type, data) => send(type, data),
+    () => { send('done', '✅ Task finalizat!'); res.end(); },
+    (err) => { send('error', err); res.end(); }
+  );
+});
+
+// SSE endpoint pentru kilo local
+app.get('/api/kilo-stream', (req, res) => {
+  const prompt = req.query.prompt || '';
+  if (!prompt) return res.status(400).end();
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.flushHeaders();
+
+  const send = (type, data) => {
+    try { res.write('data: ' + JSON.stringify({ type, data }) + '\n\n'); } catch(e) {}
+  };
+
+  kiloChat(prompt, null).then(reply => {
+    if (reply) {
+      // Simuleaza streaming token cu token
+      const words = reply.split(' ');
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i < words.length) {
+          send('token', words[i] + ' ');
+          i++;
+        } else {
+          clearInterval(interval);
+          send('done', '✅ Gata.');
+          res.end();
+        }
+      }, 30);
+    } else {
+      send('error', '❌ Nu am primit răspuns');
+      res.end();
+    }
+  });
+});
+
+
+const PORT = process.env.PORT || 7900;
+const http = require('http');
+const httpServer = http.createServer(app);
+startKiloTerminalServer(httpServer);
+httpServer.listen(PORT, () => console.log(`🧠 Buddy Brain v14 + Kilo Terminal WS running on :${PORT}`));

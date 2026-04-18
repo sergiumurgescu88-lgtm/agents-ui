@@ -294,11 +294,11 @@ body.mode-marketing #buddy-name{letter-spacing:.04em;}
 #qa-tabs::-webkit-scrollbar{display:none;}
 .qa-tab{flex-shrink:0;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;border:1.5px solid #333;background:transparent;color:#888;cursor:pointer;transition:all .2s;white-space:nowrap;}
 .qa-tab.active,.qa-tab:hover{color:#fff;}
-.qa-tab-coding.active,.qa-tab-coding:hover{border-color:#22d3a0;color:#22d3a0;background:rgba(34,211,160,.1);}
-.qa-tab-marketing.active,.qa-tab-marketing:hover{border-color:#f97316;color:#f97316;background:rgba(249,115,22,.1);}
-.qa-tab-sidehustle.active,.qa-tab-sidehustle:hover{border-color:#ff6b6b;color:#ff6b6b;background:rgba(255,107,107,.1);}
-.qa-tab-chat.active,.qa-tab-chat:hover{border-color:#a855f7;color:#a855f7;background:rgba(168,85,247,.1);}
-.qa-tab-creator.active,.qa-tab-creator:hover{border-color:#3b82f6;color:#3b82f6;background:rgba(59,130,246,.1);}
+.qa-tab-chat.active,.qa-tab-chat:hover{border-color:#3b82f6;color:#3b82f6;background:rgba(59,130,246,.1);}
+.qa-tab-coding.active,.qa-tab-coding:hover{border-color:#22c55e;color:#22c55e;background:rgba(34,197,94,.1);}
+.qa-tab-marketing.active,.qa-tab-marketing:hover{border-color:#eab308;color:#eab308;background:rgba(234,179,8,.1);}
+.qa-tab-creator.active,.qa-tab-creator:hover{border-color:#a855f7;color:#a855f7;background:rgba(168,85,247,.1);}
+.qa-tab-sidehustle.active,.qa-tab-sidehustle:hover{border-color:#ef4444;color:#ef4444;background:rgba(239,68,68,.1);}
 .qa-creator{border-color:#3b82f6!important;color:#3b82f6!important;}
 .qa-cat{display:none;gap:6px;padding:4px 8px 6px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;}
 .qa-cat::-webkit-scrollbar{display:none;}
@@ -367,8 +367,52 @@ body.mode-marketing #send-btn{color:#fff;}
 .btn-funnel{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-size:13px;font-weight:600;transition:all .2s;margin-left:auto;}
 .btn-funnel:hover{background:var(--accent2);transform:scale(1.05);}
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/xterm.min.css" />
+<style>
+#kilo-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:16px;box-sizing:border-box;}
+#kilo-overlay.active{display:flex;}
+#kilo-window{width:min(1100px,92vw);height:85vh;background:#0d1117;border:2px solid #00ff87;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 80px rgba(0,255,135,0.25);}
+#kilo-titlebar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d;user-select:none;}
+.kilo-dot{width:13px;height:13px;border-radius:50%;cursor:pointer;}
+.kilo-dot.r{background:#ff5f57;}.kilo-dot.y{background:#febc2e;}.kilo-dot.g{background:#28c840;}
+#kilo-titlebar-label{flex:1;text-align:center;font-family:'Space Mono',monospace;font-size:13px;color:#00ff87;font-weight:700;letter-spacing:2px;}
+#kilo-status-bar{padding:4px 16px;background:#0a0f14;font-family:'Space Mono',monospace;font-size:11px;color:#8b949e;border-bottom:1px solid #30363d;display:flex;gap:16px;align-items:center;}
+#kilo-status-dot{width:8px;height:8px;border-radius:50%;background:#555;display:inline-block;}
+#kilo-xterm-container{padding:8px;background:#0d1117;flex:1;overflow:hidden;}
+#kilo-inject-row{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#161b22;border-top:1px solid #30363d;}
+#kilo-inject-input{flex:1;background:#0d1117;border:1px solid #30363d;color:#e6edf3;padding:7px 12px;border-radius:7px;font-family:'Space Mono',monospace;font-size:12px;outline:none;}
+#kilo-inject-input:focus{border-color:#00ff87;}
+#kilo-inject-btn{background:#00ff87;color:#000;border:none;padding:7px 16px;border-radius:7px;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;}
+#kilo-close-x{cursor:pointer;color:#8b949e;font-size:18px;padding:2px 6px;border-radius:4px;}
+#kilo-close-x:hover{color:#ff5f57;}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
 </head>
 <body class="mode-chat">
+<div id="kilo-overlay">
+  <div id="kilo-window">
+    <div id="kilo-titlebar">
+      <div class="kilo-dot r" onclick="kiloClose()"></div>
+      <div class="kilo-dot y"></div>
+      <div class="kilo-dot g"></div>
+      <span id="kilo-titlebar-label">⚡ KILO CLI — GPT-4.1 Mini &nbsp;|&nbsp; <span style="color:#00ff87;font-size:11px;">Powered by Sergiu · SSociety.eu</span></span>
+      <span id="kilo-close-x" onclick="kiloClose()">✕</span>
+    </div>
+    <div id="kilo-status-bar">
+      <span id="kilo-status-dot"></span>
+      <span id="kilo-status-text">Inițializare...</span>
+      <span style="margin-left:auto;color:#00d4ff;font-size:11px">ESC = închide</span>
+    </div>
+    <div id="kilo-xterm-container"></div>
+    <div id="kilo-inject-row">
+      <span style="color:#00ff87;font-family:Space Mono,monospace;font-size:12px">inject ▸</span>
+      <input id="kilo-inject-input" placeholder="trimite prompt direct în Kilo..." />
+      <button id="kilo-inject-btn" onclick="kiloInject()">▶ Send</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- MODE TRANSITION -->
 <div id="mode-overlay">
@@ -438,11 +482,11 @@ body.mode-marketing #send-btn{color:#fff;}
   <!-- INPUT -->
   <div id="input-area">
     <div id="quick-actions">
-      <button class="qa-tab qa-tab-coding" onclick="togglePopup('coding','🟢 Coding &amp; VPS')">🟢 Coding</button>
-      <button class="qa-tab qa-tab-marketing" onclick="togglePopup('marketing','🔵 Marketing')">🔵 Marketing</button>
-      <button class="qa-tab qa-tab-sidehustle" onclick="togglePopup('sidehustle','🔴 Side Hustle')">🔴 Hustle</button>
-      <button class="qa-tab qa-tab-chat" onclick="togglePopup('chat','💬 Brainstorming')">💬 Idei</button>
-      <button class="qa-tab qa-tab-creator" onclick="togglePopup('creator','🔵 Creator Mode')">🔵 Creator</button>
+      <button class="qa-tab qa-tab-chat" onclick="togglePopup('chat','💬 Start Plan')">💬 Idei</button>
+      <button class="qa-tab qa-tab-coding" onclick="togglePopup('coding','🟢 Coding')">🟢 Coding</button>
+      <button class="qa-tab qa-tab-marketing" onclick="togglePopup('marketing','🟡 Marketing')">🟡 Marketing</button>
+      <button class="qa-tab qa-tab-creator" onclick="togglePopup('creator','🟣 Creator')">🟣 Creator</button>
+      <button class="qa-tab qa-tab-sidehustle" onclick="togglePopup('sidehustle','🔴 Hustle')">🔴 Hustle</button>
     </div>
     <!-- POPUP -->
     <!-- REFERRAL MODAL -->
@@ -488,9 +532,10 @@ const MODE_CONFIG = {
   coding:     { label:'CODING MODE',      icon:'⌨',  cls:'mode-coding',     text:'// activating CODING MODE...',     bodyClass:'mode-coding'     },
   marketing:  { label:'MARKETING MODE',   icon:'📣',  cls:'mode-marketing',  text:'// activating MARKETING MODE...',  bodyClass:'mode-marketing'  },
   business:   { label:'BUSINESS MODE',    icon:'💼',  cls:'mode-business',   text:'// activating BUSINESS MODE...',   bodyClass:'mode-business'   },
-  sidehustle: { label:'SIDE HUSTLE MODE', icon:'🔴',  cls:'mode-sidehustle', text:'// TOP 100 SIDE HUSTLES...',       bodyClass:'mode-sidehustle' },
-  chat:       { label:'CHAT MODE',        icon:'🤖', cls:'mode-chat',       text:'// chat mode',                     bodyClass:'mode-chat'       },
-  lock:       { label:'UPGRADE',          icon:'🔒', cls:'mode-lock',       text:'// limit reached',                 bodyClass:'mode-lock'       },
+  sidehustle: { label:'HUSTLE MODE',      icon:'🔴',  cls:'mode-sidehustle', text:'// activating HUSTLE MODE...',     bodyClass:'mode-sidehustle' },
+  creator:    { label:'CREATOR MODE',     icon:'🟣',  cls:'mode-creator',    text:'// activating CREATOR MODE...',    bodyClass:'mode-creator'    },
+  chat:       { label:'START PLAN',       icon:'🔵',  cls:'mode-chat',       text:'// activating START PLAN...',      bodyClass:'mode-chat'       },
+  lock:       { label:'UPGRADE',          icon:'🔒',  cls:'mode-lock',       text:'// upgrade required',              bodyClass:'mode-lock'       },
 };
 
 let history     = [];
@@ -499,92 +544,70 @@ let ctxParam    = null;
 let actionCount = 0;
 let userId = localStorage.getItem('buddy_uid') || 'u_' + Math.random().toString(36).substr(2,9) + '_' + Date.now();
 localStorage.setItem('buddy_uid', userId);
+
 const urlRef = new URLSearchParams(window.location.search).get('ref');
 if (urlRef) localStorage.setItem('buddy_ref', urlRef);
-checkPremiumStatus();
-localStorage.setItem('buddy_uid', userId);
 
-// ── Load state
+checkPremiumStatus();
+
 function loadState() {
   try {
-    localStorage.removeItem('buddy_state'); // reset old state
+    localStorage.removeItem('buddy_state');
     const saved = localStorage.getItem('buddy_state_v2');
-
     if (saved) {
       const s = JSON.parse(saved);
+      history = s.history || [];
+      currentMode = s.mode || 'chat';
       actionCount = s.actionCount || 0;
     }
   } catch(e) {}
 }
 
-function saveState() {
-  try { localStorage.setItem('buddy_state_v2', JSON.stringify({ actionCount })); } catch(e) {}
-}
-
-// ── Context DNA
-function initCtx() {
-  const p = new URLSearchParams(window.location.search);
-  const ctx = p.get('ctx');
-  if (!ctx) return;
-  ctxParam = ctx;
+function loadCtx() {
   try {
-    const d = JSON.parse(atob(ctx));
-    const tags = [d.source, d.project_type].filter(Boolean)
-      .map(t => `<span class="ctx-tag">${t}</span>`).join(' ');
-    if (tags) {
+    ctxParam = new URLSearchParams(window.location.search).get('ctx') || localStorage.getItem('buddy_ctx');
+    const tag = ctxParam ? ctxParam.toLowerCase() : null;
+    const tags = tag ? tag.split(',') : [];
+    if (tags.length) {
       document.getElementById('ctx-text').innerHTML = '🎯 ' + tags;
-      document.getElementById('ctx-banner').classList.add('show');
     }
     const welcomes = {
       openclaw:  '⚙️ Bună! Văd că vii de pe <b>OpenClaw</b>. Instalăm agentul sau configurăm ceva?',
       daromania: '🇷🇴 Bună! Vii de pe <b>DaRomania</b>. Cu ce tranziție de carieră te ajut?',
       hermes:    '🧬 Bună! Vii de pe <b>Hermes</b>. Configurăm agentul sau îl instalăm de la zero?',
-      paperclip: '📎 Bună! Vii de pe <b>Paperclip</b>. Construim compania AI sau orchestrăm agenți?',
+      paperclip: '📎 Bună! Vii de pe <b>Paperclip</b>. Orchestrăm agenți sau Romania AI?',
       nemoclaw:  '⚡ Bună! Vii de pe <b>NemoClaw</b>. Instalăm sandbox-ul NVIDIA sau configurăm securitatea?',
     };
-    const w = welcomes[(d.source || '').toLowerCase()];
+    const w = welcomes[tags[0]];
     if (w) { msgsEl.innerHTML = ''; appendMsg('assistant', w, 'Vibe Buddy', 'chat', null, null); }
   } catch(e) {}
 }
 
-// ── Mode switch
 function switchMode(newMode) {
   if (newMode === currentMode) return;
   const cfg = MODE_CONFIG[newMode] || MODE_CONFIG.chat;
-  const oldMode = currentMode;
   currentMode = newMode;
-
-  // Overlay
   overlayIcon.textContent = cfg.icon;
   overlayText.textContent = cfg.text;
   overlay.classList.add('show');
   setTimeout(() => { overlayFill.style.width = '100%'; }, 50);
   setTimeout(() => {
-    // Apply mode
     document.body.className = cfg.bodyClass;
-    document.getElementById('buddy-avatar').textContent = cfg.icon;
-    document.getElementById('buddy-name').textContent =
-      newMode === 'coding' ? 'Buddy Coding' :
-      newMode === 'marketing' ? 'Buddy Marketing' :
-      newMode === 'lock' ? 'Buddy — Upgrade' : 'Vibe Buddy';
-    document.getElementById('mode-label').textContent = cfg.label;
+    const av = document.getElementById('buddy-avatar');
+    const ml = document.getElementById('buddy-mode-label');
+    if (av) av.textContent = cfg.icon;
+    if (ml) ml.textContent = cfg.label;
+    document.title = newMode === 'lock' ? 'Buddy — Upgrade' : 'Vibe Buddy';
     overlay.classList.remove('show');
-    overlayFill.style.width = '0%';
-  }, 800);
+    overlayFill.style.width = '0';
+  }, 1200);
 }
 
-// ── Action counter UI
-function updateActionUI(count) {
-  actionCount = count;
-  const pct = Math.min((count / 50) * 100, 100);
-  const fill = document.getElementById('action-fill');
-  fill.style.width = pct + '%';
-  fill.style.background = count >= 9 ? 'var(--amber)' : count >= 7 ? 'var(--purple)' : 'var(--accent)';
-  document.getElementById('action-text').textContent = `${count}/50`;
-  saveState();
+function updateActionUI() {
+  const el = document.getElementById('action-count');
+  if (el) el.textContent = actionCount;
 }
 
-// ── Render markdown
 function render(text) {
   let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   h = h.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
@@ -599,305 +622,415 @@ function render(text) {
   return h;
 }
 
-function copyCode(btn) {
-  const code = btn.closest('.msg-bubble').querySelector('pre code')?.textContent || '';
-  navigator.clipboard?.writeText(code).then(() => {
-    btn.textContent = '✓'; setTimeout(() => btn.textContent = 'copy', 1800);
-  });
-}
-
-// ── Append message
-function appendMsg(role, text, model, mode, intent, jobCtx) {
+function appendMsg(role, text, name, mode, btns, pill) {
   const div = document.createElement('div');
-  const modeClass = `mode-${mode || 'chat'}`;
-  div.className = `msg ${role} ${role === 'assistant' ? modeClass : ''}`;
-
-  const av = role === 'user' ? '👤' :
-    mode === 'coding' ? '⌨' :
-    mode === 'marketing' ? '🟣' :
-    mode === 'lock' ? '🔒' : '🤖';
-
-  const isFallback = model && model !== 'ChatGPT-4o' && model !== 'system';
-
-  // Check for upgrade content
-  let bubbleContent = render(text);
-
-  let meta = '';
-  if (role === 'assistant' && model && model !== 'system') {
-    meta = `<div class="msg-meta">
-      ${isFallback ? `<span class="fallback-tag">⚡ ${model}</span>` : `<span class="model-tag">${model}</span>`}
-      ${intent && intent !== 'lock' ? `<span class="intent-tag">${intent}</span>` : ''}
-      ${jobCtx ? `<span class="intent-tag">🎯 ${jobCtx.job} ${jobCtx.risk}%</span>` : ''}
-    </div>`;
-  }
-
-  div.innerHTML = `
-    <div class="msg-av">${av}</div>
-    <div class="msg-body">
-      <div class="msg-bubble">${bubbleContent}</div>
-      ${meta}
-    </div>`;
-
+  div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
+  const icon = mode === 'coding' ? '⌨' : (role === 'user' ? '🧑' : '🤖');
+  div.innerHTML = `<div class="bubble"><div class="msg-meta">${icon} ${name || (role==='user'?'Tu':'Buddy')}</div><div class="msg-body">${render(text)}</div></div>`;
   msgsEl.appendChild(div);
+  if (btns && btns.length) {
+    const bd = document.createElement('div');
+    bd.className = 'btn-row';
+    bd.innerHTML = btns.map(function(b) { return `<button class="qa-btn" onclick="sendQuick('${b[0]}')">${b[0]}</button>`; }).join('');
+    msgsEl.appendChild(bd);
+  }
   msgsEl.scrollTop = msgsEl.scrollHeight;
 }
 
-// ── Send
 async function sendMessage() {
   const text = inputEl.value.trim();
   if (!text) return;
   inputEl.value = '';
   inputEl.style.height = 'auto';
   document.getElementById('send-btn').disabled = true;
-
   history.push({ role:'user', content:text });
   appendMsg('user', text, null, currentMode, null, null);
   typingEl.classList.add('show');
   msgsEl.scrollTop = msgsEl.scrollHeight;
-
   try {
     const resp = await fetch('/api/chat', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          messages: history,
-          userId: String(userId || 'browser_user')
-        }),
+      body: JSON.stringify({ messages: history, userId: String(userId || 'browser_user') }),
     });
-
     const d = await resp.json();
-
     if (d.error) {
       appendMsg('assistant', '⚠️ ' + d.error, null, currentMode, null, null);
     } else {
       const fullText = d.reply || '';
       appendMsg('assistant', fullText, null, currentMode, null, null);
       history.push({ role:'assistant', content:fullText });
-
+      if (d.mode === 'coding') {
+        const kiloBtn = document.createElement('div');
+        kiloBtn.style.cssText = 'padding:4px 12px 12px 12px;';
+        const _enc = encodeURIComponent(text);
+        const _btn = document.createElement('button');
+        _btn.textContent = '⚡ Deschide Terminal Kilo';
+        _btn.style.cssText = 'display:inline-flex;align-items:center;gap:8px;background:linear-gradient(135deg,#00ff87,#00d4ff);color:#000;border:none;padding:8px 18px;border-radius:8px;font-family:Space Mono,monospace;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 0 20px rgba(0,255,135,0.3);';
+        _btn.onclick = function() { openKiloTerminal(_enc); };
+        kiloBtn.appendChild(_btn);
+        msgsEl.appendChild(kiloBtn);
+        msgsEl.scrollTop = msgsEl.scrollHeight;
+      }
       if (d.mode && d.mode.toLowerCase() === 'lock') {
         switchMode('lock');
         inputEl.disabled = true;
         document.getElementById('send-btn').disabled = true;
-      } else if (d.mode && d.mode.toLowerCase() !== currentMode) {
-        switchMode(d.mode.toLowerCase());
+      } else if (d.mode) {
+        switchMode(d.mode);
       }
-
-      if (typeof d.remaining !== 'undefined') {
-        updateActionUI(30 - d.remaining);
+      if (d.btns && d.btns.length) {
+        const bd = document.createElement('div');
+        bd.className = 'btn-row';
+        bd.innerHTML = d.btns.map(function(b) { return `<button class="qa-btn" onclick="sendQuick('${b[0]}')">${b[0]}</button>`; }).join('');
+        msgsEl.appendChild(bd);
+        msgsEl.scrollTop = msgsEl.scrollHeight;
       }
-
-      if (d.limitStatus === 'hard_stop') {
-        switchMode('lock');
-        inputEl.disabled = true;
-        document.getElementById('send-btn').disabled = true;
-      }
-
+      if (d.url) window.open(d.url, '_blank');
+      pipelineMsgCount++;
+      updatePipeBtn();
+      // Pipeline buttons
+      updatePipelineButtons(d.mode || currentMode);
+      document.getElementById('pipeline-bar').style.display = 'flex';
+      actionCount++;
+      updateActionUI();
     }
   } catch(e) {
     appendMsg('assistant', '⚠️ Conexiune eșuată. Încearcă din nou.', null, currentMode, null, null);
   } finally {
     typingEl.classList.remove('show');
-    if (currentMode !== 'lock') document.getElementById('send-btn').disabled = false;
+    document.getElementById('send-btn').disabled = false;
+    inputEl.focus();
   }
 }
 
-const QA_DATA = {
-  coding: { color:'#22d3a0', btns:[
-    ['🤖 Vreau un agent AI','Vreau sa am un agent AI personal care sa lucreze pentru mine. De unde incep?','OpenClaw VPS Setup'],
-    ['🌐 Vreau un site web','Ajuta-ma sa imi fac un site web simplu pas cu pas de la zero','React + Nginx + SSL Deploy'],
-    ['🎮 Fac primul meu joc','Vreau sa fac un joc simplu. Ce limbaj sa folosesc si cum incep?','Game Dev cu Python Pygame'],
-    ['📱 Fac o aplicatie','Vreau sa fac o aplicatie simpla. Cum incep daca nu stiu sa programez?','React Native / PWA Build'],
-    ['🐛 Am o eroare','Am o eroare si nu stiu ce inseamna. Ajuta-ma sa o rezolv','Debug Stack Trace + Fix'],
-    ['⚡ Automatizez ceva','Vreau sa automatizez un task plictisitor pe care il fac zilnic','Python Script + Cron Job VPS'],
-    ['📊 Fac un calculator','Vreau sa fac un calculator sau convertor simplu in Python','CLI Tool + Web App Deploy'],
-    ['🗄️ Salvez date','Vreau sa salvez date dintr-o aplicatie. Cum fac o baza de date simpla?','Supabase + PostgreSQL Schema'],
-    ['🕷️ Extrag date de pe net','Vreau sa extrag automat informatii de pe un site web','Web Scraping SaaS + API'],
-    ['📁 Organizez fisiere auto','Vreau sa imi organizeze automat fisierele si pozele de pe calculator','Python File Organizer Script']
-  ]},
-  marketing: { color:'#f97316', btns:[
-    ['📣 Vreau mai multi clienti','Cum atrag mai multi clienti pentru afacerea mea fara sa cheltuiesc mult?','Lead Gen Funnel + CRM Auto'],
-    ['📱 Postez pe social media','Ajuta-ma sa postez constant pe Instagram Facebook TikTok fara sa pierd ore','Buffer API + AI Content Pipeline'],
-    ['📧 Trimit emailuri automat','Vreau sa trimit emailuri automat catre clientii mei. Cum fac asta gratuit?','Resend API + Drip Sequence'],
-    ['🔍 Apar pe Google','Cum fac sa apara site-ul meu in primele rezultate Google?','SEO Technical Audit + Schema'],
-    ['💰 Vand mai mult online','Cum imi cresc vanzarile online cu AI fara buget mare de reclame?','Conversion Rate Optimization'],
-    ['✍️ Scriu texte de vanzare','Ajuta-ma sa scriu texte convingatore pentru produsul sau serviciul meu','Copywriting Framework AIDA'],
-    ['🎯 Fac reclame pe Facebook','Cum fac o reclama pe Facebook care chiar functioneaza si aduce clienti?','Meta Ads + Pixel + Retargeting'],
-    ['📊 Inteleg datele mele','Am un business si nu inteleg ce imi spun cifrele. Ajuta-ma sa le analizez','GA4 + Mixpanel Analytics'],
-    ['🌐 Promovez pe YouTube','Cum incep un canal YouTube pentru afacerea mea si cum il cresc cu AI?','YouTube SEO + AI Content Factory'],
-    ['🤝 Gasesc parteneri','Cum gasesc parteneri sau colaboratori pentru afacerea mea online?','B2B Outreach + LinkedIn API']
-  ]},
-  sidehustle: { color:'#ff6b6b', btns:[
-    ['💶 Fac bani online','Cum pot face bani online cu AI? Da-mi ideea cea mai simpla pentru inceput','Digital Products + Gumroad'],
-    ['💼 Transform meseria in bani','Am o meserie sau un skill. Cum il transform in sursa de venit extra?','Productized Service + Retainer'],
-    ['🛒 Vand ceva pe net','Vreau sa vand ceva online. Ce pot vinde si cum incep fara investitie?','Etsy Digital + Shopify Store'],
-    ['📚 Fac un curs online','Stiu ceva bine si vreau sa fac un curs online. Cum incep de la zero?','Course Platform + Email Funnel'],
-    ['🎬 Fac bani pe YouTube','Cum fac un canal YouTube care sa aduca bani chiar daca nu am experienta?','YouTube Automation + AdSense'],
-    ['🤖 Inchiriez un agent AI','Cum pot sa ofer servicii de AI altor firme si sa fac bani din asta?','AI Agency + White Label SaaS'],
-    ['🏠 Lucrez de acasa','Vreau sa lucrez de acasa si sa fac bani. Care sunt cele mai bune optiuni?','Remote Freelance + Upwork Pro'],
-    ['🚀 Lansez o mica afacere','Vreau sa lansez o mica afacere. Ajuta-ma sa aleg ideea si sa incep','MVP Launch + Product Hunt'],
-    ['💳 Primul 1000 de euro','Cum fac primii 1000 de euro online? Da-mi un plan concret saptamana asta','Sprint Plan + Quick Wins'],
-    ['📖 Scriu o carte cu AI','Vreau sa scriu si sa vand o carte sau ghid online. Cum fac asta cu AI?','Ebook + Amazon KDP Publish']
-  ]},
-  chat: { color:'#a855f7', btns:[
-    ['🧠 Idei de business','Da-mi 10 idei de business simple pe care le pot incepe saptamana asta','Market Research + Validation'],
-    ['❓ Ce sa fac cu viata mea','Am experienta dar nu stiu ce urmeaza. Ajuta-ma sa gasesc o directie','Career Pivot + AI Positioning'],
-    ['📋 Plan pentru 90 zile','Ajuta-ma sa fac un plan concret pentru urmatoarele 90 zile','OKR Framework + Daily Sprints'],
-    ['💡 Am o idee buna?','Am o idee de business. Crezi ca e buna? Analizeaz-o sincer','SWOT + TAM SAM SOM Analysis'],
-    ['🎯 Aleg o nisa','Nu stiu in ce domeniu sa ma lansez. Ajuta-ma sa aleg nisa potrivita','Niche Scoring + Competitor Gap'],
-    ['⭐ Devin cunoscut online','Cum devin cunoscut online si imi construiesc un nume in domeniul meu?','Personal Brand + Content Moat'],
-    ['😰 Mi-e frica sa incep','Vreau sa incep ceva dar mi-e frica. Cum depasesc frica de esec?','Risk Matrix + First Step Plan'],
-    ['💰 Stabilesc pretul corect','Nu stiu cat sa cer pe serviciile mele. Ajuta-ma sa stabilesc pretul','Value-Based Pricing Strategy'],
-    ['🔄 Schimb cariera','Am lucrat 20 de ani intr-un domeniu. Cum ma reprofilez cu AI?','Skills Transfer + AI Leverage'],
-    ['🚀 Incep azi','Vreau sa incep ceva chiar azi. Da-mi primul pas concret pe care il fac acum','Zero to MVP in 24h Plan']
-  ]},
-  creator: { color:'#3b82f6', btns:[
-    ['⚡ Automatizez tot','Ce pot automatiza in viata sau business-ul meu ca sa am mai mult timp liber?','n8n + Zapier Full Automation'],
-    ['📧 Email-uri automate','Cum trimit email-uri automat fara sa scriu fiecare unul manual?','Resend + Sequences + Templates'],
-    ['📱 Postari automate','Cum postez automat pe toate retelele sociale fara sa stau zilnic la telefon?','Buffer API + AI Post Generator'],
-    ['🗂️ Organizez haosul','Ajuta-ma sa imi organizez fisierele emailurile si task-urile cu AI','Notion AI + File Organizer'],
-    ['💳 Facturi automate','Cum generez si trimit facturi automat catre clientii mei?','Stripe + Invoice Automation'],
-    ['🔔 Monitorizez afacerea','Cum stiu automat cand se intampla ceva important in business-ul meu?','KPI Dashboard + Alerts Bot'],
-    ['🎯 Gasesc clienti auto','Cum gasesc clienti noi automat fara sa stau eu sa caut zilnic?','Lead Scraper + Outreach Bot'],
-    ['📊 Rapoarte automate','Cum generez automat rapoarte lunare fara sa fac manual Excel?','Python + Supabase + PDF Report'],
-    ['🤖 Angajez un AI','Vreau sa am un AI care sa lucreze pentru mine 24 ore. Cum il configurez?','Hermes Agent + VPS 24/7'],
-    ['🔗 Conectez aplicatiile','Cum conectez toate aplicatiile pe care le folosesc sa lucreze impreuna?','Zapier + Make + Webhook Stack']
-  ]}
-};
-let activePopupCat = null;
-function togglePopup(cat, title) {
-  if (activePopupCat === cat) { closePopup(); return; }
-  activePopupCat = cat;
-  const data = QA_DATA[cat];
-  document.getElementById('qa-popup-label').textContent = title;
-  const btns = document.getElementById('qa-popup-btns');
-  btns.innerHTML = data.btns.map(function(b) {
-    return '<button class="qa" style="border-color:'+data.color+';color:'+data.color+';flex-direction:column;align-items:flex-start;gap:1px;height:auto;padding:8px 12px" onclick="quickSend(this.dataset.msg)" data-msg="'+b[1]+'">'+b[0]+(b[2]?'<span style="font-size:9px;opacity:0.7;font-weight:500;color:#ccc">('+b[2]+')</span>':'')+'</button>';
-  }).join('');
-  document.getElementById('qa-popup').classList.add('open');
-  document.getElementById('qa-overlay').classList.add('open');
-  document.querySelectorAll('.qa-tab').forEach(function(t){t.classList.remove('active');});
-  document.querySelector('.qa-tab-'+cat).classList.add('active');
-}
-function closePopup() {
-  activePopupCat = null;
-  document.getElementById('qa-popup').classList.remove('open');
-  document.getElementById('qa-overlay').classList.remove('open');
-  document.querySelectorAll('.qa-tab').forEach(function(t){t.classList.remove('active');});
-}
-let refCodeGlobal = null;
+function sendQuick(text) { inputEl.value = text; sendMessage(); }
+function closePopup() { document.getElementById('qa-popup').style.display = 'none'; }
+function togglePopup() { const p = document.getElementById('qa-popup'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; }
 
-async function openRefModal() {
-  document.getElementById('ref-modal').classList.add('open');
-  try {
-    const r = await fetch('/api/referral/' + userId);
-    const d = await r.json();
-    refCodeGlobal = d.code;
-    const link = d.link;
-    document.getElementById('ref-link-box').textContent = link;
-    document.getElementById('ref-count').textContent = d.referredCount;
-    document.getElementById('ref-earned').textContent = '$' + d.totalEarned.toFixed(2);
-    document.getElementById('ref-pending').textContent = '$' + d.pendingPayout.toFixed(2);
-    document.getElementById('ref-wa-btn').href = 'https://wa.me/?text=' + encodeURIComponent('🤖 Folosesc Buddy AI — agentul AI personal care răspunde la orice instant. Încearcă 50 mesaje gratuit: ' + link);
-  } catch(e) { console.error(e); }
+function copyCode(btn) {
+  const code = btn.closest('.code-header').nextElementSibling.querySelector('code').textContent;
+  navigator.clipboard.writeText(code).then(() => { btn.textContent = 'copied!'; setTimeout(() => btn.textContent = 'copy', 2000); });
 }
 
-function closeRefModal() {
-  document.getElementById('ref-modal').classList.remove('open');
-}
-
-function copyRefLink() {
-  const link = document.getElementById('ref-link-box').textContent;
-  navigator.clipboard.writeText(link).then(() => showToast('✅ Link copiat! Trimite-l prietenilor'));
-}
-
-async function startCheckout() {
-  try {
-    const r = await fetch('/api/create-checkout', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ userId, refCode: refCodeGlobal || new URLSearchParams(window.location.search).get('ref') || '' })
-    });
-    const d = await r.json();
-    if (d.url) window.open(d.url, '_blank');
-    else alert('Eroare: ' + d.error);
-  } catch(e) { alert('Eroare checkout: ' + e.message); }
-}
-
-async function checkPremiumStatus() {
-  try {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('premium') === 'success') {
-      const r = await fetch('/api/premium/' + userId);
-      const d = await r.json();
-      if (d.premium) {
-        actionCount = 0;
-        updateActionUI(0);
-        localStorage.setItem('buddy_premium_' + userId, '1');
-        window.history.replaceState({}, '', '/');
-        showToast('🎉 Buddy Premium activat! Mesaje nelimitate!');
-      }
-    }
-    // Verifica la fiecare load
-    const cached = localStorage.getItem('buddy_premium_' + userId);
-    if (cached === '1') {
-      actionCount = 0;
-      updateActionUI(0);
-    }
-  } catch(e) {}
-}
-
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#22d3a0;color:#000;padding:12px 24px;border-radius:10px;font-weight:800;z-index:9999;font-size:14px;';
-  t.textContent = msg;
-  document.body.appendChild(t);
-  setTimeout(() => t.remove(), 4000);
-}
-
-function quickSend(text) { closePopup(); inputEl.value = text; sendMessage(); }
-
-// ── Input auto-resize
-inputEl.addEventListener('input', function() {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-});
-inputEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-});
-
-// ── Keyboard fix mobile
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', () => {
-    document.getElementById('app').style.height = window.visualViewport.height + 'px';
-    msgsEl.scrollTop = msgsEl.scrollHeight;
-  });
-}
-
-// ── Init
-loadState();
-initCtx();
-if (actionCount > 0) updateActionUI(actionCount);
-if (actionCount >= 50) {
-  switchMode('lock');
-  inputEl.disabled = true;
-  document.getElementById('send-btn').disabled = true;
+function checkPremiumStatus() {
+  fetch('/api/premium/' + userId).then(r => r.json()).then(d => {
+    if (d.premium) document.body.classList.add('is-premium');
+  }).catch(() => {});
 }
 
 function exportChat() {
-  const msgs = document.querySelectorAll('.msg');
-  let txt = 'Conversatie Buddy — DaRomania\n' + '='.repeat(40) + '\n\n';
-  msgs.forEach(m => {
-    const isUser = m.classList.contains('user');
-    const bubble = m.querySelector('.msg-bubble');
-    if (bubble) {
-      txt += (isUser ? 'TU: ' : 'BUDDY: ') + bubble.innerText.trim() + '\n\n';
-    }
-  });
-  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+  const text = history.map(m => (m.role === 'user' ? 'TU: ' : 'BUDDY: ') + m.content).join('\n\n');
+  const blob = new Blob([text], {type:'text/plain'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'buddy-conversatie-' + new Date().toISOString().slice(0,10) + '.txt';
   a.click();
+}
+
+inputEl.addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+inputEl.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+loadState();
+loadCtx();
+updateActionUI();
+
+
+const QA_DATA = {
+  coding: {
+    label: '🟢 PASUL 2: CODING (Kilo Engine)',
+    items: [
+      ['📁 Proiect Nou de la zero', 'Vreau sa construiesc un proiect nou. Ajuta-ma cu structura, stack-ul tehnic si .env.example'],
+      ['🐍 FastAPI + JWT + Swagger', 'Construieste un API FastAPI complet cu autentificare JWT, CRUD, modele Pydantic si Swagger'],
+      ['🕷️ Scraper Async + Playwright', 'Scrie un scraper async cu Playwright sau BeautifulSoup cu retry logic si export CSV'],
+      ['🤖 Agent AI cu Memorie', 'Construieste un agent AI cu OpenAI function calling si memorie persistenta in JSON'],
+      ['🚀 Deploy VPS Ubuntu + nginx', 'Ajuta-ma sa fac deploy pe VPS Ubuntu cu nginx, SSL LetsEncrypt si pm2'],
+      ['🐛 Debug & Profiling', 'Am o eroare in codul meu. Ajuta-ma sa o depanez si sa optimizez performanta']
+    ]
+  },
+  marketing: {
+    label: '🟡 PASUL 3: MARKETING (Hermes+Herald)',
+    items: [
+      ['🎯 Pozitionare + Mesaj Principal', 'Ajuta-ma sa definesc pozitionarea proiectului meu: cine e clientul ideal si ce problema rezolva'],
+      ['📅 Calendar Editorial 30 Zile', 'Creaza un calendar editorial complet pe 30 de zile: LinkedIn + YouTube + Email'],
+      ['💰 Pipeline Monetizare', 'Construieste funnel-ul de vanzari: awareness → engagement → conversie → retentie'],
+      ['📧 Campanie Cold Outreach', 'Scrie o secventa de 5 emailuri cold outreach pentru B2B cu subject lines si CTA-uri']
+    ]
+  },
+  sidehustle: {
+    label: '🔴 PASUL 5: HUSTLE (Hunter Engine)',
+    items: [
+      ['🔍 Research Clienti Noi', 'Gaseste-mi 50 de clienti potentiali pentru [nisa mea] din LinkedIn + Google Maps'],
+      ['📤 Campanie Outreach WhatsApp', 'Configureaza SSociety Wild Bot pentru 300 mesaje/zi personalizate, anti-ban'],
+      ['📢 Postare 6 Platforme Simultan', 'Configureaza Blotato sa posteze automat pe LinkedIn, Instagram, TikTok, YouTube, Facebook, Twitter'],
+      ['💰 Monetizare Skills IT', 'Am skills in Python si DevOps. Cum le monetizez rapid cu un side hustle scalabil?']
+    ]
+  },
+  chat: {
+    label: '💬 Brainstorming + Start Plan',
+    items: [
+      ['🧭 Blueprint Proiect Nou', 'Vreau sa construiesc ceva nou. Ajuta-ma sa definesc ICP, stack-ul tehnic si primul pas'],
+      ['✅ Validare Idee de Business', 'Am o idee de business. Ajuta-ma sa o validez rapid: piata, concurenta, monetizare'],
+      ['🗺️ Roadmap Personal 6 Luni', 'Construieste-mi un roadmap tehnic realist pentru urmatoarele 6 luni'],
+      ['⚡ Prioritizare si Focus', 'Am prea multe idei si ma imprastii. Ajuta-ma sa prioritizez ce atac primul']
+    ]
+  },
+  creator: {
+    label: '🟣 PASUL 4: CREATOR (Gemini Suprem)',
+    items: [
+      ['🎤 Voiceover in Romana', 'Transforma textul meu in voiceover natural in romana pentru video sau podcast'],
+      ['🖼️ Thumbnail HD pentru Platforma', 'Genereaza un thumbnail profesional optimizat pentru YouTube / LinkedIn / Instagram'],
+      ['🎬 Video Text-to-Video 30s', 'Creaza un video de 30 secunde din textul/scriptul meu pentru TikTok sau YouTube'],
+      ['🔍 Google Search + Analiza', 'Cauta tendinte si date actuale despre [subiectul meu] si sintetizeaza insight-urile']
+    ]
+  }
+};
+
+function togglePopup(mode, label) {
+  var popup = document.getElementById('qa-popup');
+  var popupLabel = document.getElementById('qa-popup-label');
+  var popupBtns = document.getElementById('qa-popup-btns');
+
+  if (!popup || !popupLabel || !popupBtns) return;
+
+  if (popup.classList.contains('open') && popup.dataset.mode === mode) {
+    closePopup();
+    return;
+  }
+
+  // Schimba modul UI (culori + label)
+  var switchTarget = mode;
+  if (mode === 'chat') switchTarget = 'chat';
+  if (typeof switchMode === 'function') switchMode(switchTarget);
+
+  document.querySelectorAll('.qa-tab').forEach(function(t) { t.classList.remove('active'); });
+  var activeTab = document.querySelector('.qa-tab-' + mode);
+  if (activeTab) activeTab.classList.add('active');
+
+  var data = QA_DATA[mode] || QA_DATA.chat;
+  popupLabel.textContent = data.label;
+
+  popupBtns.innerHTML = data.items.map(function(item, idx) {
+    return '<button class="qa qa-tab-' + mode + '" data-idx="' + idx + '" data-mode="' + mode + '" style="background:rgba(255,255,255,0.04);border:1px solid #333;color:#ccc;cursor:pointer;border-radius:10px;padding:9px 12px;font-size:12px;text-align:left;line-height:1.3;width:100%;">' + item[0] + '</button>';
+  }).join('');
+
+  popupBtns.querySelectorAll('button[data-idx]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var m = this.dataset.mode;
+      var i = parseInt(this.dataset.idx);
+      var d = QA_DATA[m];
+      if (d && d.items[i]) {
+        sendQuick(d.items[i][1]);
+      }
+      closePopup();
+    });
+  });
+
+  popup.dataset.mode = mode;
+  popup.classList.add('open');
+}
+
+function closePopup() {
+  var popup = document.getElementById('qa-popup');
+  if (popup) popup.classList.remove('open');
+  document.querySelectorAll('.qa-tab').forEach(function(t) { t.classList.remove('active'); });
+}
+
+
+function openKiloTerminal(promptEncoded) {
+  const prompt = typeof promptEncoded === 'string' ? decodeURIComponent(promptEncoded) : promptEncoded || '';
+  kiloOpen(prompt);
+}
+
+</script>
+
+<script>
+let kiloTerm = null, kiloWS = null, kiloFitAddon = null;
+
+function kiloOpen(initialPrompt) {
+  document.getElementById('kilo-overlay').classList.add('active');
+  document.getElementById('kilo-status-text').textContent = 'Conectare...';
+  if (kiloTerm) { kiloTerm.dispose(); kiloTerm = null; }
+  if (kiloWS) { kiloWS.close(); kiloWS = null; }
+  kiloTerm = new Terminal({
+    cursorBlink: true,
+    fontSize: 14,
+    fontFamily: "'Space Mono','Courier New',monospace",
+    theme: {
+      background: '#0d1117', foreground: '#e6edf3', cursor: '#00ff87',
+      selectionBackground: 'rgba(0,255,135,0.3)'
+    },
+    scrollback: 5000, cols: 100, rows: 32
+  });
+  kiloFitAddon = new FitAddon.FitAddon();
+  kiloTerm.loadAddon(kiloFitAddon);
+  const container = document.getElementById('kilo-xterm-container');
+  container.innerHTML = '';
+  kiloTerm.open(container);
+  setTimeout(function() { try { kiloFitAddon.fit(); } catch(e) {} }, 100);
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  kiloWS = new WebSocket(proto + '//' + location.host + '/ws/kilo-terminal');
+  kiloWS.onopen = function() {
+    document.getElementById('kilo-status-dot').style.background = '#00ff87';
+    document.getElementById('kilo-status-text').textContent = 'Kilo CLI — Conectat';
+    if (initialPrompt) {
+      setTimeout(function() {
+        kiloWS.send(JSON.stringify({type: 'inject', data: initialPrompt}));
+      }, 1500);
+    }
+  };
+  kiloWS.onmessage = function(e) {
+    const msg = JSON.parse(e.data);
+    if (msg.type === 'output') {
+      kiloTerm.write(msg.data);
+    } else if (msg.type === 'exit') {
+      kiloTerm.write("\r\n\x1b[33m[Sesiune inchisa]\x1b[0m");
+      document.getElementById('kilo-status-dot').style.background = '#ff4757';
+    }
+  };
+  kiloWS.onerror = function() {
+    kiloTerm.write("\x1b[31m\r\nEroare WebSocket\r\n\x1b[0m");
+  };
+  kiloTerm.onData(function(data) {
+    if (kiloWS && kiloWS.readyState === WebSocket.OPEN) {
+      kiloWS.send(JSON.stringify({type: 'input', data: data}));
+    }
+  });
+  window.addEventListener('resize', function() {
+    try {
+      kiloFitAddon.fit();
+      if (kiloWS && kiloWS.readyState === WebSocket.OPEN) {
+        kiloWS.send(JSON.stringify({type: 'resize', cols: kiloTerm.cols, rows: kiloTerm.rows}));
+      }
+    } catch(e) {}
+  });
+  setTimeout(function() { kiloTerm.focus(); }, 300);
+}
+
+function kiloClose() {
+  document.getElementById('kilo-overlay').classList.remove('active');
+  if (kiloWS) { kiloWS.close(); kiloWS = null; }
+  if (kiloTerm) { kiloTerm.dispose(); kiloTerm = null; }
+}
+
+function kiloInject() {
+  const inp = document.getElementById('kilo-inject-input');
+  const text = inp.value.trim();
+  if (!text || !kiloWS || kiloWS.readyState !== WebSocket.OPEN) return;
+  kiloWS.send(JSON.stringify({type: 'inject', data: text}));
+  inp.value = '';
+  kiloTerm.focus();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const inp = document.getElementById('kilo-inject-input');
+  if (inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') kiloInject();
+    });
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const ov = document.getElementById('kilo-overlay');
+    if (ov && ov.classList.contains('active')) kiloClose();
+  }
+});
+
+</script>
+
+<div id="pipeline-bar" style="display:none;position:fixed;bottom:80px;right:16px;z-index:9000;display:flex;flex-direction:column;gap:8px;">
+  <div style="color:#666;font-size:10px;text-align:right;font-family:Space Mono,monospace;">PIPELINE</div>
+  <button id="pipe-marketing" onclick="pipelineSend('marketing')" style="display:none;background:linear-gradient(135deg,#eab308,#f97316);color:#000;border:none;padding:8px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:Space Mono,monospace;">→ 🟡 Marketing</button>
+  <button id="pipe-creator" onclick="pipelineSend('creator')" style="display:none;background:linear-gradient(135deg,#a855f7,#3b82f6);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:Space Mono,monospace;">→ 🟣 Creator</button>
+  <button id="pipe-hustle" onclick="pipelineSend('hustle')" style="display:none;background:linear-gradient(135deg,#ef4444,#ff6b6b);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:Space Mono,monospace;">→ 🔴 Postează</button>
+</div>
+
+
+
+<div id="pipe-next-btn" style="display:none;position:fixed;bottom:90px;right:16px;z-index:9999;">
+  <button id="pipe-next-inner" onclick="pipelineNext()" style="
+    padding:8px 14px;border:none;border-radius:10px;
+    font-family:Space Mono,monospace;font-size:11px;font-weight:700;
+    cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    transition:all 0.3s;
+  ">→</button>
+</div>
+
+<script>
+let pipelineSessionId = null;
+let pipelineMsgCount = 0;
+const PIPELINE_ORDER = ['chat','coding','marketing','creator','hustle'];
+const PIPELINE_LABELS = {
+  chat: '💬 Idei',
+  coding: '🟢 Coding',
+  marketing: '🟡 Marketing',
+  creator: '🟣 Creator',
+  hustle: '🔴 Postează'
+};
+const PIPELINE_COLORS = {
+  chat: 'linear-gradient(135deg,#3b82f6,#6366f1)',
+  coding: 'linear-gradient(135deg,#22c55e,#00d4ff)',
+  marketing: 'linear-gradient(135deg,#eab308,#f97316)',
+  creator: 'linear-gradient(135deg,#a855f7,#ec4899)',
+  hustle: 'linear-gradient(135deg,#ef4444,#f97316)'
+};
+
+function getNextMode(mode) {
+  const idx = PIPELINE_ORDER.indexOf(mode);
+  if (idx === -1 || idx >= PIPELINE_ORDER.length - 1) return null;
+  return PIPELINE_ORDER[idx + 1];
+}
+
+function updatePipeBtn() {
+  const nextMode = getNextMode(currentMode);
+  const btn = document.getElementById('pipe-next-btn');
+  const inner = document.getElementById('pipe-next-inner');
+  if (!nextMode || pipelineMsgCount < 3) {
+    btn.style.display = 'none';
+    return;
+  }
+  inner.textContent = '→ ' + PIPELINE_LABELS[nextMode];
+  inner.style.background = PIPELINE_COLORS[nextMode];
+  inner.style.color = nextMode === 'marketing' ? '#000' : '#fff';
+  btn.style.display = 'block';
+}
+
+async function pipelineNext() {
+  const nextMode = getNextMode(currentMode);
+  if (!nextMode) return;
+  const lastMsg = history.filter(m => m.role === 'assistant').slice(-1)[0]?.content || '';
+  const fromMode = currentMode;
+
+  // Salveaza in DB
+  try {
+    const r = await fetch('/api/pipeline/save', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId: String(userId||'browser_user'), sessionId: pipelineSessionId, step: fromMode, data: { reply: lastMsg.slice(0,800) } })
+    });
+    const d = await r.json();
+    if (d.sessionId) pipelineSessionId = d.sessionId;
+  } catch(e) {}
+
+  // Reset si switch
+  history.length = 0;
+  pipelineMsgCount = 0;
+  switchMode(nextMode);
+  document.getElementById('pipe-next-btn').style.display = 'none';
+
+  // Pre-fill input cu context curat - userul apasa send manual
+  const ctx = 'Pe baza planului anterior: ' + lastMsg.replace(/[`#*[\]${}|]/g,'').replace(/
++/g,' ').trim().slice(0,200);
+  inputEl.value = ctx;
+  inputEl.focus();
 }
 </script>
 </body>
