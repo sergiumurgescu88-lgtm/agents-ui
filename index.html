@@ -1145,6 +1145,83 @@ footer a:hover { color: var(--text); }
 }
 #kilo-ssh-toggle:hover { border-color: #00d4ff; color: #00d4ff; }
 
+
+/* ══════════════════════════════════════
+   LANDING PAGE MOBILE — max 600px
+   ══════════════════════════════════════ */
+@media(max-width:600px){
+  /* Fonturi mari → scalate */
+  h1, .hero-title   { font-size: clamp(28px, 8vw, 48px) !important; }
+  h2, .section-title{ font-size: clamp(22px, 6vw, 32px) !important; }
+  h3                { font-size: clamp(16px, 4.5vw, 22px) !important; }
+
+  /* Widths fixe → fluid */
+  .container, .wrapper, .content,
+  [style*="width:780px"], [style*="width:900px"],
+  [style*="width:800px"], [style*="width:700px"],
+  [style*="width:600px"], [style*="width:500px"],
+  [style*="width:400px"], [style*="width:300px"],
+  [style*="width:1200px"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Padding lateral uniform */
+  body { overflow-x: hidden; }
+  section, .section, .hero, .features, .pricing {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* Grid → 1 coloana */
+  .grid, .features-grid, .cards-grid, .pricing-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Flex → coloana */
+  .flex-row, .hero-inner, .split {
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+
+  /* Butoane — touch friendly */
+  .btn, button, a.btn, .cta-btn {
+    min-height: 48px !important;
+    font-size: 15px !important;
+    padding: 12px 20px !important;
+    width: 100% !important;
+    display: block !important;
+    text-align: center !important;
+  }
+
+  /* Fonturi mici → lizibile */
+  p, li, span, td, th { font-size: max(13px, 1em) !important; }
+  small, .small, .caption { font-size: 12px !important; }
+
+  /* Font-size 200px, 80px, 56px → reduse */
+  [style*="font-size: 200px"],
+  [style*="font-size:200px"] { font-size: 60px !important; }
+  [style*="font-size: 80px"],
+  [style*="font-size:80px"]  { font-size: 36px !important; }
+  [style*="font-size: 56px"],
+  [style*="font-size:56px"]  { font-size: 28px !important; }
+
+  /* Nav */
+  nav { padding: 10px 14px !important; }
+  .nav-links { display: none !important; }
+
+  /* Images */
+  img { max-width: 100% !important; height: auto !important; }
+
+  /* Tables → scroll horizontal */
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
+
+@media(max-width:380px){
+  h1, .hero-title { font-size: 24px !important; }
+  p, li           { font-size: 13px !important; }
+}
+
 </style>
 </head>
 <body>

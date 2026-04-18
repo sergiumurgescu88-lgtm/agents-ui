@@ -366,6 +366,118 @@ body.mode-marketing #send-btn{color:#fff;}
 #messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
 .btn-funnel{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-size:13px;font-weight:600;transition:all .2s;margin-left:auto;}
 .btn-funnel:hover{background:var(--accent2);transform:scale(1.05);}
+
+/* ══════════════════════════════════════
+   MOBILE OPTIMIZATION — max 480px
+   ══════════════════════════════════════ */
+@media (max-width: 480px) {
+  /* App container */
+  #app { max-width: 100vw; }
+
+  /* Header mai compact */
+  #header { padding: 6px 8px; padding-top: var(--safe-top); gap: 6px; }
+  #buddy-avatar { width: 32px; height: 32px; font-size: 15px; border-radius: 8px; }
+  #buddy-name { font-size: 13px; }
+  #mode-badge { font-size: 9px; padding: 2px 6px; }
+  #action-bar { width: 44px; }
+  #action-text { font-size: 9px; }
+
+  /* Messages */
+  #messages { padding: 10px 8px 6px; gap: 10px; }
+  .msg { max-width: 100%; }
+  .msg-av { width: 26px; height: 26px; font-size: 12px; }
+  .msg-bubble {
+    font-size: 14px;
+    line-height: 1.55;
+    padding: 9px 12px;
+    border-radius: 12px;
+  }
+  .msg-bubble pre {
+    font-size: 11px;
+    padding: 8px;
+    border-radius: 6px;
+  }
+  .msg-bubble code { font-size: 11px; }
+  .msg-meta { font-size: 10px; }
+  .model-tag, .fallback-tag, .intent-tag { font-size: 9px; padding: 1px 5px; }
+
+  /* Upgrade bubble */
+  .upgrade-bubble { padding: 12px; }
+  .upgrade-bubble h3 { font-size: 13px; }
+  .upgrade-bubble ul { font-size: 12px; }
+  .upgrade-btn { font-size: 13px; padding: 11px; }
+
+  /* Typing */
+  #typing { padding: 4px 8px 6px 44px; font-size: 11px; }
+
+  /* Quick actions tabs */
+  #qa-tabs { padding: 4px 6px 3px; gap: 5px; }
+  .qa-tab { font-size: 10px; padding: 4px 10px; }
+  .qa-cat { padding: 3px 6px 5px; gap: 5px; }
+  .qa {
+    font-size: 11px;
+    padding: 7px 11px;
+    min-height: 36px;  /* touch-friendly */
+    border-radius: 18px;
+  }
+
+  /* Input area */
+  #input-area { padding: 6px 8px; padding-bottom: calc(6px + var(--safe-bot)); }
+  #input-row { gap: 6px; }
+  #input {
+    font-size: 15px; /* iOS auto-zoom fix — min 16px previne zoom */
+    min-height: 44px;
+    padding: 9px 11px;
+    border-radius: 10px;
+  }
+  body.mode-coding #input { font-size: 13px; }
+  #send-btn {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    font-size: 18px;
+  }
+
+  /* QA Popup */
+  #qa-popup {
+    bottom: 120px;
+    width: 96vw;
+    padding: 10px;
+    border-radius: 14px;
+  }
+  #qa-popup-btns { grid-template-columns: 1fr 1fr; gap: 6px; }
+  #qa-popup-btns .qa { font-size: 11px; padding: 8px 10px; min-height: 40px; }
+
+  /* Referral modal */
+  #ref-modal { padding: 12px; }
+  #ref-box { padding: 18px 14px; border-radius: 16px; }
+  #ref-box h2 { font-size: 18px; }
+  #ref-box .ref-sub { font-size: 12px; }
+  .ref-stat { padding: 10px; }
+  .ref-stat-label { font-size: 11px; }
+  .ref-stat-val { font-size: 16px; }
+  #ref-link-box { font-size: 11px; padding: 8px 12px; }
+  .ref-btn { padding: 11px; font-size: 13px; }
+
+  /* Mode overlay */
+  #overlay-icon { font-size: 28px; }
+  #overlay-text { font-size: 12px; }
+  #overlay-bar { width: 150px; }
+}
+
+/* iOS zoom fix — input font min 16px */
+@media (max-width: 480px) {
+  input, textarea, select { font-size: 16px !important; }
+  body.mode-coding #input { font-size: 14px !important; }
+}
+
+/* Extra small — 360px și sub */
+@media (max-width: 360px) {
+  .msg-bubble { font-size: 13px; padding: 8px 10px; }
+  #buddy-name { font-size: 12px; }
+  .qa-tab { font-size: 9px; padding: 3px 8px; }
+  .qa { font-size: 10px; padding: 6px 9px; }
+}
+
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/xterm.min.css" />
 <style>
@@ -609,6 +721,10 @@ function updateActionUI() {
 }
 
 function render(text) {
+  // Daca textul e HTML direct (paywall, butoane, etc) — randeaza-l direct
+  if (/^\s*<[a-zA-Z]/.test(text.trim())) {
+    return text;
+  }
   let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   h = h.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
     const l = lang || 'code';
