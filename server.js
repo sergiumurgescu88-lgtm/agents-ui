@@ -633,6 +633,38 @@ app.get('/api/kilo-stream', (req, res) => {
 
 
 // ==========================================
+// SSH TEST — verifica conexiunea, returneaza JSON simplu
+app.post('/api/ssh-test', async (req, res) => {
+  const { host, username, password, port } = req.body; console.log('[SSH-TEST] body:', JSON.stringify({host,username,port,passLen:password?.length}));
+  if (!host || !password) return res.json({ success: false, error: 'Lipsesc host si password' });
+  
+  const ssh2 = require('ssh2');
+  const conn = new ssh2.Client();
+  let done = false;
+  
+  const timeout = setTimeout(() => {
+    if (!done) { done = true; conn.end(); res.json({ success: false, error: 'Timeout — verifică IP și port' }); }
+  }, 10000);
+  
+  conn.on('ready', () => {
+    conn.exec('echo "BUDDY_OK" && uname -a && whoami', (err, stream) => {
+      if (err) { clearTimeout(timeout); done = true; conn.end(); return res.json({ success: false, error: err.message }); }
+      let output = '';
+      stream.on('data', d => output += d.toString());
+      stream.on('close', () => {
+        clearTimeout(timeout); done = true; conn.end();
+        res.json({ success: true, output: output.trim() });
+      });
+    });
+  });
+  
+  conn.on('error', err => {
+    if (!done) { clearTimeout(timeout); done = true; res.json({ success: false, error: err.message }); }
+  });
+  
+  conn.connect({ host, port: port || 22, username: username || 'root', password, readyTimeout: 8000 });
+});
+
 // SSH AGENT — Kilo executa pe VPS remote
 // ==========================================
 app.post('/api/ssh-agent', async (req, res) => {

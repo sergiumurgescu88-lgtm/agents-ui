@@ -613,19 +613,19 @@ body.mode-marketing #send-btn{color:#fff;}
 
     <div style="margin-bottom:12px;">
       <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">IP / Host</label>
-      <input id="vps-host" type="text" placeholder="ex: 123.45.67.89 sau server.ro" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
+      <input id="vps-host" autocomplete="off" type="text" placeholder="ex: 123.45.67.89 sau server.ro" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
     </div>
     <div style="margin-bottom:12px;">
       <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">Username</label>
-      <input id="vps-user" type="text" placeholder="ex: root sau ubuntu" value="root" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
+      <input id="vps-user" autocomplete="off" type="text" placeholder="ex: root sau ubuntu" value="root" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
     </div>
     <div style="margin-bottom:12px;">
       <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">Password</label>
-      <input id="vps-pass" type="password" placeholder="parola SSH" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
+      <input id="vps-pass" autocomplete="new-password" type="password" placeholder="parola SSH" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
     </div>
     <div style="margin-bottom:20px;">
       <label style="font-size:11px;color:#666;display:block;margin-bottom:4px;">Port (optional)</label>
-      <input id="vps-port" type="number" placeholder="22" value="22" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
+      <input id="vps-port" autocomplete="off" type="number" placeholder="22" value="22" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:13px;outline:none;box-sizing:border-box;" />
     </div>
 
     <button onclick="testVpsConnection()" style="display:block;width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,#00ff87,#00d4ff);color:#000;font-weight:800;font-size:14px;border:none;cursor:pointer;margin-bottom:8px;">🔌 Testează Conexiunea</button>
@@ -1239,10 +1239,10 @@ async function testVpsConnection() {
   showVpsStatus('⏳ Se testează conexiunea SSH...', 'loading');
 
   try {
-    const resp = await fetch('/api/ssh-agent', {
+    const resp = await fetch('/api/ssh-test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ host, username, password, port, task: 'echo "BUDDY_TEST_OK" && uname -a', userId: String(userId || 'test') })
+      body: JSON.stringify({ host, username, password, port })
     });
     const d = await resp.json();
     if (d.success !== false) {
