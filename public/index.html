@@ -837,7 +837,7 @@ async function sendMessage() {
         msgsEl.scrollTop = msgsEl.scrollHeight;
       }
       if (d.url) window.open(d.url, '_blank');
-      pipelineMsgCount++;
+      if (typeof pipelineMsgCount !== 'undefined') pipelineMsgCount++;
       try { updatePipeBtn(); } catch(e2) {}
       try { updatePipelineButtons(d.mode || currentMode); } catch(e2) {}
       try { document.getElementById('pipeline-bar').style.display = 'flex'; } catch(e2) {}
@@ -1179,8 +1179,7 @@ async function pipelineNext() {
   document.getElementById('pipe-next-btn').style.display = 'none';
 
   // Pre-fill input cu context curat - userul apasa send manual
-  const ctx = 'Pe baza planului anterior: ' + lastMsg.replace(/[`#*[\]${}|]/g,'').replace(/
-+/g,' ').trim().slice(0,200);
+  const ctx = 'Pe baza planului anterior: ' + lastMsg.replace(/[`#*\[\]${}|]/g,'').replace(/\n+/g,' ').trim().slice(0,200);
   inputEl.value = ctx;
   inputEl.focus();
 }
