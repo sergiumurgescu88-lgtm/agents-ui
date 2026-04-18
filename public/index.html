@@ -299,6 +299,7 @@ body.mode-marketing #buddy-name{letter-spacing:.04em;}
 .qa-tab-marketing.active,.qa-tab-marketing:hover{border-color:#eab308;color:#eab308;background:rgba(234,179,8,.1);}
 .qa-tab-creator.active,.qa-tab-creator:hover{border-color:#a855f7;color:#a855f7;background:rgba(168,85,247,.1);}
 .qa-tab-sidehustle.active,.qa-tab-sidehustle:hover{border-color:#ef4444;color:#ef4444;background:rgba(239,68,68,.1);}
+.qa-tab-prompturi.active,.qa-tab-prompturi:hover{border-color:#f97316;color:#f97316;background:rgba(249,115,22,.12);}
 .qa-creator{border-color:#3b82f6!important;color:#3b82f6!important;}
 .qa-cat{display:none;gap:6px;padding:4px 8px 6px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;}
 .qa-cat::-webkit-scrollbar{display:none;}
@@ -614,6 +615,7 @@ body.mode-marketing #send-btn{color:#fff;}
       <button class="qa-tab qa-tab-marketing" onclick="togglePopup('marketing','🟡 Marketing')">🟡 Marketing</button>
       <button class="qa-tab qa-tab-creator" onclick="togglePopup('creator','🟣 Creator')">🟣 Creator</button>
       <button class="qa-tab qa-tab-sidehustle" onclick="togglePopup('sidehustle','🔴 Hustle')">🔴 Hustle</button>
+      <button class="qa-tab qa-tab-prompturi" onclick="PLopen()">&#128218; Prompturi</button>
     </div>
     <!-- POPUP -->
     <!-- REFERRAL MODAL -->
@@ -1739,5 +1741,146 @@ window.fetch = function(url, opts) {
 
 
 </script>
+
+
+<div id="prompt-overlay" style="display:none;position:fixed;inset:0;z-index:99999;">
+<style>
+#po-wrap{position:absolute;inset:0;background:rgba(0,0,0,0.93);display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+#po-top{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;flex-shrink:0;border-bottom:1px solid #111}
+#po-top h2{margin:0;color:#00ff87;font-size:20px;font-weight:900;letter-spacing:-.3px}
+#po-top p{margin:2px 0 0;color:#555;font-size:11px}
+#po-xbtn{background:#1a1a2e;border:none;color:#888;font-size:22px;cursor:pointer;width:40px;height:40px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+#po-tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;flex-shrink:0;scrollbar-width:none}
+#po-tabs::-webkit-scrollbar{display:none}
+.po-tab{flex-shrink:0;padding:8px 14px;border-radius:22px;border:2px solid #1a1a2e;background:#0a0a14;color:#555;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.po-tab.on{color:#000!important;border-color:transparent!important}
+#po-subhead{padding:4px 16px 8px;flex-shrink:0}
+#po-subhead-name{font-size:16px;font-weight:900;margin:0}
+#po-subhead-count{font-size:11px;color:#444;margin:2px 0 0}
+#po-cards{flex:1;overflow-y:auto;padding:4px 16px 40px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+.po-card{border-radius:14px;padding:15px 15px 12px;cursor:pointer;border:1.5px solid transparent;transition:all .18s;position:relative}
+.po-card:active{opacity:.8;transform:scale(.98)}
+.po-card-icon{font-size:18px;margin-bottom:7px}
+.po-card-title{font-weight:800;font-size:15px;margin:0 0 6px}
+.po-card-preview{font-size:12px;line-height:1.6;color:#888}
+.po-card-hint{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-top:10px;opacity:.5}
+@media(min-width:700px){
+  #po-wrap{flex-direction:row;max-width:1050px;margin:auto;position:absolute;inset:30px;border-radius:18px;border:1px solid #1a1a2e;overflow:hidden}
+  #po-sidebar{width:210px;min-width:210px;background:#06060e;border-right:1px solid #111;display:flex;flex-direction:column}
+  #po-sidebar-head{padding:20px;border-bottom:1px solid #111}
+  #po-sidebar-head h2{margin:0;color:#00ff87;font-size:15px;font-weight:900}
+  #po-sidebar-head p{margin:3px 0 0;color:#444;font-size:11px}
+  #po-sidebar-list{flex:1;overflow-y:auto;padding:6px 0}
+  .po-sbtn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 16px;background:none;border:none;border-left:3px solid transparent;cursor:pointer;text-align:left;transition:all .15s}
+  .po-sbtn:hover{background:rgba(255,255,255,0.03)}
+  .po-sbtn.on{background:rgba(255,255,255,0.05)}
+  .po-sbtn .si{font-size:20px;flex-shrink:0}
+  .po-sbtn .sn{color:#bbb;font-size:12px;font-weight:700;line-height:1.3}
+  .po-sbtn .sc{color:#333;font-size:10px}
+  #po-right{flex:1;display:flex;flex-direction:column;background:#080810;overflow:hidden}
+  #po-right-head{padding:16px 20px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+  #po-right-head-name{color:#fff;font-size:15px;font-weight:900;margin:0}
+  #po-right-head-count{color:#444;font-size:11px}
+  #po-top{display:none}
+  #po-tabs{display:none}
+  #po-subhead{display:none}
+  #po-cards{padding:14px 18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:11px;align-content:start}
+}
+</style>
+<div id="po-wrap">
+  <div id="po-sidebar">
+    <div id="po-sidebar-head"><h2>📚 Prompturi</h2><p>90 prompturi gata</p></div>
+    <div id="po-sidebar-list"></div>
+  </div>
+  <div id="po-right">
+    <div id="po-right-head">
+      <div><p id="po-right-head-name"></p><p id="po-right-head-count"></p></div>
+      <button onclick="PLclose()" style="background:#1a1a2e;border:none;color:#777;font-size:20px;cursor:pointer;width:34px;height:34px;border-radius:9px">&times;</button>
+    </div>
+    <div id="po-top">
+      <div><h2>📚 Prompturi</h2><p>90 prompturi</p></div>
+      <button id="po-xbtn" onclick="PLclose()">&times;</button>
+    </div>
+    <div id="po-tabs"></div>
+    <div id="po-subhead">
+      <p id="po-subhead-name"></p>
+      <p id="po-subhead-count"></p>
+    </div>
+    <div id="po-cards"></div>
+  </div>
+</div>
+</div>
+<script>(function(){
+var C=[{"icon":"🐛","name":"Fix Bug","color":"#ff4d4d","bg":"rgba(255,77,77,0.08)","prompts":[{"t":"Fix bug rapid","p":"Am aceasta eroare:\n[paste eroarea]\n\nCodul:\n[paste codul]\n\nVreau: fix complet + explicatie de ce aparea."},{"t":"Debug pas cu pas","p":"Ajuta-ma sa depanez pas cu pas:\n[descrie problema]\n\nContextul aplicatiei:\n[descrie contextul]"},{"t":"Eroare sintaxa","p":"Urmatorul cod are eroare de sintaxa. Gaseste-o si corecteaz-o:\n\n[paste codul]"},{"t":"TypeError undefined","p":"Primesc Cannot read property of undefined.\nCodul:\n[paste codul]\n\nExplica si rezolva."},{"t":"Async Promise bug","p":"Am o problema cu async/await sau Promise:\n[paste codul]\n\nFix + explicatie."},{"t":"CORS error","p":"Primesc eroare CORS la:\n[URL]\n\nFix pentru server:\n[tehnologia serverului]"},{"t":"Memory leak","p":"Aplicatia are memory leak. Codul suspect:\n[paste codul]\n\nIdentifica si propune fix."},{"t":"SQL query broken","p":"Query-ul SQL returneaza eroare:\n[paste query]\n\nCorecteza si explica."},{"t":"Import module error","p":"Primesc eroare module not found:\n[paste eroarea]\n\nStructura proiect:\n[descrie structura]"},{"t":"Race condition","p":"Codul are comportament impredictibil:\n[paste codul]\n\nIdentifica si rezolva."}]},{"icon":"💻","name":"Coding","color":"#00ff87","bg":"rgba(0,255,135,0.08)","prompts":[{"t":"Scrie functie","p":"Scrie o functie [limbaj] care:\n- Primeste: [input]\n- Returneaza: [output]\n- Face: [ce face]\n\nInclude type hints si docstring."},{"t":"Refactorizeaza","p":"Refactorizeaza urmatorul cod sa fie mai curat:\n\n[paste codul]"},{"t":"Optimizeaza performanta","p":"Optimizeaza performanta acestui cod:\n\n[paste codul]\n\nIdentifica bottleneck-urile."},{"t":"Clase OOP","p":"Creeaza o clasa [limbaj] pentru [ce reprezinta].\nAtribute: [lista]. Metode: [lista]."},{"t":"API endpoint","p":"Scrie un endpoint [GET/POST/PUT/DELETE] in [framework]:\n- Ruta: [ruta]\n- Input: [ce primeste]\n- Output: [ce returneaza]"},{"t":"Teste unitare","p":"Scrie teste unitare pentru:\n\n[paste codul]\n\nAcopera: cazuri normale, edge cases, erori."},{"t":"Converteste limbaj","p":"Converteste din [limbaj sursa] in [limbaj destinatie]:\n\n[paste codul]"},{"t":"Design pattern","p":"Implementeaza pattern-ul [Observer/Singleton/Factory] pentru:\n[descrie problema]\n\nIn [limbaj]."},{"t":"Regex","p":"Scrie un regex care: [ce trebuie sa faca].\nExemple valide: [exemple].\nExplica fiecare parte."},{"t":"Documentatie cod","p":"Scrie documentatie tehnica (JSDoc/docstring) pentru:\n\n[paste codul]"}]},{"icon":"🤖","name":"Agenti AI","color":"#a78bfa","bg":"rgba(167,139,250,0.08)","prompts":[{"t":"Agent Python","p":"Creeaza un agent AI in Python cu:\n- LLM: [OpenAI/Anthropic]\n- Tool-uri: [lista]\n- Memorie: [tip]\n- Loop: ReAct\n\nInclude handling erori."},{"t":"Tool calling","p":"Agent cu function calling pentru:\n[descrie task]\n\nTool-uri:\n[lista]\n\nIn [limbaj]."},{"t":"Scraper inteligent","p":"Scraper pentru [site] care:\n- Extrage: [ce date]\n- Gestioneaza: paginatie, rate limiting\n- Salveaza in: [CSV/JSON/DB]"},{"t":"Automation workflow","p":"Automatizeaza workflow:\n1. [pasul 1]\n2. [pasul 2]\n3. [pasul 3]\n\nTrigger: [manual/cron/webhook]"},{"t":"Bot Telegram","p":"Bot Telegram cu comenzile:\n[lista comenzi]\n\nCu inline keyboards si state management."},{"t":"Pipeline AI","p":"Pipeline care:\n1. Preia date din [sursa]\n2. Proceseaza cu AI pentru [task]\n3. Salveaza in [destinatie]"},{"t":"Multi-agent","p":"Sistem multi-agent pentru:\n[descrie task]\n\nRoluri:\n[lista roluri]\n\nCum comunica intre ei."},{"t":"RAG system","p":"Sistem RAG care:\n- Indexeaza: [tip documente]\n- Vector DB: [Pinecone/Chroma]\n- LLM: [model]"},{"t":"Chatbot custom","p":"Chatbot cu:\n- Nume: [nume]\n- Ton: [formal/casual]\n- Domeniu: [domeniu]\n\nIn [framework]."},{"t":"Agent monitoring","p":"Adauga monitoring agentului:\n[paste codul]\n\nTrack: latenta, costuri, erori, success rate."}]},{"icon":"📈","name":"Marketing","color":"#f59e0b","bg":"rgba(245,158,11,0.08)","prompts":[{"t":"Ad copy Meta/Google","p":"3 variante ad copy pentru:\n- Produs: [descriere]\n- Audienta: [ICP]\n- Obiectiv: [awareness/conversii]\n- Ton: [formal/casual]"},{"t":"Email sequence","p":"Secventa 5 emailuri pentru:\n- Context: [ce vinde]\n- Lead-ul a facut: [actiune]\n- Obiectiv: [conversie dorita]\n\nInclude subject lines."},{"t":"Hook viral","p":"10 hook-uri pentru [topic] pe [platforma].\nAudienta: [descriere].\nStiluri: curiozitate, soc, cifre, poveste."},{"t":"Calendar continut","p":"Calendar continut 30 zile pentru [platforma] despre [nisa].\nInclude: tip post, topic, hook, CTA."},{"t":"Script YouTube","p":"Script video YouTube [durata] despre:\n[topic]\n\nInclude: hook 30sec, intro, cuprins, CTA."},{"t":"Caption Instagram","p":"5 variante caption pentru postare despre [topic]:\n- Audienta: [descriere]\n- Ton: [ton]\n- CTA: [ce vrei sa faca]"},{"t":"Landing page copy","p":"Copy landing page:\n- Produs: [descriere]\n- ICP: [client ideal]\n- Problema: [ce rezolva]\n\nInclude: headline, benefits, CTA, FAQ."},{"t":"Strategie launch","p":"Strategie lansare pentru:\n[produs]\n\nBuget: [buget]\nTimeline: [timeline]\nPlatforme: [platforme]"},{"t":"VSL script","p":"Video Sales Letter [durata] pentru:\n- Produs: [descriere]\n- Audienta: [ICP]\n- Formula: [PAS/AIDA/Story]"},{"t":"Campanie WhatsApp","p":"Campanie outreach WhatsApp:\n- Oferta: [descriere]\n- Audienta: [cine contactezi]\n- Secventa: [nr mesaje]\n\nNatural, non-spam."}]},{"icon":"📝","name":"Continut","color":"#06b6d4","bg":"rgba(6,182,212,0.08)","prompts":[{"t":"Articol blog SEO","p":"Articol blog [nr cuvinte] despre:\n[topic]\n\nKeyword: [keyword]\nAudienta: [descriere]\n\nInclude: H2-uri, meta description, FAQ."},{"t":"Thread Twitter/X","p":"Thread [nr tweet-uri] despre [topic].\nHook puternic la inceput.\nFiecare tweet sa stea singur.\nFinal cu CTA."},{"t":"Carousel LinkedIn","p":"Carousel LinkedIn [nr slide-uri] despre [topic]:\n- Slide 1: hook\n- Slide 2-N: continut\n- Slide final: CTA"},{"t":"Newsletter issue","p":"Issue newsletter despre [topic]:\n- Audienta: [descriere]\n- Ton: [ton]\n- Lungime: [scurt/mediu/lung]"},{"t":"Bio profesional","p":"Bio profesional pentru:\n- Persoana: [descriere]\n- Platforma: [LinkedIn/Instagram]\n- Highlight-uri: [realizari]\n\nVersiuni: scurta si lunga."},{"t":"Case study","p":"Case study:\n- Problema: [problema initiala]\n- Solutie: [ce ai implementat]\n- Rezultate: [rezultate]\n\nFormat: poveste + date."},{"t":"FAQ complet","p":"15 intrebari frecvente cu raspunsuri pentru:\n[produs/serviciu]\n\nInclude: obiectii vanzare, tehnice, pret."},{"t":"Press release","p":"Comunicat presa pentru:\n[eveniment/lansare]\n\nFormat jurnalistic. Include: citat, facts, contact."},{"t":"Rezumat executiv","p":"Rezuma urmatorul text in:\n1. Rezumat executiv (3 randuri)\n2. Key points\n3. Actiuni recomandate\n\n[paste textul]"},{"t":"Pitch deck text","p":"Continut pitch deck [nr slide-uri]:\n[descriere business]\n\nAudienta: [investitori/clienti]\nObiectiv: [ce vrei sa obtii]"}]},{"icon":"🔍","name":"SEO","color":"#10b981","bg":"rgba(16,185,129,0.08)","prompts":[{"t":"Keyword research","p":"Keyword research pentru:\n- Nisa: [nisa]\n- Competitor: [competitor]\n- Obiectiv: [trafic/conversii]\n\nGrupat: seed, long-tail, LSI, questions."},{"t":"Meta tags","p":"Meta title si description pentru:\n- Pagina: [tip pagina]\n- Keyword: [keyword]\n- Limite: title 60, description 155 chars."},{"t":"Audit SEO on-page","p":"Audit SEO on-page pentru:\n[paste continutul]\n\nKeyword: [keyword]\nVerifica: titluri, densitate, links, readability."},{"t":"Schema markup","p":"Schema.org markup JSON-LD pentru:\n- Tip: [Article/Product/FAQ/LocalBusiness]\n- Detalii: [datele]"},{"t":"Cluster topical","p":"Cluster topical pentru:\n- Pillar page: [topic principal]\n\n1 pillar + 10 cluster pages cu title si angle unic."},{"t":"Analiza SERP","p":"Analizeaza intentiile de cautare pentru:\n[keyword]\n\nIdentifica: tip intent, ce vor, cum sa bat top 3."},{"t":"Link building email","p":"Email outreach link building:\n- Site-ul meu: [url si topic]\n- Target: [url]\n- Motivul: [de ce e relevant]"},{"t":"Titluri click-worthy","p":"10 titluri SEO pentru articol despre:\n[topic]\n\nKeyword: [keyword]\nMix: cifre, cum sa, de ce, liste."},{"t":"Content gap","p":"Content gap-uri:\n- Site-ul meu: [lista topicuri]\n- Competitor: [competitor]\n\n10 topicuri nepublicate."},{"t":"Featured snippet","p":"Optimizeaza pentru featured snippet:\nKeyword: [keyword]\n\n[paste continutul]\n\nFormat: [paragraph/list/table]"}]},{"icon":"💼","name":"Business","color":"#f97316","bg":"rgba(249,115,22,0.08)","prompts":[{"t":"Business plan rapid","p":"Business plan pentru:\n- Idee: [descriere]\n- Buget: [suma]\n- Timeline: [timeline]\n\nInclude: venituri, costuri, ICP, riscuri."},{"t":"Analiza competitie","p":"Analiza competitiva:\n- Businessul meu: [descriere]\n- Competitori: [lista]\n\nSWOT + diferentiere + oportunitate."},{"t":"Pricing strategy","p":"Strategie pricing pentru:\n- Produs: [descriere]\n- Costuri: [costuri]\n- Competitie: [pret]\n- ICP: [audienta]"},{"t":"Elevator pitch","p":"Pitch 1 minut pentru:\n[descriere business]\n\nPentru: [investitori/clienti]\nInclude: problema, solutie, market, cerere."},{"t":"OKRs trimestriale","p":"OKR-uri trimestrul urmator:\n- Business: [descriere]\n- Obiectiv anual: [obiectiv]\n\n3 Objectives cu 3 Key Results fiecare."},{"t":"SOP procedura","p":"SOP pentru:\n[proces]\n\nInclude: scop, cine face, pasi detaliati, tool-uri necesare."},{"t":"Propunere comerciala","p":"Propunere comerciala:\n- Client: [tip client]\n- Serviciu: [descriere]\n- Pret: [pret]\n- Durata: [durata]"},{"t":"Cold email B2B","p":"Cold email B2B:\n- Produsul meu: [descriere]\n- Prospectul: [titlu/companie]\n- Problema lor: [problema]\n- CTA: [actiune]\n\nSub 150 cuvinte."},{"t":"SWOT analysis","p":"Analiza SWOT pentru:\n[descriere business/produs]\n\nFii specific. Include recomandari concrete per sectiune."},{"t":"Validare idee","p":"Valideaza aceasta idee:\n[descriere idee]\n\nAnalizeaza: cerere, competitie, venituri, riscuri. Spune si ce NU merge."}]},{"icon":"📊","name":"Analiza","color":"#8b5cf6","bg":"rgba(139,92,246,0.08)","prompts":[{"t":"Analiza date","p":"Analizeaza datele:\n1. Ce patterns observi\n2. Ce anomalii exista\n3. Ce recomandari ai\n\n[paste datele]"},{"t":"Review document","p":"Review critic al documentului:\n[paste documentul]\n\nVerifica: claritate, logica, completitudine, imbunatatiri."},{"t":"Explica concept","p":"Explica-mi [concept] ca si cum as fi:\n[nivel: incepator/junior/expert alt domeniu]\n\nFoloseste analogii si exemple."},{"t":"Compara optiuni","p":"Compara si recomanda:\nOptiunea A: [descriere]\nOptiunea B: [descriere]\nOptiunea C: [descriere]\n\nContextul meu: [situatia]"},{"t":"Root cause analysis","p":"Root cause analysis pentru:\nProblema: [descriere]\nCe am incercat: [ce ai incercat]\n\nFoloseste metoda 5 Whys."},{"t":"Rezumat executiv","p":"Rezumat executiv o pagina pentru:\n[paste documentul]\n\nPentru audienta: [descriere]\nFocus pe: [ce e important]"},{"t":"Decision framework","p":"Ajuta-ma sa decid intre:\n[optiunile]\n\nCriterii importante:\n[lista]\n\nConstrangeri:\n[constrangeri]"},{"t":"Forecast simplu","p":"Pe baza datelor istorice:\n[paste datele]\n\nForecast pentru [perioada]. Include asumptiile."},{"t":"Analiza feedback","p":"Analizeaza reviewurile:\n1. Top 5 plangeri\n2. Top 5 laude\n3. Actiuni prioritare\n\n[paste feedback-urile]"},{"t":"Metrici business","p":"Analizeaza metricile si da insights actionabile:\n[paste metricile]\n\nContextul businessului:\n[descriere]"}]},{"icon":"✉️","name":"Email","color":"#ec4899","bg":"rgba(236,72,153,0.08)","prompts":[{"t":"Follow-up politicos","p":"Email follow-up:\n- Context: [ce s-a discutat]\n- Zile de la ultimul contact: [nr]\n- Ce vreau: [actiunea dorita]\n\nScurt, politicos, cu valoare."},{"t":"Refuz elegant","p":"Email refuz elegant:\n[cererea/oferta]\n\nMentinand relatia buna. Ton: [formal/casual]."},{"t":"Cerere colaborare","p":"Email colaborare catre:\n[tip persoana/companie]\n\nPropunerea: [descriere]\nValoarea pentru ei: [ce castiga]\nCTA: [pasul urmator]"},{"t":"Reactivare client","p":"Email reactivare client inactiv [perioada]:\n- Contextul: [descriere]\n- Oferta: [oferta]\n- Ton: cald, ne-agresiv."},{"t":"Welcome email","p":"Email bun venit nou abonat la:\n[topic newsletter]\n\nInclude: cine sunt, ce vor primi, primul pas."},{"t":"Cerere testimonial","p":"Email cerere testimonial de la:\n[tip client, ce a cumparat]\n\nUsor de facut, link direct."},{"t":"Oferta limitata","p":"Email oferta cu urgenta:\n- Oferta: [descriere]\n- Deadline: [data]\n- Pret normal vs promo: [preturi]"},{"t":"Email echipa","p":"Email intern catre echipa despre:\n[subiect]\n\nActiuni necesare: [lista]\nDeadline: [data]"},{"t":"Scuze profesionale","p":"Email scuze profesionale pentru:\n[situatia]\n\nCatre: [client/partener]\nOfera: [compensatie/solutie]"},{"t":"Cold LinkedIn","p":"Mesaj cold outreach LinkedIn:\n- Target: [titlu/companie]\n- Ce ofer: [descriere]\n\nSub 100 cuvinte, uman, non-spam."}]}];
+var ai=0;
+function rSide(){
+  var el=document.getElementById('po-sidebar-list');
+  if(!el)return;
+  el.innerHTML='';
+  C.forEach(function(c,i){
+    var b=document.createElement('button');
+    b.className='po-sbtn'+(i===ai?' on':'');
+    b.style.borderLeftColor=i===ai?c.color:'transparent';
+    b.innerHTML='<span class="si">'+c.icon+'</span><div><div class="sn" style="color:'+(i===ai?c.color:'#bbb')+'">'+c.name+'</div><div class="sc">'+c.prompts.length+' prompturi</div></div>';
+    b.onclick=function(){ai=i;rAll();};
+    el.appendChild(b);
+  });
+}
+function rTabs(){
+  var el=document.getElementById('po-tabs');
+  if(!el)return;
+  el.innerHTML='';
+  C.forEach(function(c,i){
+    var b=document.createElement('button');
+    b.className='po-tab'+(i===ai?' on':'');
+    if(i===ai){b.style.background=c.color;b.style.color='#000';}
+    else{b.style.borderColor='#1a1a2e';b.style.color='#555';}
+    b.innerHTML=c.icon+' '+c.name;
+    b.onclick=function(){ai=i;rAll();};
+    el.appendChild(b);
+    if(i===ai)setTimeout(function(){b.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});},60);
+  });
+}
+function rCards(){
+  var c=C[ai];
+  var rn=document.getElementById('po-right-head-name');
+  var rk=document.getElementById('po-right-head-count');
+  var sn=document.getElementById('po-subhead-name');
+  var sk=document.getElementById('po-subhead-count');
+  if(rn){rn.textContent=c.icon+' '+c.name;rn.style.color=c.color;}
+  if(rk)rk.textContent=c.prompts.length+' prompturi disponibile';
+  if(sn){sn.textContent=c.icon+' '+c.name;sn.style.color=c.color;sn.style.fontWeight='900';sn.style.fontSize='15px';sn.style.margin='0';}
+  if(sk)sk.textContent=c.prompts.length+' prompturi';
+  var el=document.getElementById('po-cards');
+  el.innerHTML='';el.scrollTop=0;
+  c.prompts.forEach(function(p){
+    var d=document.createElement('div');
+    d.className='po-card';
+    d.style.background=c.bg;
+    d.style.borderColor=c.color+'33';
+    d.innerHTML='<div class="po-card-icon">'+c.icon+'</div>'
+      +'<div class="po-card-title" style="color:'+c.color+'">'+p.t+'</div>'
+      +'<div class="po-card-preview">'+p.p.split(String.fromCharCode(10)).join(' ').substring(0,95)+'...</div>'
+      +'<div class="po-card-hint" style="color:'+c.color+'">👆 Atinge pentru a folosi</div>';
+    d.onclick=function(){
+      var ta=document.querySelector('textarea');
+      if(ta){ta.value=p.p;ta.dispatchEvent(new Event('input',{bubbles:true}));ta.focus();}
+      PLclose();
+    };
+    el.appendChild(d);
+  });
+}
+function rAll(){rSide();rTabs();rCards();}
+window.PLopen=function(){
+  document.getElementById('prompt-overlay').style.display='block';
+  document.body.style.overflow='hidden';
+  rAll();
+};
+window.PLclose=function(){
+  document.getElementById('prompt-overlay').style.display='none';
+  document.body.style.overflow='';
+};
+document.addEventListener('keydown',function(e){if(e.key==='Escape')PLclose();});
+})()</script>
 </body>
 </html>
