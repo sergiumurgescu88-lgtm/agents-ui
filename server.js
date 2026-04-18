@@ -73,7 +73,7 @@ const saveUsage = () => { try { fs.writeFileSync(USAGE_FILE, JSON.stringify(usag
 const checkLimit = (uid) => { 
   if (isPremium(uid)) return { allowed: true, remaining: 999, usage: usageMap[uid]||0, premium: true };
   const u = usageMap[uid]||0; 
-  return { allowed: u<50, remaining: 50-u, usage: u, premium: false }; 
+  return { allowed: u<100, remaining: 100-u, usage: u, premium: false }; 
 };
 const incUsage = (uid) => { usageMap[uid] = (usageMap[uid]||0)+1; saveUsage(); };
 
@@ -299,8 +299,8 @@ app.post('/api/chat', async (req, res) => {
   if (!limitInfo.allowed) {
     return res.json({
       success:true,
-      reply:'<div style="text-align:center;padding:20px"><p style="font-size:2rem">🔒</p><p style="font-weight:700;font-size:1.1rem">Ai folosit cele 50 de acțiuni gratuite</p><p style="color:#678;margin-bottom:16px">Deblochează acces complet pentru <strong>$9</strong></p><a href="https://buy.stripe.com/bJe14o1Ht3ZCamfedh5os00" target="_blank" style="display:inline-block;background:#635bff;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💳 Plătește $9 acum</a><br/><a href="https://wa.me/40768676141" target="_blank" style="display:inline-block;background:#25d366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💬 WhatsApp Sergiu</a></div>',
-      text:'', mode:'lock', limitStatus:'hard_stop', actionCount:50
+      reply:'<div style="text-align:center;padding:20px"><p style="font-size:2rem">🔒</p><p style="font-weight:700;font-size:1.1rem">Ai folosit cele 100 de acțiuni gratuite</p><p style="color:#678;margin-bottom:16px">Deblochează acces complet pentru <strong>$9</strong></p><a href="https://buy.stripe.com/bJe14o1Ht3ZCamfedh5os00" target="_blank" style="display:inline-block;background:#635bff;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💳 Plătește $9 acum</a><br/><a href="https://wa.me/40768676141" target="_blank" style="display:inline-block;background:#25d366;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;margin:6px">💬 WhatsApp Sergiu</a></div>',
+      text:'', mode:'lock', limitStatus:'hard_stop', actionCount:100
     });
   }
 
