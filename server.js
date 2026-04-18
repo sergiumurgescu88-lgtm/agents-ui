@@ -1,5 +1,6 @@
 require('dotenv').config({ path: '/opt/agents-ui/.env' });
 const { kiloChat, sshExecuteStream, kiloGenerateCommands } = require('./kilo-bridge');
+const creator = require('./gemini-creator');
 const { startKiloTerminalServer } = require('./kilo-terminal-server');
 const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
@@ -457,6 +458,56 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => res.json({ status:'ok', version:'v14-clean', providers:{ anthropic:!!process.env.ANTHROPIC_API_KEY, openai:!!process.env.OPENAI_API_KEY } }));
+
+// ── CREATOR ROUTES ────────────────────────────────────────────────────────
+
+app.post('/api/creator/image', async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  const url = await creator.generateImage(prompt);
+  if (!url) return res.status(500).json({ error: 'Image generation failed' });
+  res.json({ url });
+});
+
+app.post('/api/creator/tts', async (req, res) => {
+  const { text, voice } = req.body;
+  if (!text) return res.status(400).json({ error: 'text required' });
+  const url = await creator.generateTTS(text, voice || 'Zephyr');
+  if (!url) return res.status(500).json({ error: 'TTS failed' });
+  res.json({ url });
+});
+
+app.post('/api/creator/music', async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  const url = await creator.generateMusic(prompt);
+  if (!url) return res.status(500).json({ error: 'Music generation failed' });
+  res.json({ url });
+});
+
+app.post('/api/creator/video', async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: 'prompt required' });
+  res.json({ queued: true, message: 'Video generation started (~2-3 min)' });
+  // async - nu blocam request-ul
+  creator.generateVideo(prompt).then(url => {
+    console.log('[Video done]', url);
+  }).catch(e => console.error('[Video err]', e.message));
+});
+
+app.post('/api/creator/caption', async (req, res) => {
+  try {
+    const { topic, platform } = req.body;
+    if (!topic) return res.status(400).json({ error: 'topic required' });
+    console.log('[Caption] calling generateCaption...');
+    const caption = await creator.generateCaption(topic, platform || 'Instagram');
+    console.log('[Caption] done:', caption?.slice(0,50));
+    res.json({ caption });
+  } catch(e) {
+    console.error('[Caption ERROR]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
 app.get('/api/limit/:userId', (req, res) => res.json(checkLimit(req.params.userId)));
 
 app.get('/api/referral/:userId', (req, res) => {
