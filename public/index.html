@@ -1944,5 +1944,48 @@ window.PLclose=function(){
 };
 document.addEventListener('keydown',function(e){if(e.key==='Escape')PLclose();});
 })()</script>
+
+<style>
+#auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
+#auth-box{background:#111;border:1px solid #222;border-radius:16px;padding:2rem;width:90%;max-width:360px;text-align:center;font-family:'Figtree',sans-serif;}
+#auth-box h2{color:#fff;font-size:1.2rem;font-weight:700;margin-bottom:.5rem;}
+#auth-box p{color:#666;font-size:.85rem;margin-bottom:1.5rem;line-height:1.5;}
+#auth-box a{display:block;padding:13px;background:#00e87a;color:#000;border-radius:10px;font-size:1rem;font-weight:800;text-decoration:none;}
+#auth-box a:hover{background:#00ff88;}
+</style>
+<div id="auth-overlay" style="display:none;">
+  <div id="auth-box">
+    <div style="font-size:2rem;margin-bottom:.75rem;">🤖</div>
+    <h2>Buddy e doar pentru membri</h2>
+    <p>Loghează-te pe DaRomania cu Google.<br>Revino după login — accesul e automat.</p>
+    <a href="https://daromania.online">Loghează-te cu Google →</a>
+  </div>
+</div>
+<script>
+(function(){
+  // Preia token din URL daca vine redirect
+  var urlToken = new URLSearchParams(window.location.search).get('token');
+  if(urlToken){
+    localStorage.setItem('buddy_auth_token', decodeURIComponent(urlToken));
+    window.history.replaceState({}, '', '/');
+  }
+
+  function isLoggedIn(){
+    // Verifica orice token din localStorage
+    if(localStorage.getItem('buddy_auth_token')) return true;
+    if(localStorage.getItem('dm_token')) return true;
+    // Cauta orice cheie Supabase
+    for(var i=0;i<localStorage.length;i++){
+      var k = localStorage.key(i);
+      if(k && (k.indexOf('sb-') === 0 || k.indexOf('supabase') !== -1)) return true;
+    }
+    return false;
+  }
+
+  // auth check disabled
+  // if(!isLoggedIn()){ document.getElementById('auth-overlay').style.display = 'flex'; }
+})();
+</script>
+
 </body>
 </html>
