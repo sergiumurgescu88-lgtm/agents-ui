@@ -899,7 +899,7 @@ function render(text) {
   let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   h = h.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
     const l = lang || 'code';
-    return `<div class="code-header"><span class="code-lang">${l}</span><button class="copy-btn" onclick="copyCode(this)">copy</button></div><pre><code>${code.trim()}</code></pre>`;
+    const kiloBtn = kiloIsConnected() ? `<button class="copy-btn" onclick="sendToKilo(this)" style="margin-left:6px;color:#00ff87;border-color:#00ff8744;">▶ Kilo</button>` : ''; return `<div class="code-header"><span class="code-lang">${l}</span><button class="copy-btn" onclick="copyCode(this)">copy</button>${kiloBtn}</div><pre><code>${code.trim()}</code></pre>`;
   });
   h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
   h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
@@ -1404,6 +1404,30 @@ async function csMusic() {
   } catch(e) { el.innerHTML = '❌ ' + e.message; }
 }
 function togglePopup() { const p = document.getElementById('qa-popup'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; }
+
+function kiloIsConnected() {
+  const s = document.getElementById('kilo-status-dot');
+  return s && s.style.background === 'rgb(0, 255, 135)';
+}
+
+function sendToKilo(btn) {
+  const code = btn.closest('.code-header').nextElementSibling.querySelector('code').textContent;
+  // Deschide Kilo daca nu e deschis
+  const ov = document.getElementById('kilo-overlay');
+  if (ov && !ov.classList.contains('active')) { ov.classList.add('active'); }
+  // Injecteaza comanda in input
+  const inp = document.getElementById('kilo-inject-input');
+  if (inp) {
+    inp.value = code.trim();
+    inp.focus();
+    // Auto-trimite
+    const execBtn = document.getElementById('kilo-inject-btn');
+    if (execBtn) { setTimeout(function(){ execBtn.click(); }, 200); }
+    btn.textContent = '✓ Trimis';
+    btn.style.color = '#00ff87';
+    setTimeout(function(){ btn.textContent = '▶ Kilo'; btn.style.color = '#00ff87'; }, 2000);
+  }
+}
 
 function copyCode(btn) {
   const code = btn.closest('.code-header').nextElementSibling.querySelector('code').textContent;
