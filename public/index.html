@@ -599,12 +599,9 @@ async function feelingLucky() {
     stEl.textContent = '✅ Gata!';
     await new Promise(res => setTimeout(res, 500));
     ov.style.display = 'none';
-    if (d.reply && typeof addMsg === 'function') {
-      addMsg('assistant', d.reply.trim());
-    } else if (d.reply) {
-      const inp = document.getElementById('input');
-      inp.value = d.reply.trim();
-      inp.dispatchEvent(new Event('input'));
+    if (d.reply) {
+      appendMsg('assistant', d.reply.trim(), null, currentMode, null, null);
+      msgsEl.scrollTop = msgsEl.scrollHeight;
     }
   } catch(e) {
     done = true;
