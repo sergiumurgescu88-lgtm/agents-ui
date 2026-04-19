@@ -575,9 +575,10 @@ app.post('/api/tts/speak', async (req, res) => {
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Charon' } } }
       }
     });
-    const audioData = response.candidates[0].content.parts[0].inlineData.data;
-    const buf = Buffer.from(audioData, 'base64');
-    res.set('Content-Type', 'audio/wav');
+    const part = response.candidates[0].content.parts[0].inlineData;
+    const buf = Buffer.from(part.data, 'base64');
+    const mime = part.mimeType || 'audio/wav';
+    res.set('Content-Type', mime);
     res.send(buf);
   } catch(e) {
     console.error('[TTS]', e.message);

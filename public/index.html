@@ -916,7 +916,7 @@ function appendMsg(role, text, name, mode, btns, pill) {
   const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
   div.innerHTML = `<div class="bubble" style="position:relative;">
     <div class="msg-meta">${icon} ${name || (role==='user'?'Tu':'Buddy')}
-      <button onclick="copyMsgText('${msgId}')" title="Copiază mesajul" style="margin-left:8px;background:none;border:none;cursor:pointer;color:#555;font-size:11px;padding:1px 5px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='#aaa'" onmouseout="this.style.color='#555'" id="copybtn_${msgId}">⎘</button>${role !== 'user' ? '<button onclick="speakMsg(\'' + msgId + '\')" title="Ascultă mesajul" style="margin-left:4px;background:none;border:none;cursor:pointer;color:#555;font-size:11px;padding:1px 5px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color=\'#a78bfa\'" onmouseout="this.style.color=\'#555\'" id="ttsbtn_${msgId}">🔊</button>' : ''}
+      <button onclick="copyMsgText('${msgId}')" title="Copiază mesajul" style="margin-left:8px;background:none;border:none;cursor:pointer;color:#aaa;font-size:18px;padding:3px 7px;border-radius:6px;transition:all .15s;opacity:0.8;" onmouseover="this.style.opacity='0.2'" onmouseout="this.style.opacity='0.8'" id="copybtn_${msgId}">⎘</button>${role !== 'user' ? '<button onclick="speakMsg(\'' + msgId + '\')" title="Ascultă mesajul" style="margin-left:4px;background:none;border:none;cursor:pointer;font-size:18px;padding:3px 7px;border-radius:6px;transition:all .15s;opacity:0.8;" onmouseover="this.style.opacity=\'0.2\'" onmouseout="this.style.opacity=\'0.8\'" id="ttsbtn_${msgId}">🔊</button>' : ''}
     </div>
     <div class="msg-body" id="${msgId}">${render(text)}</div>
   </div>`;
