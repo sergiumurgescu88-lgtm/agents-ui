@@ -491,16 +491,20 @@ body.mode-marketing #send-btn{color:#fff;}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/xterm.min.css" />
 <style>
-#kilo-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;align-items:center;justify-content:center;backdrop-filter:blur(6px);padding:16px;box-sizing:border-box;}
+/* SPLIT VIEW - Kilo panel lateral */
+#split-root{display:flex;flex-direction:row;height:100dvh;width:100vw;overflow:hidden;}
+#kilo-overlay{display:none;width:420px;min-width:320px;max-width:50vw;height:100dvh;background:#0d1117;border-left:2px solid #00ff87;flex-direction:column;flex-shrink:0;box-shadow:-4px 0 40px rgba(0,255,135,0.15);}
 #kilo-overlay.active{display:flex;}
-#kilo-window{width:min(1100px,92vw);height:85vh;background:#0d1117;border:2px solid #00ff87;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 0 80px rgba(0,255,135,0.25);}
+#kilo-window{display:flex;flex-direction:column;height:100%;width:100%;}
+#app{flex:1;min-width:0;display:flex;flex-direction:column;height:100dvh;overflow:hidden;}
+@media(max-width:700px){
+  #split-root{flex-direction:column;}
+  #kilo-overlay{width:100vw!important;max-width:100vw!important;min-width:0!important;height:45dvh;border-left:none;border-top:2px solid #00ff87;}
+  #app{height:55dvh;}
+}
 @media(max-width:600px){
-  #kilo-overlay{padding:0!important;}
-  #kilo-window{width:100vw!important;height:100dvh!important;border-radius:0!important;border:none!important;}
   #kilo-xterm-container{-webkit-overflow-scrolling:touch;overflow-y:auto!important;}
   #kilo-inject-input{font-size:16px!important;}
-  #kilo-titlebar{padding:8px 12px!important;}
-  .kilo-dot{width:16px!important;height:16px!important;}
 }
 #kilo-titlebar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:#161b22;border-bottom:1px solid #30363d;user-select:none;}
 .kilo-dot{width:13px;height:13px;border-radius:50%;cursor:pointer;}
@@ -615,6 +619,7 @@ async function feelingLucky() {
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
 </head>
 <body class="mode-chat">
+<div id="split-root">
 <div id="kilo-overlay">
   <div id="kilo-window">
     <div id="kilo-titlebar">
@@ -2182,5 +2187,6 @@ window.PLclose=function(){
 };
 document.addEventListener('keydown',function(e){if(e.key==='Escape')PLclose();});
 })()</script>
+</div><!-- /split-root -->
 </body>
 </html>
