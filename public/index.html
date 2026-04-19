@@ -1424,9 +1424,7 @@ async function sendToKilo(btn) {
     btn.disabled = true;
 
     // Afiseaza mesaj in chat ca rulam comanda
-    appendMsg('user', '```bash
-' + code + '
-```', 'Tu', currentMode, null, null);
+    appendMsg('user', '```bash\n' + code + '\n```', 'Tu', currentMode, null, null);
 
     const outDiv = document.createElement('div');
     outDiv.className = 'msg';
@@ -1457,8 +1455,7 @@ async function sendToKilo(btn) {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('
-');
+        const lines = buffer.split('\n');
         buffer = lines.pop();
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -1468,12 +1465,10 @@ async function sendToKilo(btn) {
                 outBody.textContent += d.data;
                 msgsEl.scrollTop = msgsEl.scrollHeight;
               } else if (d.type === 'done') {
-                outBody.textContent += '
-✅ Done';
+                outBody.textContent += '\n✅ Done';
                 msgsEl.scrollTop = msgsEl.scrollHeight;
               } else if (d.type === 'error') {
-                outBody.textContent += '
-❌ ' + d.data;
+                outBody.textContent += '\n❌ ' + d.data;
                 outBody.style.color = '#ef4444';
               }
             } catch(e) {}
