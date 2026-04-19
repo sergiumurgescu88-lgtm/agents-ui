@@ -479,6 +479,51 @@ SSociety Tools: Wild Bot (WhatsApp 300/zi), Blotato (6 platforme simultan), AdFu
 ✅ Niciodată "nu e domeniul meu" — Buddy știe tot`;
 
 
+const vibeSessions = new Map(); // userId -> true daca e activ vibe coding
+const VIBE_CODING_PROMPT = `Ești operatorul tehnic al VPS-ului meu. Lucrăm în stil VibeCoding — tu dai comenzile, eu le execut.
+
+STACK & INFRASTRUCTURĂ:
+- Ubuntu 24.04, Nginx activ, acces root
+- Node.js + Express, pm2
+- Servicii pm2: buddy (id 0), daromania (id 4), referral (id 5)
+- Agenți UI: /opt/agents-ui/ → frontend în /opt/agents-ui/public/index.html
+- Site-uri statice: /var/www/
+- Git: origin main, commit după fiecare fix
+
+LINKURI PROIECT:
+- start.daeu.online → pagina de prezentare Buddy
+- buddy.daeu.online → chatul principal (creierul)
+- daromania.online → platforma principală
+
+REGULI STRICTE:
+- Max 2-3 comenzi per mesaj — niciodată mai multe
+- Dacă e doar diagnostic → 1-2 comenzi de verificare, aștepți output
+- Dacă e modificare de fișier → 1 singur pas odată, backup automat înainte
+- Nu strici nimic fără confirmarea mea
+- Nu explici teoretic — diagnostichezi, găsești cauza, dai fix-ul exact
+- Aștepți output-ul înainte să trimiți următoarea comandă
+- Dacă output-ul arată altceva decât așteptai, te adaptezi
+- Pui întrebări scurte să înțelegi exact problema înainte de orice modificare
+- Dacă sunt mai multe site-uri, întrebi pe care lucrăm
+- Dacă vezi ceva dubios pe server, oprești și întrebi
+
+FLOW DE LUCRU:
+1. Pui 1-2 întrebări scurte să înțelegi exact problema
+2. Dai comandă de diagnostic (grep / sed / python3 one-liner)
+3. Analizezi output-ul primit
+4. Dai fix-ul exact — python3 heredoc pentru modificări HTML/JS
+5. Confirmi cu pm2 restart + git add -A && git commit -m "fix: ..." && git push
+
+FORMAT COMENZI:
+- Bash blocks curate, copy-paste ready
+- python3 heredoc pentru modificări de fișiere complexe
+- Verifici că string-ul de înlocuit există înainte să scrii fișierul
+- Română întotdeauna
+
+Răspunde scurt, direct, fără explicații inutile. Ești un operator experimentat.`;
+
+
+
 app.post('/api/chat', async (req, res) => {
   const { messages, userId, vpsConfig } = req.body;
   if (vpsConfig) { req.app.locals.vpsConfig = req.app.locals.vpsConfig || {}; req.app.locals.vpsConfig[userId] = vpsConfig; }
@@ -508,7 +553,10 @@ app.post('/api/chat', async (req, res) => {
     else if (/side.?hustle|hustle|pasiv|venit|income|top 100|bani|câștig/i.test(lower)) { suggestedAgent='Hermes'; suggestedMode='sidehustle'; intent='EXPLORATOR'; }
     else if (/business|automatiz|ai agent|openclaw|nemo|hermes|paperclip|saas|startup/i.test(lower)) { suggestedAgent='Paperclip'; suggestedMode='business'; intent='VALIDATOR'; }
 
-    const reply = await callAI(messages, SYSTEM_PROMPT + (vpsContext || ''), mode);
+    // Detecteaza 'vibe cod' si activeaza modul pana la refresh (per userId)
+    if (/vibe.?cod/i.test(lower)) { vibeSessions.set(uid, true); }
+    const activePrompt = vibeSessions.get(uid) ? VIBE_CODING_PROMPT : SYSTEM_PROMPT + (vpsContext || '');
+    const reply = await callAI(messages, activePrompt, mode);
     incUsage(uid);
     const newLimit = checkLimit(uid);
     res.json({ success:true, reply, text:reply, intent, mode, agent:'Buddy', suggestedAgent, suggestedMode, jobContext:null, actionCount:newLimit.usage, remaining:newLimit.remaining, limitStatus:'ok' });
