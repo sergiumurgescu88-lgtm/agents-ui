@@ -569,17 +569,36 @@ app.post('/api/tts/speak', async (req, res) => {
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-preview-tts',
-      contents: [{ role: 'user', parts: [{ text: `Citește acest text cu un ton prietenos, cald, ca și cum explici unui prieten de 17 ani. Vorbește natural, cu pauze și intonație: ${text.slice(0, 1500)}` }] }],
+      contents: [{ role: 'user', parts: [{ text: `${text.slice(0, 1500)}` }] }],
       config: {
         responseModalities: ['AUDIO'],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Charon' } } }
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } }
       }
     });
     const part = response.candidates[0].content.parts[0].inlineData;
-    const buf = Buffer.from(part.data, 'base64');
-    const mime = part.mimeType || 'audio/wav';
-    res.set('Content-Type', mime);
-    res.send(buf);
+    const pcm = Buffer.from(part.data, 'base64');
+    // Gemini TTS returneaza PCM 16-bit 24000Hz mono - adauga header WAV
+    const sampleRate = 24000, channels = 1, bitsPerSample = 16;
+    const byteRate = sampleRate * channels * bitsPerSample / 8;
+    const blockAlign = channels * bitsPerSample / 8;
+    const dataSize = pcm.length;
+    const wav = Buffer.alloc(44 + dataSize);
+    wav.write('RIFF', 0);
+    wav.writeUInt32LE(36 + dataSize, 4);
+    wav.write('WAVE', 8);
+    wav.write('fmt ', 12);
+    wav.writeUInt32LE(16, 16);
+    wav.writeUInt16LE(1, 20);
+    wav.writeUInt16LE(channels, 22);
+    wav.writeUInt32LE(sampleRate, 24);
+    wav.writeUInt32LE(byteRate, 28);
+    wav.writeUInt16LE(blockAlign, 32);
+    wav.writeUInt16LE(bitsPerSample, 34);
+    wav.write('data', 36);
+    wav.writeUInt32LE(dataSize, 40);
+    pcm.copy(wav, 44);
+    res.set('Content-Type', 'audio/wav');
+    res.send(wav);
   } catch(e) {
     console.error('[TTS]', e.message);
     res.status(500).json({ error: e.message });
