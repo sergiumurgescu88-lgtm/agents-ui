@@ -572,7 +572,7 @@ app.post('/api/tts/speak', async (req, res) => {
       contents: [{ role: 'user', parts: [{ text: `Citește acest text cu un ton prietenos, cald, ca și cum explici unui prieten de 17 ani. Vorbește natural, cu pauze și intonație: ${text.slice(0, 1500)}` }] }],
       config: {
         responseModalities: ['AUDIO'],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } }
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Charon' } } }
       }
     });
     const audioData = response.candidates[0].content.parts[0].inlineData.data;

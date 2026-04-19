@@ -918,7 +918,7 @@ function appendMsg(role, text, name, mode, btns, pill) {
   const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
   div.innerHTML = `<div class="bubble" style="position:relative;">
     <div class="msg-meta">${icon} ${name || (role==='user'?'Tu':'Buddy')}
-      <button onclick="copyMsgText('${msgId}')" title="Copiază mesajul" style="margin-left:8px;background:none;border:none;cursor:pointer;color:#555;font-size:11px;padding:1px 5px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='#aaa'" onmouseout="this.style.color='#555'" id="copybtn_${msgId}">⎘</button>
+      <button onclick="copyMsgText('${msgId}')" title="Copiază mesajul" style="margin-left:8px;background:none;border:none;cursor:pointer;color:#555;font-size:11px;padding:1px 5px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='#aaa'" onmouseout="this.style.color='#555'" id="copybtn_${msgId}">⎘</button>${role !== 'user' ? '<button onclick="speakMsg(\'' + msgId + '\')" title="Ascultă mesajul" style="margin-left:4px;background:none;border:none;cursor:pointer;color:#555;font-size:11px;padding:1px 5px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color=\'#a78bfa\'" onmouseout="this.style.color=\'#555\'" id="ttsbtn_${msgId}">🔊</button>' : ''}
     </div>
     <div class="msg-body" id="${msgId}">${render(text)}</div>
   </div>`;
@@ -948,6 +948,31 @@ function copyMsgText(msgId) {
     const btn = document.getElementById('copybtn_' + msgId);
     if (btn) { btn.textContent = '✓'; btn.style.color = '#00ff87'; setTimeout(function(){ btn.textContent = '⎘'; btn.style.color = '#555'; }, 1500); }
   });
+}
+
+async function speakMsg(msgId) {
+  const el = document.getElementById(msgId);
+  if (!el) return;
+  const text = (el.innerText || el.textContent || '').trim();
+  if (!text) return;
+  const btn = document.getElementById('ttsbtn_' + msgId);
+  if (btn) { btn.textContent = '⏳'; btn.style.color = '#a78bfa'; }
+  try {
+    const resp = await fetch('/api/tts/speak', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text.substring(0, 1000) })
+    });
+    if (!resp.ok) throw new Error('TTS failed');
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.play();
+    if (btn) { btn.textContent = '🔊'; btn.style.color = '#a78bfa'; }
+    audio.onended = function() { URL.revokeObjectURL(url); if (btn) { btn.style.color = '#555'; } };
+  } catch(e) {
+    if (btn) { btn.textContent = '❌'; btn.style.color = '#ef4444'; setTimeout(function(){ btn.textContent = '🔊'; btn.style.color = '#555'; }, 2000); }
+  }
 }
 
 async function sendMessage() {
