@@ -479,6 +479,7 @@ body.mode-marketing #send-btn{color:#fff;}
   .qa { font-size: 10px; padding: 6px 9px; }
 }
 
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/xterm.min.css" />
 <style>
@@ -816,7 +817,8 @@ function appendMsg(role, text, name, mode, btns, pill) {
   const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
   div.innerHTML = `<div class="bubble" style="position:relative;">
     <div class="msg-meta">${icon} ${name || (role==='user'?'Tu':'Buddy')}
-      <button onclick="copyMsgText('${msgId}')" title="Copiază mesajul" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);cursor:pointer;color:rgba(255,255,255,0.4);font-size:13px;padding:3px 8px;border-radius:6px;transition:all .2s;opacity:0;" onmouseover="this.style.opacity='1';this.style.color='#00e87a'" onmouseout="this.style.opacity='0'" id="copybtn_${msgId}">⎘</button>
+      <button onclick="copyMsgText('${msgId}')" title="Copiază mesajul" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);cursor:pointer;color:rgba(255,255,255,0.4);font-size:13px;padding:3px 8px;border-radius:6px;transition:all .2s;opacity:0;" onmouseover="this.style.opacity='1';this.style.color='#00e87a'" onmouseout="this.style.opacity='0'" id="copybtn_${msgId}" style="position:absolute;top:6px;right:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);cursor:pointer;color:rgba(255,255,255,0.4);font-size:16px;padding:5px 12px;border-radius:6px;transition:all .2s;opacity:0;" onmouseover="this.style.opacity='1';this.style.color='#00e87a'" onmouseout="this.style.opacity='0'">⎘</button>
+    <button onclick="speakMsg('${msgId}')" title="Ascultă mesajul" style="position:absolute;top:8px;right:44px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);cursor:pointer;color:rgba(168,85,247,0.5);font-size:13px;padding:3px 8px;border-radius:6px;transition:all .2s;opacity:0;" onmouseover="this.style.opacity='1';this.style.color='#a855f7'" onmouseout="this.style.opacity='0'" id="ttsbtn_${msgId}" style="position:absolute;top:6px;right:56px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);cursor:pointer;color:rgba(168,85,247,0.5);font-size:16px;padding:5px 12px;border-radius:6px;transition:all .2s;opacity:0;" onmouseover="this.style.opacity='1';this.style.color='#a855f7'" onmouseout="this.style.opacity='0'">🔊</button>
     </div>
     <div class="msg-body" id="${msgId}">${render(text)}</div>
   </div>`;
@@ -1026,6 +1028,43 @@ function buildFileContext() {
 }
 
 // ── VOICE INPUT ───────────────────────────────────────────────────────────
+
+
+// ── TTS SPEAK ─────────────────────────────────────────────────
+async function speakMsg(msgId) {
+  const el = document.getElementById(msgId);
+  const btn = document.getElementById('ttsbtn_' + msgId);
+  if (!el || !btn) return;
+  const text = (el.innerText || el.textContent || '').trim().slice(0, 1500);
+  if (!text) return;
+  btn.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite">⏳</span> loading';
+  btn.style.color = '#f59e0b';
+  btn.style.opacity = '1';
+  btn.style.fontSize = '12px';
+  try {
+    const r = await fetch('/api/creator/tts', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ text, voice: 'Charon' })
+    });
+    if (!r.ok) throw new Error('TTS error');
+    const d = await r.json();
+    const url = d.url;
+    const audio = new Audio(url);
+    btn.textContent = '🔊';
+    btn.style.color = '#a855f7';
+    audio.play();
+    audio.onended = () => {
+      btn.textContent = '🔊';
+      btn.style.color = 'rgba(168,85,247,0.5)';
+      btn.style.opacity = '0';
+      URL.revokeObjectURL(url);
+    };
+  } catch(e) {
+    btn.textContent = '❌';
+    setTimeout(() => { btn.textContent = '🔊'; btn.style.opacity = '0'; }, 2000);
+  }
+}
 
 // ── FEELING LUCKY ─────────────────────────────────────────────
 function checkLuckyBar() {

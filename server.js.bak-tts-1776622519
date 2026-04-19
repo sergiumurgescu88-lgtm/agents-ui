@@ -559,32 +559,6 @@ app.post('/api/creator/image', async (req, res) => {
   res.json({ url });
 });
 
-
-// TTS endpoint - Gemini 2.5 Flash TTS
-app.post('/api/tts/speak', async (req, res) => {
-  const { text } = req.body;
-  if (!text) return res.status(400).json({ error: 'No text' });
-  try {
-    const { GoogleGenAI } = require('@google/genai');
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-preview-tts',
-      contents: [{ role: 'user', parts: [{ text: `Citește acest text cu un ton prietenos, cald, ca și cum explici unui prieten de 17 ani. Vorbește natural, cu pauze și intonație: ${text.slice(0, 1500)}` }] }],
-      config: {
-        responseModalities: ['AUDIO'],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } } }
-      }
-    });
-    const audioData = response.candidates[0].content.parts[0].inlineData.data;
-    const buf = Buffer.from(audioData, 'base64');
-    res.set('Content-Type', 'audio/wav');
-    res.send(buf);
-  } catch(e) {
-    console.error('[TTS]', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
 app.post('/api/creator/tts', async (req, res) => {
   const { text, voice } = req.body;
   if (!text) return res.status(400).json({ error: 'text required' });
