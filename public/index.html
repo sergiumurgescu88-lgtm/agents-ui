@@ -1410,17 +1410,88 @@ function kiloIsConnected() {
   return s && s.style.background === 'rgb(0, 255, 135)';
 }
 
-function sendToKilo(btn) {
-  const code = btn.closest('.code-header').nextElementSibling.querySelector('code').textContent;
-  // Deschide Kilo daca nu e deschis
+async function sendToKilo(btn) {
+  const code = btn.closest('.code-header').nextElementSibling.querySelector('code').textContent.trim();
+
+  // Daca VPS e conectat → executa real via SSH
+  if (vpsConfig && vpsConfig.host) {
+    btn.textContent = '⏳ Execut...';
+    btn.disabled = true;
+
+    // Afiseaza mesaj in chat ca rulam comanda
+    appendMsg('user', '```bash
+' + code + '
+```', 'Tu', currentMode, null, null);
+
+    const outDiv = document.createElement('div');
+    outDiv.className = 'msg';
+    outDiv.innerHTML = '<div class="bubble"><div class="msg-meta">🖥️ VPS Output</div><div class="msg-body" style="font-family:monospace;font-size:12px;white-space:pre-wrap;color:#00ff87;"></div></div>';
+    msgsEl.appendChild(outDiv);
+    const outBody = outDiv.querySelector('.msg-body');
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+
+    try {
+      const resp = await fetch('/api/ssh-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          host: vpsConfig.host,
+          username: vpsConfig.username,
+          password: vpsConfig.password,
+          port: vpsConfig.port || 22,
+          task: code,
+          userId: userId
+        })
+      });
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('
+');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const d = JSON.parse(line.slice(6));
+              if (d.type === 'stdout' || d.type === 'status') {
+                outBody.textContent += d.data;
+                msgsEl.scrollTop = msgsEl.scrollHeight;
+              } else if (d.type === 'done') {
+                outBody.textContent += '
+✅ Done';
+                msgsEl.scrollTop = msgsEl.scrollHeight;
+              } else if (d.type === 'error') {
+                outBody.textContent += '
+❌ ' + d.data;
+                outBody.style.color = '#ef4444';
+              }
+            } catch(e) {}
+          }
+        }
+      }
+    } catch(e) {
+      outBody.textContent = '❌ Eroare conexiune: ' + e.message;
+      outBody.style.color = '#ef4444';
+    }
+
+    btn.textContent = '▶ Kilo';
+    btn.disabled = false;
+    return;
+  }
+
+  // Fallback: Kilo local
   const ov = document.getElementById('kilo-overlay');
   if (ov && !ov.classList.contains('active')) { ov.classList.add('active'); }
-  // Injecteaza comanda in input
   const inp = document.getElementById('kilo-inject-input');
   if (inp) {
-    inp.value = code.trim();
+    inp.value = code;
     inp.focus();
-    // Auto-trimite
     const execBtn = document.getElementById('kilo-inject-btn');
     if (execBtn) { setTimeout(function(){ execBtn.click(); }, 200); }
     btn.textContent = '✓ Trimis';
