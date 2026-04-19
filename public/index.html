@@ -1417,12 +1417,26 @@ function checkPremiumStatus() {
 }
 
 function exportChat() {
-  const text = history.map(m => (m.role === 'user' ? 'TU: ' : 'BUDDY: ') + m.content).join('\n\n');
-  const blob = new Blob([text], {type:'text/plain'});
+  // Citeste mesajele complete din DOM, nu din history (care e trunchiat)
+  const msgs = document.querySelectorAll('#messages .msg');
+  const lines = [];
+  msgs.forEach(function(msg) {
+    const isUser = msg.classList.contains('user');
+    const body = msg.querySelector('.msg-body');
+    if (!body) return;
+    const text = (body.innerText || body.textContent || '').trim();
+    if (!text) return;
+    lines.push((isUser ? 'TU: ' : 'BUDDY: ') + text);
+  });
+  if (!lines.length) { alert('Nu există mesaje de salvat!'); return; }
+  const full = lines.join('\n\n---\n\n');
+  const blob = new Blob([full], {type:'text/plain;charset=utf-8'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'buddy-conversatie-' + new Date().toISOString().slice(0,10) + '.txt';
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
 }
 
 inputEl.addEventListener('input', function() {
