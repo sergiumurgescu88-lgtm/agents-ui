@@ -319,7 +319,16 @@ body.mode-marketing #buddy-name{letter-spacing:.04em;}
 }
 .qa:active{border-color:var(--accent);background:rgba(99,102,241,.1);}
 
-#input-row{display:flex;gap:8px;align-items:flex-end;}
+#input-row{position:relative;width:100%;}
+#input-wrap{position:relative;width:100%;}
+#input-wrap textarea#input{width:100%;box-sizing:border-box;}
+#file-btn,#voice-btn,#lucky-btn,#send-btn{position:absolute;bottom:4px;z-index:2;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;}
+#file-btn{left:6px;width:52px;height:52px;background:transparent;color:#888;font-size:22px;opacity:0.2;transition:opacity .2s;}
+#voice-btn{right:100px;width:52px;height:52px;background:transparent;color:#888;font-size:22px;opacity:0.2;transition:opacity .2s;}
+#lucky-btn{right:52px;width:52px;height:52px;background:rgba(168,85,247,0.1);color:#a855f7;font-size:24px;opacity:0.2;transition:opacity .2s;}
+#send-btn{right:6px;width:38px;height:38px;background:var(--accent);color:#fff;font-size:18px;border-radius:10px;opacity:1;}
+#input-row:hover #file-btn,#input-row:hover #voice-btn,#input-row:hover #lucky-btn{opacity:0.8;}
+#input-row:focus-within #file-btn,#input-row:focus-within #voice-btn,#input-row:focus-within #lucky-btn{opacity:0.8;}
 
 #input{
   flex:1;background:var(--bg3);border:1.5px solid var(--border);
@@ -479,7 +488,6 @@ body.mode-marketing #send-btn{color:#fff;}
   .qa { font-size: 10px; padding: 6px 9px; }
 }
 
-@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 </style>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.3.0/xterm.min.css" />
 <style>
@@ -508,7 +516,104 @@ body.mode-marketing #send-btn{color:#fff;}
 #kilo-close-x{cursor:pointer;color:#8b949e;font-size:18px;padding:2px 6px;border-radius:4px;}
 #kilo-close-x:hover{color:#ff5f57;}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js">
+async function feelingLucky() {
+  const lBtn = document.getElementById('lucky-btn');
+  lBtn.disabled = true;
+  const msgs = document.querySelectorAll('.bubble .msg-body');
+  if (!msgs.length) { lBtn.disabled = false; return; }
+
+  // Overlay
+  let ov = document.getElementById('lucky-overlay');
+  if (!ov) {
+    ov = document.createElement('div');
+    ov.id = 'lucky-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;';
+    ov.innerHTML = `
+      <div style="position:relative;width:120px;height:120px;">
+        <svg width="120" height="120" style="transform:rotate(-90deg)">
+          <circle cx="60" cy="60" r="52" fill="none" stroke="#2a1a4a" stroke-width="8"/>
+          <circle id="lk-ring" cx="60" cy="60" r="52" fill="none" stroke="#a855f7" stroke-width="8"
+            stroke-dasharray="326.7" stroke-dashoffset="326.7" stroke-linecap="round"
+            style="transition:stroke-dashoffset 0.3s ease;"/>
+        </svg>
+        <div id="lk-pct" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;">0%</div>
+      </div>
+      <div id="lk-status" style="color:#c4b5fd;font-size:15px;font-weight:600;">🍀 Mă gândesc...</div>
+      <div style="color:#555;font-size:12px;">Poate dura 1-2 minute</div>`;
+    document.body.appendChild(ov);
+  }
+  ov.style.display = 'flex';
+
+  const ring = document.getElementById('lk-ring');
+  const pctEl = document.getElementById('lk-pct');
+  const stEl = document.getElementById('lk-status');
+  const circ = 326.7;
+  let pct = 0, done = false;
+
+  const phases = [
+    {to:15, ms:600,  txt:'🍀 Citesc contextul...'},
+    {to:40, ms:1500, txt:'🧠 Analizez...'},
+    {to:70, ms:2500, txt:'⚡ Generez răspunsul...'},
+    {to:88, ms:3000, txt:'✨ Finalizez...'},
+  ];
+
+  async function runPhase(i) {
+    if (done || i >= phases.length) return;
+    const ph = phases[i];
+    stEl.textContent = ph.txt;
+    const steps = 20, dt = ph.ms / steps, from = pct;
+    for (let s = 1; s <= steps; s++) {
+      if (done) return;
+      await new Promise(r => setTimeout(r, dt));
+      pct = from + (ph.to - from) * s / steps;
+      pctEl.textContent = Math.round(pct) + '%';
+      ring.style.strokeDashoffset = circ * (1 - pct / 100);
+    }
+    runPhase(i + 1);
+  }
+  runPhase(0);
+
+  // Construieste history din chat
+  const bubbles = document.querySelectorAll('.bubble');
+  const history = [];
+  bubbles.forEach(b => {
+    const body = b.querySelector('.msg-body');
+    if (!body) return;
+    const isUser = b.classList.contains('user') || b.dataset.role === 'user';
+    history.push({ role: isUser ? 'user' : 'assistant', content: (body.innerText||'').slice(0,600) });
+  });
+  history.push({ role:'user', content:'Pe baza conversatiei de mai sus, genereaza un raspuns complet, concret si inteligent la ultima intrebare sau cerere. Fii specific, actionabil, ca un expert. Raspunde direct fara introduceri.' });
+
+  try {
+    const r = await fetch('/api/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ messages: history, userId: String(typeof userId!=='undefined'?userId:'lucky_user') })
+    });
+    const d = await r.json();
+    done = true;
+    pct = 100;
+    pctEl.textContent = '100%';
+    ring.style.strokeDashoffset = 0;
+    stEl.textContent = '✅ Gata!';
+    await new Promise(res => setTimeout(res, 500));
+    ov.style.display = 'none';
+    if (d.reply && typeof addMsg === 'function') {
+      addMsg('assistant', d.reply.trim());
+    } else if (d.reply) {
+      const inp = document.getElementById('input');
+      inp.value = d.reply.trim();
+      inp.dispatchEvent(new Event('input'));
+    }
+  } catch(e) {
+    done = true;
+    ov.style.display = 'none';
+  }
+  lBtn.disabled = false;
+}
+
+</script>
 <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
 </head>
 <body class="mode-chat">
@@ -574,13 +679,13 @@ body.mode-marketing #send-btn{color:#fff;}
         <div style="font-size:13px;font-weight:900;margin-bottom:3px;">🤖 $9/lună — Acces Nelimitat</div>
         <div style="font-size:10px;font-weight:500;opacity:.9;white-space:nowrap;">🟢 Coding &nbsp;🔵 Marketing &nbsp;🔴 Hustle &nbsp;💬 Idei &nbsp;🔵 Creator</div>
       </button>
-      <button onclick="window.open('https://start.daeu.online','_blank')" style="flex-shrink:0;background:rgba(245,158,11,0.08);border:1px solid #f59e0b;color:#fbbf24;padding:8px 14px;border-radius:10px;cursor:pointer;text-align:left;min-width:160px;">
-        <div style="font-size:13px;font-weight:900;margin-bottom:3px;">📖 Instrucțiuni Complete</div>
-        <div style="font-size:10px;opacity:.8;white-space:nowrap;">Ghid detaliat · start.daeu.online</div>
+      <button onclick="openRefModal()" style="flex-shrink:0;background:rgba(245,158,11,0.08);border:1px solid #f59e0b;color:#fbbf24;padding:8px 14px;border-radius:10px;cursor:pointer;text-align:left;min-width:160px;">
+        <div style="font-size:13px;font-weight:900;margin-bottom:3px;">💰 Invită & Câștigă</div>
+        <div style="font-size:10px;opacity:.8;white-space:nowrap;">30% comision · +$2.70/lună per user</div>
       </button>
-      <button onclick="window.open('https://ssociety.eu/','_blank')" style="flex-shrink:0;background:rgba(139,92,246,0.08);border:1px solid #8b5cf6;color:#c4b5fd;padding:8px 14px;border-radius:10px;cursor:pointer;text-align:left;min-width:160px;">
-        <div style="font-size:13px;font-weight:900;margin-bottom:3px;">🟣 Creator Studio</div>
-        <div style="font-size:10px;opacity:.8;white-space:nowrap;">Proiecte reale · Society.eu</div>
+      <button onclick="window.open('https://referral.dausa.online','_blank')" style="flex-shrink:0;background:rgba(139,92,246,0.08);border:1px solid #8b5cf6;color:#c4b5fd;padding:8px 14px;border-radius:10px;cursor:pointer;text-align:left;min-width:160px;">
+        <div style="font-size:13px;font-weight:900;margin-bottom:3px;">🚀 Vezi Detalii Plan</div>
+        <div style="font-size:10px;opacity:.8;white-space:nowrap;">Prezentare completă · referral.dausa.online</div>
       </button>
       <button onclick="showDeployModal()" style="flex-shrink:0;background:rgba(0,212,255,0.08);border:1px solid #00d4ff;color:#00d4ff;padding:8px 14px;border-radius:10px;cursor:pointer;text-align:left;min-width:160px;">
         <div style="font-size:13px;font-weight:900;margin-bottom:3px;">⬇️ Descarcă Agentul</div>
@@ -678,19 +783,15 @@ body.mode-marketing #send-btn{color:#fff;}
       <div id="qa-popup-title"><span id="qa-popup-label">Alege</span><span onclick="closePopup()">✕</span></div>
       <div id="qa-popup-btns"></div>
     </div>
-    <div id="lucky-bar" style="display:none;padding:4px 8px 6px;animation:fadeIn .2s ease;">
-      <button onclick="feelingLucky()" style="width:100%;padding:8px 14px;background:linear-gradient(135deg,rgba(168,85,247,0.15),rgba(59,130,246,0.15));border:1px solid rgba(168,85,247,0.4);border-radius:10px;color:#c4b5fd;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;" onmouseover="this.style.background='linear-gradient(135deg,rgba(168,85,247,0.25),rgba(59,130,246,0.25))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(168,85,247,0.15),rgba(59,130,246,0.15))'">
-        🍀 I'm Feeling Lucky — completează automat exemplele
-      </button>
-    </div>
     <div id="input-row">
-      <button id="file-btn" onclick="document.getElementById('file-input').click()" title="Atașează fișier" style="flex-shrink:0;width:38px;height:38px;border-radius:50%;border:1.5px solid #333;background:transparent;color:#888;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;">📎</button>
       <input id="file-input" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.json,.md,.txt,.png,.jpg,.jpeg,.webp,.gif" style="display:none;" onchange="handleFileAttach(this)">
-      <div style="flex:1;position:relative;">
-        <textarea id="input" placeholder="Scrie un mesaj..." rows="1" style="width:100%;box-sizing:border-box;"></textarea>
+      <button id="file-btn" onclick="document.getElementById('file-input').click()" title="Atașează fișier">📎</button>
+      <div id="input-wrap">
+        <textarea id="input" placeholder="Scrie un mesaj..." rows="1"></textarea>
         <div id="file-preview" style="display:none;padding:4px 8px;background:#111;border:1px solid #333;border-radius:8px;margin-top:4px;font-size:11px;color:#aaa;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"></div>
       </div>
-      <button id="voice-btn" onclick="toggleVoice()" title="Comandă vocală" style="flex-shrink:0;width:38px;height:38px;border-radius:50%;border:1.5px solid #333;background:transparent;color:#888;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;">🎙️</button>
+      <button id="voice-btn" onclick="toggleVoice()" title="Comandă vocală">🎙️</button>
+      <button id="lucky-btn" onclick="feelingLucky()" title="I'm Feeling Lucky">🍀</button>
       <button id="send-btn" onclick="sendMessage()">➤</button>
     </div>
     <div id="voice-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9998;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
@@ -817,8 +918,7 @@ function appendMsg(role, text, name, mode, btns, pill) {
   const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
   div.innerHTML = `<div class="bubble" style="position:relative;">
     <div class="msg-meta">${icon} ${name || (role==='user'?'Tu':'Buddy')}
-      <button onclick="copyMsgText('${msgId}')" title="Copiază mesajul" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);cursor:pointer;color:rgba(255,255,255,0.4);font-size:13px;padding:3px 8px;border-radius:6px;transition:all .2s;opacity:0;" onmouseover="this.style.opacity='1';this.style.color='#00e87a'" onmouseout="this.style.opacity='0'" id="copybtn_${msgId}" style="position:absolute;top:6px;right:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);cursor:pointer;color:rgba(255,255,255,0.4);font-size:16px;padding:5px 12px;border-radius:6px;transition:all .2s;opacity:0;" onmouseover="this.style.opacity='1';this.style.color='#00e87a'" onmouseout="this.style.opacity='0'">⎘</button>
-    <button onclick="speakMsg('${msgId}')" title="Ascultă mesajul" style="position:absolute;top:8px;right:44px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);cursor:pointer;color:rgba(168,85,247,0.5);font-size:13px;padding:3px 8px;border-radius:6px;transition:all .2s;opacity:0;" onmouseover="this.style.opacity='1';this.style.color='#a855f7'" onmouseout="this.style.opacity='0'" id="ttsbtn_${msgId}" style="position:absolute;top:6px;right:56px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);cursor:pointer;color:rgba(168,85,247,0.5);font-size:16px;padding:5px 12px;border-radius:6px;transition:all .2s;opacity:0;" onmouseover="this.style.opacity='1';this.style.color='#a855f7'" onmouseout="this.style.opacity='0'">🔊</button>
+      <button onclick="copyMsgText('${msgId}')" title="Copiază mesajul" style="margin-left:8px;background:none;border:none;cursor:pointer;color:#555;font-size:11px;padding:1px 5px;border-radius:4px;transition:all .15s;" onmouseover="this.style.color='#aaa'" onmouseout="this.style.color='#555'" id="copybtn_${msgId}">⎘</button>
     </div>
     <div class="msg-body" id="${msgId}">${render(text)}</div>
   </div>`;
@@ -1028,82 +1128,6 @@ function buildFileContext() {
 }
 
 // ── VOICE INPUT ───────────────────────────────────────────────────────────
-
-
-// ── TTS SPEAK ─────────────────────────────────────────────────
-async function speakMsg(msgId) {
-  const el = document.getElementById(msgId);
-  const btn = document.getElementById('ttsbtn_' + msgId);
-  if (!el || !btn) return;
-  const text = (el.innerText || el.textContent || '').trim().slice(0, 1500);
-  if (!text) return;
-  btn.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite">⏳</span> loading';
-  btn.style.color = '#f59e0b';
-  btn.style.opacity = '1';
-  btn.style.fontSize = '12px';
-  try {
-    const r = await fetch('/api/creator/tts', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ text, voice: 'Charon' })
-    });
-    if (!r.ok) throw new Error('TTS error');
-    const d = await r.json();
-    const url = d.url;
-    const audio = new Audio(url);
-    btn.textContent = '🔊';
-    btn.style.color = '#a855f7';
-    audio.play();
-    audio.onended = () => {
-      btn.textContent = '🔊';
-      btn.style.color = 'rgba(168,85,247,0.5)';
-      btn.style.opacity = '0';
-      URL.revokeObjectURL(url);
-    };
-  } catch(e) {
-    btn.textContent = '❌';
-    setTimeout(() => { btn.textContent = '🔊'; btn.style.opacity = '0'; }, 2000);
-  }
-}
-
-// ── FEELING LUCKY ─────────────────────────────────────────────
-function checkLuckyBar() {
-  const val = document.getElementById('input').value;
-  const bar = document.getElementById('lucky-bar');
-  if (bar) bar.style.display = val.includes('[') ? 'block' : 'none';
-}
-
-async function feelingLucky() {
-  const input = document.getElementById('input');
-  const text = input.value;
-  if (!text.includes('[')) return;
-  const btn = document.querySelector('#lucky-bar button');
-  btn.textContent = '⏳ Generez exemple...';
-  btn.disabled = true;
-  try {
-    const r = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        messages: [{
-          role: 'user',
-          content: 'Completează acest prompt înlocuind TOT ce e în paranteze pătrate [] cu exemple concrete, reale, specifice. Returnează DOAR promptul completat, fără explicații:\n\n' + text
-        }],
-        userId: String(userId || 'lucky_user')
-      })
-    });
-    const d = await r.json();
-    if (d.reply) {
-      input.value = d.reply.trim();
-      input.style.height = 'auto';
-      input.style.height = input.scrollHeight + 'px';
-      checkLuckyBar();
-    }
-  } catch(e) {}
-  btn.innerHTML = '🍀 I\'m Feeling Lucky — completează automat exemplele';
-  btn.disabled = false;
-}
-
 // ── VOICE: MediaRecorder + Gemini 2.0 Flash ─────────────────────────────
 let _voiceActive = false;
 let _voiceStream = null;
@@ -1930,11 +1954,10 @@ window.fetch = function(url, opts) {
   #po-subhead{display:none}
   #po-cards{padding:14px 18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:11px;align-content:start}
 }
-.bubble:hover button[id^="copybtn_"] { opacity: 1 !important; }
 </style>
 <div id="po-wrap">
   <div id="po-sidebar">
-    <div id="po-sidebar-head"><h2>📚 Prompturi</h2><p>90 prompturi gata</p></div>
+    <div id="po-sidebar-head"><h2>📚 Prompturi</h2><p>130 prompturi gata</p></div>
     <div id="po-sidebar-list"></div>
   </div>
   <div id="po-right">
@@ -1943,7 +1966,7 @@ window.fetch = function(url, opts) {
       <button onclick="PLclose()" style="background:#1a1a2e;border:none;color:#777;font-size:20px;cursor:pointer;width:34px;height:34px;border-radius:9px">&times;</button>
     </div>
     <div id="po-top">
-      <div><h2>📚 Prompturi</h2><p>90 prompturi</p></div>
+      <div><h2>📚 Prompturi</h2><p>130 prompturi</p></div>
       <button id="po-xbtn" onclick="PLclose()">&times;</button>
     </div>
     <div id="po-tabs"></div>
@@ -1956,7 +1979,7 @@ window.fetch = function(url, opts) {
 </div>
 </div>
 <script>(function(){
-var C=[{"icon":"🐛","name":"Fix Bug","color":"#ff4d4d","bg":"rgba(255,77,77,0.08)","prompts":[{"t":"Fix bug rapid","p":"Am aceasta eroare:\n[paste eroarea]\n\nCodul:\n[paste codul]\n\nVreau: fix complet + explicatie de ce aparea."},{"t":"Debug pas cu pas","p":"Ajuta-ma sa depanez pas cu pas:\n[descrie problema]\n\nContextul aplicatiei:\n[descrie contextul]"},{"t":"Eroare sintaxa","p":"Urmatorul cod are eroare de sintaxa. Gaseste-o si corecteaz-o:\n\n[paste codul]"},{"t":"TypeError undefined","p":"Primesc Cannot read property of undefined.\nCodul:\n[paste codul]\n\nExplica si rezolva."},{"t":"Async Promise bug","p":"Am o problema cu async/await sau Promise:\n[paste codul]\n\nFix + explicatie."},{"t":"CORS error","p":"Primesc eroare CORS la:\n[URL]\n\nFix pentru server:\n[tehnologia serverului]"},{"t":"Memory leak","p":"Aplicatia are memory leak. Codul suspect:\n[paste codul]\n\nIdentifica si propune fix."},{"t":"SQL query broken","p":"Query-ul SQL returneaza eroare:\n[paste query]\n\nCorecteza si explica."},{"t":"Import module error","p":"Primesc eroare module not found:\n[paste eroarea]\n\nStructura proiect:\n[descrie structura]"},{"t":"Race condition","p":"Codul are comportament impredictibil:\n[paste codul]\n\nIdentifica si rezolva."}]},{"icon":"💻","name":"Coding","color":"#00ff87","bg":"rgba(0,255,135,0.08)","prompts":[{"t":"Scrie functie","p":"Scrie o functie [limbaj] care:\n- Primeste: [input]\n- Returneaza: [output]\n- Face: [ce face]\n\nInclude type hints si docstring."},{"t":"Refactorizeaza","p":"Refactorizeaza urmatorul cod sa fie mai curat:\n\n[paste codul]"},{"t":"Optimizeaza performanta","p":"Optimizeaza performanta acestui cod:\n\n[paste codul]\n\nIdentifica bottleneck-urile."},{"t":"Clase OOP","p":"Creeaza o clasa [limbaj] pentru [ce reprezinta].\nAtribute: [lista]. Metode: [lista]."},{"t":"API endpoint","p":"Scrie un endpoint [GET/POST/PUT/DELETE] in [framework]:\n- Ruta: [ruta]\n- Input: [ce primeste]\n- Output: [ce returneaza]"},{"t":"Teste unitare","p":"Scrie teste unitare pentru:\n\n[paste codul]\n\nAcopera: cazuri normale, edge cases, erori."},{"t":"Converteste limbaj","p":"Converteste din [limbaj sursa] in [limbaj destinatie]:\n\n[paste codul]"},{"t":"Design pattern","p":"Implementeaza pattern-ul [Observer/Singleton/Factory] pentru:\n[descrie problema]\n\nIn [limbaj]."},{"t":"Regex","p":"Scrie un regex care: [ce trebuie sa faca].\nExemple valide: [exemple].\nExplica fiecare parte."},{"t":"Documentatie cod","p":"Scrie documentatie tehnica (JSDoc/docstring) pentru:\n\n[paste codul]"}]},{"icon":"🤖","name":"Agenti AI","color":"#a78bfa","bg":"rgba(167,139,250,0.08)","prompts":[{"t":"Agent Python","p":"Creeaza un agent AI in Python cu:\n- LLM: [OpenAI/Anthropic]\n- Tool-uri: [lista]\n- Memorie: [tip]\n- Loop: ReAct\n\nInclude handling erori."},{"t":"Tool calling","p":"Agent cu function calling pentru:\n[descrie task]\n\nTool-uri:\n[lista]\n\nIn [limbaj]."},{"t":"Scraper inteligent","p":"Scraper pentru [site] care:\n- Extrage: [ce date]\n- Gestioneaza: paginatie, rate limiting\n- Salveaza in: [CSV/JSON/DB]"},{"t":"Automation workflow","p":"Automatizeaza workflow:\n1. [pasul 1]\n2. [pasul 2]\n3. [pasul 3]\n\nTrigger: [manual/cron/webhook]"},{"t":"Bot Telegram","p":"Bot Telegram cu comenzile:\n[lista comenzi]\n\nCu inline keyboards si state management."},{"t":"Pipeline AI","p":"Pipeline care:\n1. Preia date din [sursa]\n2. Proceseaza cu AI pentru [task]\n3. Salveaza in [destinatie]"},{"t":"Multi-agent","p":"Sistem multi-agent pentru:\n[descrie task]\n\nRoluri:\n[lista roluri]\n\nCum comunica intre ei."},{"t":"RAG system","p":"Sistem RAG care:\n- Indexeaza: [tip documente]\n- Vector DB: [Pinecone/Chroma]\n- LLM: [model]"},{"t":"Chatbot custom","p":"Chatbot cu:\n- Nume: [nume]\n- Ton: [formal/casual]\n- Domeniu: [domeniu]\n\nIn [framework]."},{"t":"Agent monitoring","p":"Adauga monitoring agentului:\n[paste codul]\n\nTrack: latenta, costuri, erori, success rate."}]},{"icon":"📈","name":"Marketing","color":"#f59e0b","bg":"rgba(245,158,11,0.08)","prompts":[{"t":"Ad copy Meta/Google","p":"3 variante ad copy pentru:\n- Produs: [descriere]\n- Audienta: [ICP]\n- Obiectiv: [awareness/conversii]\n- Ton: [formal/casual]"},{"t":"Email sequence","p":"Secventa 5 emailuri pentru:\n- Context: [ce vinde]\n- Lead-ul a facut: [actiune]\n- Obiectiv: [conversie dorita]\n\nInclude subject lines."},{"t":"Hook viral","p":"10 hook-uri pentru [topic] pe [platforma].\nAudienta: [descriere].\nStiluri: curiozitate, soc, cifre, poveste."},{"t":"Calendar continut","p":"Calendar continut 30 zile pentru [platforma] despre [nisa].\nInclude: tip post, topic, hook, CTA."},{"t":"Script YouTube","p":"Script video YouTube [durata] despre:\n[topic]\n\nInclude: hook 30sec, intro, cuprins, CTA."},{"t":"Caption Instagram","p":"5 variante caption pentru postare despre [topic]:\n- Audienta: [descriere]\n- Ton: [ton]\n- CTA: [ce vrei sa faca]"},{"t":"Landing page copy","p":"Copy landing page:\n- Produs: [descriere]\n- ICP: [client ideal]\n- Problema: [ce rezolva]\n\nInclude: headline, benefits, CTA, FAQ."},{"t":"Strategie launch","p":"Strategie lansare pentru:\n[produs]\n\nBuget: [buget]\nTimeline: [timeline]\nPlatforme: [platforme]"},{"t":"VSL script","p":"Video Sales Letter [durata] pentru:\n- Produs: [descriere]\n- Audienta: [ICP]\n- Formula: [PAS/AIDA/Story]"},{"t":"Campanie WhatsApp","p":"Campanie outreach WhatsApp:\n- Oferta: [descriere]\n- Audienta: [cine contactezi]\n- Secventa: [nr mesaje]\n\nNatural, non-spam."}]},{"icon":"📝","name":"Continut","color":"#06b6d4","bg":"rgba(6,182,212,0.08)","prompts":[{"t":"Articol blog SEO","p":"Articol blog [nr cuvinte] despre:\n[topic]\n\nKeyword: [keyword]\nAudienta: [descriere]\n\nInclude: H2-uri, meta description, FAQ."},{"t":"Thread Twitter/X","p":"Thread [nr tweet-uri] despre [topic].\nHook puternic la inceput.\nFiecare tweet sa stea singur.\nFinal cu CTA."},{"t":"Carousel LinkedIn","p":"Carousel LinkedIn [nr slide-uri] despre [topic]:\n- Slide 1: hook\n- Slide 2-N: continut\n- Slide final: CTA"},{"t":"Newsletter issue","p":"Issue newsletter despre [topic]:\n- Audienta: [descriere]\n- Ton: [ton]\n- Lungime: [scurt/mediu/lung]"},{"t":"Bio profesional","p":"Bio profesional pentru:\n- Persoana: [descriere]\n- Platforma: [LinkedIn/Instagram]\n- Highlight-uri: [realizari]\n\nVersiuni: scurta si lunga."},{"t":"Case study","p":"Case study:\n- Problema: [problema initiala]\n- Solutie: [ce ai implementat]\n- Rezultate: [rezultate]\n\nFormat: poveste + date."},{"t":"FAQ complet","p":"15 intrebari frecvente cu raspunsuri pentru:\n[produs/serviciu]\n\nInclude: obiectii vanzare, tehnice, pret."},{"t":"Press release","p":"Comunicat presa pentru:\n[eveniment/lansare]\n\nFormat jurnalistic. Include: citat, facts, contact."},{"t":"Rezumat executiv","p":"Rezuma urmatorul text in:\n1. Rezumat executiv (3 randuri)\n2. Key points\n3. Actiuni recomandate\n\n[paste textul]"},{"t":"Pitch deck text","p":"Continut pitch deck [nr slide-uri]:\n[descriere business]\n\nAudienta: [investitori/clienti]\nObiectiv: [ce vrei sa obtii]"}]},{"icon":"🔍","name":"SEO","color":"#10b981","bg":"rgba(16,185,129,0.08)","prompts":[{"t":"Keyword research","p":"Keyword research pentru:\n- Nisa: [nisa]\n- Competitor: [competitor]\n- Obiectiv: [trafic/conversii]\n\nGrupat: seed, long-tail, LSI, questions."},{"t":"Meta tags","p":"Meta title si description pentru:\n- Pagina: [tip pagina]\n- Keyword: [keyword]\n- Limite: title 60, description 155 chars."},{"t":"Audit SEO on-page","p":"Audit SEO on-page pentru:\n[paste continutul]\n\nKeyword: [keyword]\nVerifica: titluri, densitate, links, readability."},{"t":"Schema markup","p":"Schema.org markup JSON-LD pentru:\n- Tip: [Article/Product/FAQ/LocalBusiness]\n- Detalii: [datele]"},{"t":"Cluster topical","p":"Cluster topical pentru:\n- Pillar page: [topic principal]\n\n1 pillar + 10 cluster pages cu title si angle unic."},{"t":"Analiza SERP","p":"Analizeaza intentiile de cautare pentru:\n[keyword]\n\nIdentifica: tip intent, ce vor, cum sa bat top 3."},{"t":"Link building email","p":"Email outreach link building:\n- Site-ul meu: [url si topic]\n- Target: [url]\n- Motivul: [de ce e relevant]"},{"t":"Titluri click-worthy","p":"10 titluri SEO pentru articol despre:\n[topic]\n\nKeyword: [keyword]\nMix: cifre, cum sa, de ce, liste."},{"t":"Content gap","p":"Content gap-uri:\n- Site-ul meu: [lista topicuri]\n- Competitor: [competitor]\n\n10 topicuri nepublicate."},{"t":"Featured snippet","p":"Optimizeaza pentru featured snippet:\nKeyword: [keyword]\n\n[paste continutul]\n\nFormat: [paragraph/list/table]"}]},{"icon":"💼","name":"Business","color":"#f97316","bg":"rgba(249,115,22,0.08)","prompts":[{"t":"Business plan rapid","p":"Business plan pentru:\n- Idee: [descriere]\n- Buget: [suma]\n- Timeline: [timeline]\n\nInclude: venituri, costuri, ICP, riscuri."},{"t":"Analiza competitie","p":"Analiza competitiva:\n- Businessul meu: [descriere]\n- Competitori: [lista]\n\nSWOT + diferentiere + oportunitate."},{"t":"Pricing strategy","p":"Strategie pricing pentru:\n- Produs: [descriere]\n- Costuri: [costuri]\n- Competitie: [pret]\n- ICP: [audienta]"},{"t":"Elevator pitch","p":"Pitch 1 minut pentru:\n[descriere business]\n\nPentru: [investitori/clienti]\nInclude: problema, solutie, market, cerere."},{"t":"OKRs trimestriale","p":"OKR-uri trimestrul urmator:\n- Business: [descriere]\n- Obiectiv anual: [obiectiv]\n\n3 Objectives cu 3 Key Results fiecare."},{"t":"SOP procedura","p":"SOP pentru:\n[proces]\n\nInclude: scop, cine face, pasi detaliati, tool-uri necesare."},{"t":"Propunere comerciala","p":"Propunere comerciala:\n- Client: [tip client]\n- Serviciu: [descriere]\n- Pret: [pret]\n- Durata: [durata]"},{"t":"Cold email B2B","p":"Cold email B2B:\n- Produsul meu: [descriere]\n- Prospectul: [titlu/companie]\n- Problema lor: [problema]\n- CTA: [actiune]\n\nSub 150 cuvinte."},{"t":"SWOT analysis","p":"Analiza SWOT pentru:\n[descriere business/produs]\n\nFii specific. Include recomandari concrete per sectiune."},{"t":"Validare idee","p":"Valideaza aceasta idee:\n[descriere idee]\n\nAnalizeaza: cerere, competitie, venituri, riscuri. Spune si ce NU merge."}]},{"icon":"📊","name":"Analiza","color":"#8b5cf6","bg":"rgba(139,92,246,0.08)","prompts":[{"t":"Analiza date","p":"Analizeaza datele:\n1. Ce patterns observi\n2. Ce anomalii exista\n3. Ce recomandari ai\n\n[paste datele]"},{"t":"Review document","p":"Review critic al documentului:\n[paste documentul]\n\nVerifica: claritate, logica, completitudine, imbunatatiri."},{"t":"Explica concept","p":"Explica-mi [concept] ca si cum as fi:\n[nivel: incepator/junior/expert alt domeniu]\n\nFoloseste analogii si exemple."},{"t":"Compara optiuni","p":"Compara si recomanda:\nOptiunea A: [descriere]\nOptiunea B: [descriere]\nOptiunea C: [descriere]\n\nContextul meu: [situatia]"},{"t":"Root cause analysis","p":"Root cause analysis pentru:\nProblema: [descriere]\nCe am incercat: [ce ai incercat]\n\nFoloseste metoda 5 Whys."},{"t":"Rezumat executiv","p":"Rezumat executiv o pagina pentru:\n[paste documentul]\n\nPentru audienta: [descriere]\nFocus pe: [ce e important]"},{"t":"Decision framework","p":"Ajuta-ma sa decid intre:\n[optiunile]\n\nCriterii importante:\n[lista]\n\nConstrangeri:\n[constrangeri]"},{"t":"Forecast simplu","p":"Pe baza datelor istorice:\n[paste datele]\n\nForecast pentru [perioada]. Include asumptiile."},{"t":"Analiza feedback","p":"Analizeaza reviewurile:\n1. Top 5 plangeri\n2. Top 5 laude\n3. Actiuni prioritare\n\n[paste feedback-urile]"},{"t":"Metrici business","p":"Analizeaza metricile si da insights actionabile:\n[paste metricile]\n\nContextul businessului:\n[descriere]"}]},{"icon":"✉️","name":"Email","color":"#ec4899","bg":"rgba(236,72,153,0.08)","prompts":[{"t":"Follow-up politicos","p":"Email follow-up:\n- Context: [ce s-a discutat]\n- Zile de la ultimul contact: [nr]\n- Ce vreau: [actiunea dorita]\n\nScurt, politicos, cu valoare."},{"t":"Refuz elegant","p":"Email refuz elegant:\n[cererea/oferta]\n\nMentinand relatia buna. Ton: [formal/casual]."},{"t":"Cerere colaborare","p":"Email colaborare catre:\n[tip persoana/companie]\n\nPropunerea: [descriere]\nValoarea pentru ei: [ce castiga]\nCTA: [pasul urmator]"},{"t":"Reactivare client","p":"Email reactivare client inactiv [perioada]:\n- Contextul: [descriere]\n- Oferta: [oferta]\n- Ton: cald, ne-agresiv."},{"t":"Welcome email","p":"Email bun venit nou abonat la:\n[topic newsletter]\n\nInclude: cine sunt, ce vor primi, primul pas."},{"t":"Cerere testimonial","p":"Email cerere testimonial de la:\n[tip client, ce a cumparat]\n\nUsor de facut, link direct."},{"t":"Oferta limitata","p":"Email oferta cu urgenta:\n- Oferta: [descriere]\n- Deadline: [data]\n- Pret normal vs promo: [preturi]"},{"t":"Email echipa","p":"Email intern catre echipa despre:\n[subiect]\n\nActiuni necesare: [lista]\nDeadline: [data]"},{"t":"Scuze profesionale","p":"Email scuze profesionale pentru:\n[situatia]\n\nCatre: [client/partener]\nOfera: [compensatie/solutie]"},{"t":"Cold LinkedIn","p":"Mesaj cold outreach LinkedIn:\n- Target: [titlu/companie]\n- Ce ofer: [descriere]\n\nSub 100 cuvinte, uman, non-spam."}]}];
+var C=[{"icon":"🐛","name":"Fix Bug","color":"#ff4d4d","bg":"rgba(255,77,77,0.08)","prompts":[{"t":"Fix bug rapid","p":"Am aceasta eroare:\n[paste eroarea]\n\nCodul:\n[paste codul]\n\nVreau: fix complet + explicatie de ce aparea."},{"t":"Debug pas cu pas","p":"Ajuta-ma sa depanez pas cu pas:\n[descrie problema]\n\nContextul aplicatiei:\n[descrie contextul]"},{"t":"Eroare sintaxa","p":"Urmatorul cod are eroare de sintaxa. Gaseste-o si corecteaz-o:\n\n[paste codul]"},{"t":"TypeError undefined","p":"Primesc Cannot read property of undefined.\nCodul:\n[paste codul]\n\nExplica si rezolva."},{"t":"Async Promise bug","p":"Am o problema cu async/await sau Promise:\n[paste codul]\n\nFix + explicatie."},{"t":"CORS error","p":"Primesc eroare CORS la:\n[URL]\n\nFix pentru server:\n[tehnologia serverului]"},{"t":"Memory leak","p":"Aplicatia are memory leak. Codul suspect:\n[paste codul]\n\nIdentifica si propune fix."},{"t":"SQL query broken","p":"Query-ul SQL returneaza eroare:\n[paste query]\n\nCorecteza si explica."},{"t":"Import module error","p":"Primesc eroare module not found:\n[paste eroarea]\n\nStructura proiect:\n[descrie structura]"},{"t":"Race condition","p":"Codul are comportament impredictibil:\n[paste codul]\n\nIdentifica si rezolva."}]},{"icon":"💻","name":"Coding","color":"#00ff87","bg":"rgba(0,255,135,0.08)","prompts":[{"t":"Scrie functie","p":"Scrie o functie [limbaj] care:\n- Primeste: [input]\n- Returneaza: [output]\n- Face: [ce face]\n\nInclude type hints si docstring."},{"t":"Refactorizeaza","p":"Refactorizeaza urmatorul cod sa fie mai curat:\n\n[paste codul]"},{"t":"Optimizeaza performanta","p":"Optimizeaza performanta acestui cod:\n\n[paste codul]\n\nIdentifica bottleneck-urile."},{"t":"Clase OOP","p":"Creeaza o clasa [limbaj] pentru [ce reprezinta].\nAtribute: [lista]. Metode: [lista]."},{"t":"API endpoint","p":"Scrie un endpoint [GET/POST/PUT/DELETE] in [framework]:\n- Ruta: [ruta]\n- Input: [ce primeste]\n- Output: [ce returneaza]"},{"t":"Teste unitare","p":"Scrie teste unitare pentru:\n\n[paste codul]\n\nAcopera: cazuri normale, edge cases, erori."},{"t":"Converteste limbaj","p":"Converteste din [limbaj sursa] in [limbaj destinatie]:\n\n[paste codul]"},{"t":"Design pattern","p":"Implementeaza pattern-ul [Observer/Singleton/Factory] pentru:\n[descrie problema]\n\nIn [limbaj]."},{"t":"Regex","p":"Scrie un regex care: [ce trebuie sa faca].\nExemple valide: [exemple].\nExplica fiecare parte."},{"t":"Documentatie cod","p":"Scrie documentatie tehnica (JSDoc/docstring) pentru:\n\n[paste codul]"}]},{"icon":"🤖","name":"Agenti AI","color":"#a78bfa","bg":"rgba(167,139,250,0.08)","prompts":[{"t":"Agent Python","p":"Creeaza un agent AI in Python cu:\n- LLM: [OpenAI/Anthropic]\n- Tool-uri: [lista]\n- Memorie: [tip]\n- Loop: ReAct\n\nInclude handling erori."},{"t":"Tool calling","p":"Agent cu function calling pentru:\n[descrie task]\n\nTool-uri:\n[lista]\n\nIn [limbaj]."},{"t":"Scraper inteligent","p":"Scraper pentru [site] care:\n- Extrage: [ce date]\n- Gestioneaza: paginatie, rate limiting\n- Salveaza in: [CSV/JSON/DB]"},{"t":"Automation workflow","p":"Automatizeaza workflow:\n1. [pasul 1]\n2. [pasul 2]\n3. [pasul 3]\n\nTrigger: [manual/cron/webhook]"},{"t":"Bot Telegram","p":"Bot Telegram cu comenzile:\n[lista comenzi]\n\nCu inline keyboards si state management."},{"t":"Pipeline AI","p":"Pipeline care:\n1. Preia date din [sursa]\n2. Proceseaza cu AI pentru [task]\n3. Salveaza in [destinatie]"},{"t":"Multi-agent","p":"Sistem multi-agent pentru:\n[descrie task]\n\nRoluri:\n[lista roluri]\n\nCum comunica intre ei."},{"t":"RAG system","p":"Sistem RAG care:\n- Indexeaza: [tip documente]\n- Vector DB: [Pinecone/Chroma]\n- LLM: [model]"},{"t":"Chatbot custom","p":"Chatbot cu:\n- Nume: [nume]\n- Ton: [formal/casual]\n- Domeniu: [domeniu]\n\nIn [framework]."},{"t":"Agent monitoring","p":"Adauga monitoring agentului:\n[paste codul]\n\nTrack: latenta, costuri, erori, success rate."}]},{"icon":"📈","name":"Marketing","color":"#f59e0b","bg":"rgba(245,158,11,0.08)","prompts":[{"t":"Ad copy Meta/Google","p":"3 variante ad copy pentru:\n- Produs: [descriere]\n- Audienta: [ICP]\n- Obiectiv: [awareness/conversii]\n- Ton: [formal/casual]"},{"t":"Email sequence","p":"Secventa 5 emailuri pentru:\n- Context: [ce vinde]\n- Lead-ul a facut: [actiune]\n- Obiectiv: [conversie dorita]\n\nInclude subject lines."},{"t":"Hook viral","p":"10 hook-uri pentru [topic] pe [platforma].\nAudienta: [descriere].\nStiluri: curiozitate, soc, cifre, poveste."},{"t":"Calendar continut","p":"Calendar continut 30 zile pentru [platforma] despre [nisa].\nInclude: tip post, topic, hook, CTA."},{"t":"Script YouTube","p":"Script video YouTube [durata] despre:\n[topic]\n\nInclude: hook 30sec, intro, cuprins, CTA."},{"t":"Caption Instagram","p":"5 variante caption pentru postare despre [topic]:\n- Audienta: [descriere]\n- Ton: [ton]\n- CTA: [ce vrei sa faca]"},{"t":"Landing page copy","p":"Copy landing page:\n- Produs: [descriere]\n- ICP: [client ideal]\n- Problema: [ce rezolva]\n\nInclude: headline, benefits, CTA, FAQ."},{"t":"Strategie launch","p":"Strategie lansare pentru:\n[produs]\n\nBuget: [buget]\nTimeline: [timeline]\nPlatforme: [platforme]"},{"t":"VSL script","p":"Video Sales Letter [durata] pentru:\n- Produs: [descriere]\n- Audienta: [ICP]\n- Formula: [PAS/AIDA/Story]"},{"t":"Campanie WhatsApp","p":"Campanie outreach WhatsApp:\n- Oferta: [descriere]\n- Audienta: [cine contactezi]\n- Secventa: [nr mesaje]\n\nNatural, non-spam."}]},{"icon":"📝","name":"Continut","color":"#06b6d4","bg":"rgba(6,182,212,0.08)","prompts":[{"t":"Articol blog SEO","p":"Articol blog [nr cuvinte] despre:\n[topic]\n\nKeyword: [keyword]\nAudienta: [descriere]\n\nInclude: H2-uri, meta description, FAQ."},{"t":"Thread Twitter/X","p":"Thread [nr tweet-uri] despre [topic].\nHook puternic la inceput.\nFiecare tweet sa stea singur.\nFinal cu CTA."},{"t":"Carousel LinkedIn","p":"Carousel LinkedIn [nr slide-uri] despre [topic]:\n- Slide 1: hook\n- Slide 2-N: continut\n- Slide final: CTA"},{"t":"Newsletter issue","p":"Issue newsletter despre [topic]:\n- Audienta: [descriere]\n- Ton: [ton]\n- Lungime: [scurt/mediu/lung]"},{"t":"Bio profesional","p":"Bio profesional pentru:\n- Persoana: [descriere]\n- Platforma: [LinkedIn/Instagram]\n- Highlight-uri: [realizari]\n\nVersiuni: scurta si lunga."},{"t":"Case study","p":"Case study:\n- Problema: [problema initiala]\n- Solutie: [ce ai implementat]\n- Rezultate: [rezultate]\n\nFormat: poveste + date."},{"t":"FAQ complet","p":"15 intrebari frecvente cu raspunsuri pentru:\n[produs/serviciu]\n\nInclude: obiectii vanzare, tehnice, pret."},{"t":"Press release","p":"Comunicat presa pentru:\n[eveniment/lansare]\n\nFormat jurnalistic. Include: citat, facts, contact."},{"t":"Rezumat executiv","p":"Rezuma urmatorul text in:\n1. Rezumat executiv (3 randuri)\n2. Key points\n3. Actiuni recomandate\n\n[paste textul]"},{"t":"Pitch deck text","p":"Continut pitch deck [nr slide-uri]:\n[descriere business]\n\nAudienta: [investitori/clienti]\nObiectiv: [ce vrei sa obtii]"}]},{"icon":"🔍","name":"SEO","color":"#10b981","bg":"rgba(16,185,129,0.08)","prompts":[{"t":"Keyword research","p":"Keyword research pentru:\n- Nisa: [nisa]\n- Competitor: [competitor]\n- Obiectiv: [trafic/conversii]\n\nGrupat: seed, long-tail, LSI, questions."},{"t":"Meta tags","p":"Meta title si description pentru:\n- Pagina: [tip pagina]\n- Keyword: [keyword]\n- Limite: title 60, description 155 chars."},{"t":"Audit SEO on-page","p":"Audit SEO on-page pentru:\n[paste continutul]\n\nKeyword: [keyword]\nVerifica: titluri, densitate, links, readability."},{"t":"Schema markup","p":"Schema.org markup JSON-LD pentru:\n- Tip: [Article/Product/FAQ/LocalBusiness]\n- Detalii: [datele]"},{"t":"Cluster topical","p":"Cluster topical pentru:\n- Pillar page: [topic principal]\n\n1 pillar + 10 cluster pages cu title si angle unic."},{"t":"Analiza SERP","p":"Analizeaza intentiile de cautare pentru:\n[keyword]\n\nIdentifica: tip intent, ce vor, cum sa bat top 3."},{"t":"Link building email","p":"Email outreach link building:\n- Site-ul meu: [url si topic]\n- Target: [url]\n- Motivul: [de ce e relevant]"},{"t":"Titluri click-worthy","p":"10 titluri SEO pentru articol despre:\n[topic]\n\nKeyword: [keyword]\nMix: cifre, cum sa, de ce, liste."},{"t":"Content gap","p":"Content gap-uri:\n- Site-ul meu: [lista topicuri]\n- Competitor: [competitor]\n\n10 topicuri nepublicate."},{"t":"Featured snippet","p":"Optimizeaza pentru featured snippet:\nKeyword: [keyword]\n\n[paste continutul]\n\nFormat: [paragraph/list/table]"}]},{"icon":"💼","name":"Business","color":"#f97316","bg":"rgba(249,115,22,0.08)","prompts":[{"t":"Business plan rapid","p":"Business plan pentru:\n- Idee: [descriere]\n- Buget: [suma]\n- Timeline: [timeline]\n\nInclude: venituri, costuri, ICP, riscuri."},{"t":"Analiza competitie","p":"Analiza competitiva:\n- Businessul meu: [descriere]\n- Competitori: [lista]\n\nSWOT + diferentiere + oportunitate."},{"t":"Pricing strategy","p":"Strategie pricing pentru:\n- Produs: [descriere]\n- Costuri: [costuri]\n- Competitie: [pret]\n- ICP: [audienta]"},{"t":"Elevator pitch","p":"Pitch 1 minut pentru:\n[descriere business]\n\nPentru: [investitori/clienti]\nInclude: problema, solutie, market, cerere."},{"t":"OKRs trimestriale","p":"OKR-uri trimestrul urmator:\n- Business: [descriere]\n- Obiectiv anual: [obiectiv]\n\n3 Objectives cu 3 Key Results fiecare."},{"t":"SOP procedura","p":"SOP pentru:\n[proces]\n\nInclude: scop, cine face, pasi detaliati, tool-uri necesare."},{"t":"Propunere comerciala","p":"Propunere comerciala:\n- Client: [tip client]\n- Serviciu: [descriere]\n- Pret: [pret]\n- Durata: [durata]"},{"t":"Cold email B2B","p":"Cold email B2B:\n- Produsul meu: [descriere]\n- Prospectul: [titlu/companie]\n- Problema lor: [problema]\n- CTA: [actiune]\n\nSub 150 cuvinte."},{"t":"SWOT analysis","p":"Analiza SWOT pentru:\n[descriere business/produs]\n\nFii specific. Include recomandari concrete per sectiune."},{"t":"Validare idee","p":"Valideaza aceasta idee:\n[descriere idee]\n\nAnalizeaza: cerere, competitie, venituri, riscuri. Spune si ce NU merge."}]},{"icon":"📊","name":"Analiza","color":"#8b5cf6","bg":"rgba(139,92,246,0.08)","prompts":[{"t":"Analiza date","p":"Analizeaza datele:\n1. Ce patterns observi\n2. Ce anomalii exista\n3. Ce recomandari ai\n\n[paste datele]"},{"t":"Review document","p":"Review critic al documentului:\n[paste documentul]\n\nVerifica: claritate, logica, completitudine, imbunatatiri."},{"t":"Explica concept","p":"Explica-mi [concept] ca si cum as fi:\n[nivel: incepator/junior/expert alt domeniu]\n\nFoloseste analogii si exemple."},{"t":"Compara optiuni","p":"Compara si recomanda:\nOptiunea A: [descriere]\nOptiunea B: [descriere]\nOptiunea C: [descriere]\n\nContextul meu: [situatia]"},{"t":"Root cause analysis","p":"Root cause analysis pentru:\nProblema: [descriere]\nCe am incercat: [ce ai incercat]\n\nFoloseste metoda 5 Whys."},{"t":"Rezumat executiv","p":"Rezumat executiv o pagina pentru:\n[paste documentul]\n\nPentru audienta: [descriere]\nFocus pe: [ce e important]"},{"t":"Decision framework","p":"Ajuta-ma sa decid intre:\n[optiunile]\n\nCriterii importante:\n[lista]\n\nConstrangeri:\n[constrangeri]"},{"t":"Forecast simplu","p":"Pe baza datelor istorice:\n[paste datele]\n\nForecast pentru [perioada]. Include asumptiile."},{"t":"Analiza feedback","p":"Analizeaza reviewurile:\n1. Top 5 plangeri\n2. Top 5 laude\n3. Actiuni prioritare\n\n[paste feedback-urile]"},{"t":"Metrici business","p":"Analizeaza metricile si da insights actionabile:\n[paste metricile]\n\nContextul businessului:\n[descriere]"}]},{"icon":"✉️","name":"Email","color":"#ec4899","bg":"rgba(236,72,153,0.08)","prompts":[{"t":"Follow-up politicos","p":"Email follow-up:\n- Context: [ce s-a discutat]\n- Zile de la ultimul contact: [nr]\n- Ce vreau: [actiunea dorita]\n\nScurt, politicos, cu valoare."},{"t":"Refuz elegant","p":"Email refuz elegant:\n[cererea/oferta]\n\nMentinand relatia buna. Ton: [formal/casual]."},{"t":"Cerere colaborare","p":"Email colaborare catre:\n[tip persoana/companie]\n\nPropunerea: [descriere]\nValoarea pentru ei: [ce castiga]\nCTA: [pasul urmator]"},{"t":"Reactivare client","p":"Email reactivare client inactiv [perioada]:\n- Contextul: [descriere]\n- Oferta: [oferta]\n- Ton: cald, ne-agresiv."},{"t":"Welcome email","p":"Email bun venit nou abonat la:\n[topic newsletter]\n\nInclude: cine sunt, ce vor primi, primul pas."},{"t":"Cerere testimonial","p":"Email cerere testimonial de la:\n[tip client, ce a cumparat]\n\nUsor de facut, link direct."},{"t":"Oferta limitata","p":"Email oferta cu urgenta:\n- Oferta: [descriere]\n- Deadline: [data]\n- Pret normal vs promo: [preturi]"},{"t":"Email echipa","p":"Email intern catre echipa despre:\n[subiect]\n\nActiuni necesare: [lista]\nDeadline: [data]"},{"t":"Scuze profesionale","p":"Email scuze profesionale pentru:\n[situatia]\n\nCatre: [client/partener]\nOfera: [compensatie/solutie]"},{"t":"Cold LinkedIn","p":"Mesaj cold outreach LinkedIn:\n- Target: [titlu/companie]\n- Ce ofer: [descriere]\n\nSub 100 cuvinte, uman, non-spam."}]},{"icon":"💰","name":"Make Money","color":"#22d3ee","bg":"rgba(34,211,238,0.08)","prompts":[{"t":"Idee venit online","p":"Vreau sa fac bani online cu:\n- Skills: [ce stii sa faci]\n- Timp disponibil: [ore/zi]\n- Buget initial: [suma]\n- Obiectiv lunar: [suma]\n\nDa-mi top 3 idei concrete cu pasii de start."},{"t":"Primul client","p":"Ajuta-ma sa gasesc primul client platitor pentru:\n- Serviciul meu: [descriere]\n- Nisa: [domeniu]\n- Buget marketing: [suma]\n\nStrategie pas cu pas pentru primele 7 zile."},{"t":"Venit pasiv rapid","p":"Vreau venit pasiv cu:\n- Expertiza: [domeniu]\n- Timp initial: [ore]\n- Tinta: [suma/luna]\n\nTop 3 modele realiste cu timeline si efort necesar."},{"t":"Freelance pricing","p":"Cat sa cer ca freelancer pentru:\n- Serviciul: [descriere]\n- Experienta: [ani/nivel]\n- Piata: [Romania/EU/US]\n\nDa-mi rate orare, per proiect si retainer lunar."},{"t":"Digital product","p":"Vreau sa vand un produs digital despre:\n[domeniu/skill]\n\nAudienta: [cine are nevoie]\nFormate posibile: [ebook/curs/template]\n\nPlan complet: creare, pret, vanzare."},{"t":"Agentie micro","p":"Vreau sa lansez o micro-agentie de [serviciu].\n\nBuget: [suma]\nTeam: [singur/cu parteneri]\n\nModel operational, primul client, pricing, scalare."},{"t":"Monetizare audienta","p":"Am o audienta de [nr] pe [platforma] despre [nisa].\n\nTop 5 metode sa o monetizez acum fara produs propriu."},{"t":"Arbitraj si revanzare","p":"Vreau sa fac arbitraj/revanzare in [nisa].\n\nBuget: [suma]\nTimp: [ore/saptamana]\n\nGhid complet: unde cumpar, unde vand, marja realista."},{"t":"SaaS micro","p":"Vreau sa construiesc un micro-SaaS pentru:\n[problema de rezolvat]\n\nAudienta: [cine plateste]\nStack recomandat, pret, go-to-market in 30 zile."},{"t":"Sistem $1000/luna","p":"Construieste-mi un sistem complet ca sa fac $1000/luna cu:\n- Skill principal: [skill]\n- Timp: [ore/zi]\n- Buget: [suma]\n\nPlan 90 zile, saptamana cu saptamana."}]},{"icon":"🏢","name":"SSociety Proiecte","color":"#f97316","bg":"rgba(249,115,22,0.08)","prompts":[{"t":"CRM Imobiliar AI","p":"Ajuta-ma sa lansez un CRM imobiliar cu AI similar SocietyHUB.\n\nFunctii necesare: [proprietati/leads/matching/contracte]\nStack: [Node/React/SQLite]\n\nArhitectura completa + pasii de implementare."},{"t":"Agent AI restaurante","p":"Construieste un chatbot AI pentru restaurante care:\n- Preia comenzi prin chat\n- Raspunde la intrebari meniu\n- Informeaza despre alergeni\n\nStack: [Telegram Bot/WhatsApp]\nIntegrare: [POS/Kitchen display]"},{"t":"Dashboard solar","p":"Dashboard monitorizare sisteme fotovoltaice:\n- Productie curentă real-time\n- Economii calculate\n- Consum vs productie\n- Stare baterii\n\nStack: [tech stack]\nAPI-uri: [surse date]"},{"t":"Agentie content AI","p":"Setup complet agentie content automat:\n- Script AI → Audio TTS → Video → SEO → Publish\n- Platforme: YouTube, TikTok, Instagram\n\nFlux complet + tool-uri + costuri reale per continut."},{"t":"Wild Bot WhatsApp","p":"Sistem outreach WhatsApp care:\n- Trimite 300 mesaje/zi\n- Mesaje 100% unice\n- Timpi umani aleatorii\n- Anti-ban protection\n\nArhitectura + stack + riscuri legale."},{"t":"Platform tutoriat AI","p":"Platforma tutoriat AI personalizat:\n- Lectii adaptate nivelului studentului\n- Quiz-uri automate\n- Tracking progres\n\nStack complet + model monetizare $29/elev/luna."},{"t":"Trading agent AI","p":"Agent AI trading 24/7 care:\n- Analizeaza actiuni si crypto\n- Identifica pattern-uri tehnice\n- Evalueaza sentiment piata\n\nStack Python + API-uri gratuite + disclaimer riscuri."},{"t":"SEO agency AI","p":"Agentie SEO complet automatizata:\n- 8 articole optimizate/luna per client\n- Audit tehnic automat\n- Raport PDF livrat automat\n\nStack + API-uri + pret per client ($499-$2999)."},{"t":"LifeOS personal","p":"Sistem personal de management viata cu AI:\n- Obiective + finante + sanatate + rutine\n- Goal tracking\n- AI journal\n\nStack: [web app/mobile]\nFunctii prioritare + MVP in 30 zile."},{"t":"Scanner vulnerabilitati","p":"Platforma ethical hacking pentru bug bounty:\n- Scanare API-uri\n- Detectare vulnerabilitati comune\n- Rapoarte HackerOne/Bugcrowd\n\nStack + librarii Python + conformitate legala Romania."}]},{"icon":"⚡","name":"Arsenal API","color":"#a78bfa","bg":"rgba(167,139,250,0.08)","prompts":[{"t":"Stack gratuit complet","p":"Construieste un stack complet gratuit pentru:\n[tip aplicatie: SaaS/bot/dashboard/marketplace]\n\nNecesitati: [autentificare/plati/email/AI/stocare]\n\nListeaza API-urile gratuite exacte cu tier-ul free."},{"t":"AI gratuit productie","p":"Am nevoie de AI in productie cu budget $0.\n\nTask-ul AI: [generare text/imagini/voce/analiza]\nVolum: [nr requesturi/zi]\n\nTop 3 API-uri gratuite cu limite si cod de integrare."},{"t":"Email automat gratuit","p":"Sistem email automat complet gratuit pentru:\n- Tip: [transactional/newsletter/outreach]\n- Volum: [emailuri/luna]\n\nAPI recomandat + cod Python/Node + setup complet."},{"t":"Baza de date gratuita","p":"Am nevoie de baza de date gratuita pentru:\n- Tip date: [relational/document/vector/cache]\n- Volum: [GB]\n- Stack: [limbaj]\n\nRecomandare + tier gratuit exact + cod conexiune."},{"t":"Plati fara comision","p":"Integrare plati cu comision minim pentru:\n- Tara: [Romania/EU]\n- Volum: [tranzactii/luna]\n- Tip: [one-time/subscriptie]\n\nComparatie Stripe vs Paddle vs LemonSqueezy + cod."},{"t":"Scraping gratuit","p":"Scraper pentru [site] cu API gratuit:\n- Date necesare: [ce date]\n- Frecventa: [zilnic/saptamanal]\n- Output: [JSON/CSV]\n\nApify free tier vs Bright Data vs alternative."},{"t":"Auth gratuit","p":"Sistem autentificare gratuit pentru app cu [nr useri]:\n- Metode: [email/Google/GitHub/magic link]\n- Stack: [framework]\n\nClerk vs Supabase Auth vs Firebase Auth - comparatie + cod."},{"t":"Storage gratuit","p":"Storage fisiere gratuit pentru:\n- Tip fisiere: [imagini/video/documente]\n- Volum: [GB/luna]\n- Acces: [public/privat]\n\nCloudflare R2 vs Supabase vs Backblaze B2 + integrare."},{"t":"Monitoring gratuit","p":"Stack monitoring gratuit pentru app in productie:\n- Erori: [frontend/backend]\n- Uptime: [da/nu]\n- Analytics: [da/nu]\n\nSentry free + UptimeRobot + Plausible - setup complet."},{"t":"Deploy gratuit","p":"Deploy gratuit pentru:\n- Tip app: [Node/Python/React/static]\n- Traffic estimat: [vizitatori/luna]\n- DB necesara: [da/nu]\n\nRailway vs Render vs Fly.io vs Vercel - cel mai bun pentru cazul meu."}]},{"icon":"🚀","name":"Side Hustles","color":"#22c55e","bg":"rgba(34,197,94,0.08)","prompts":[{"t":"Freelance writing","p":"Vreau sa fac bani din scris freelance:\n- Nisa preferata: [tech/finance/health/altele]\n- Timp: [ore/saptamana]\n- Nivel engleza: [nivel]\n\nPlatforme, rata realista, primul articol platit in 7 zile."},{"t":"Revanzare produse","p":"Vreau sa resvand produse online:\n- Buget: [suma]\n- Platforma: [OLX/eBay/Amazon/Marketplace]\n- Nisa: [electronice/haine/colectii/altele]\n\nStrategie + surse + marja realista."},{"t":"Social media management","p":"Vreau sa manageriez social media pentru clienti locali.\n\nNisa clienti: [restaurante/saloane/clinici/altele]\nOras: [oras]\n\nPachet servicii, pret, cum gasesc primii 3 clienti."},{"t":"Print on demand","p":"Business print on demand:\n- Nisa design: [gaming/motivational/nisa specifica]\n- Platforma: [Redbubble/Printful/Merch by Amazon]\n\nSetup complet + primul design + strategie trafic."},{"t":"YouTube automation","p":"Canal YouTube automatizat in nisa:\n[nisa aleasa]\n\nFara sa apari pe camera. Tool-uri AI, frecventa postare, monetizare la 1000 abonati."},{"t":"Dropshipping AI","p":"Dropshipping cu AI pentru:\n- Nisa: [produs/categorie]\n- Buget: [suma]\n- Platforma: [Shopify/WooCommerce]\n\nFurnizori, reclame, automatizare comenzi, marja neta realista."},{"t":"Traduceri si transcriere","p":"Venit din traduceri si transcriere:\n- Limbi: [perechi limbi]\n- Timp: [ore/zi]\n\nPlatforme platite, rata per cuvant, tool-uri AI care te ajuta sa faci 3x mai mult."},{"t":"Tutoriat online","p":"Vreau sa dau meditatii online pentru:\n- Materia: [materia]\n- Nivel: [scoala/liceu/facultate]\n- Pret target: [suma/ora]\n\nPlatforme, cum ma promovez, primul student in 14 zile."},{"t":"Newsletter monetizat","p":"Newsletter monetizat in nisa:\n[nisa]\n\nDe la 0 la 500 abonati platitori la $5/luna.\nStrategy + tool-uri gratuite + primul issue."},{"t":"Servicii locale AI","p":"Ofer servicii locale automatizate cu AI:\n- Serviciul: [contabilitate/legal/marketing/altul]\n- Oras: [oras]\n- Target: [IMM-uri/persoane fizice]\n\nPachet, pret, cum gasesc primii clienti offline."}]};
 var ai=0;
 function rSide(){
   var el=document.getElementById('po-sidebar-list');
@@ -2027,48 +2050,5 @@ window.PLclose=function(){
 };
 document.addEventListener('keydown',function(e){if(e.key==='Escape')PLclose();});
 })()</script>
-
-<style>
-#auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:99999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(10px);}
-#auth-box{background:#111;border:1px solid #222;border-radius:16px;padding:2rem;width:90%;max-width:360px;text-align:center;font-family:'Figtree',sans-serif;}
-#auth-box h2{color:#fff;font-size:1.2rem;font-weight:700;margin-bottom:.5rem;}
-#auth-box p{color:#666;font-size:.85rem;margin-bottom:1.5rem;line-height:1.5;}
-#auth-box a{display:block;padding:13px;background:#00e87a;color:#000;border-radius:10px;font-size:1rem;font-weight:800;text-decoration:none;}
-#auth-box a:hover{background:#00ff88;}
-</style>
-<div id="auth-overlay" style="display:none;">
-  <div id="auth-box">
-    <div style="font-size:2rem;margin-bottom:.75rem;">🤖</div>
-    <h2>Buddy e doar pentru membri</h2>
-    <p>Loghează-te pe DaRomania cu Google.<br>Revino după login — accesul e automat.</p>
-    <a href="https://daromania.online">Loghează-te cu Google →</a>
-  </div>
-</div>
-<script>
-(function(){
-  // Preia token din URL daca vine redirect
-  var urlToken = new URLSearchParams(window.location.search).get('token');
-  if(urlToken){
-    localStorage.setItem('buddy_auth_token', decodeURIComponent(urlToken));
-    window.history.replaceState({}, '', '/');
-  }
-
-  function isLoggedIn(){
-    // Verifica orice token din localStorage
-    if(localStorage.getItem('buddy_auth_token')) return true;
-    if(localStorage.getItem('dm_token')) return true;
-    // Cauta orice cheie Supabase
-    for(var i=0;i<localStorage.length;i++){
-      var k = localStorage.key(i);
-      if(k && (k.indexOf('sb-') === 0 || k.indexOf('supabase') !== -1)) return true;
-    }
-    return false;
-  }
-
-  // auth check disabled
-  // if(!isLoggedIn()){ document.getElementById('auth-overlay').style.display = 'flex'; }
-})();
-</script>
-
 </body>
 </html>
