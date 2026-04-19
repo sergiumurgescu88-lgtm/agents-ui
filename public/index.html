@@ -557,7 +557,7 @@ body.mode-marketing #send-btn{color:#fff;}
         </div>
       </div>
       <div id="action-counter" style="flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(255,255,255,0.05);border:1px solid #333;border-radius:7px;padding:3px 8px;">
-        <div id="action-text" style="font-size:12px;font-weight:800;color:#fff;">0/100</div>
+        <div id="action-text" style="font-size:12px;font-weight:800;color:#fff;">100/100</div>
         <div id="action-bar" style="width:36px;height:2px;background:#333;border-radius:3px;overflow:hidden;"><div id="action-fill" style="width:0%;height:100%;background:var(--accent);border-radius:3px;transition:width .4s;"></div></div>
       </div>
       <button onclick="var r=document.getElementById('premium-row');r.style.display=r.style.display==='none'?'flex':'none';" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;" title="Oferte">🎯</button>
@@ -691,7 +691,7 @@ body.mode-marketing #send-btn{color:#fff;}
       <div style="color:#fff;font-size:14px;font-weight:700;letter-spacing:.1em;" id="voice-status">🎙️ ASCULT...</div>
       <canvas id="voice-canvas" width="300" height="80" style="border-radius:12px;background:#0a0a14;border:1px solid #333;"></canvas>
       <div id="voice-transcript" style="color:#aaa;font-size:13px;max-width:320px;text-align:center;min-height:40px;line-height:1.5;"></div>
-      <button onclick="stopVoice()" style="padding:10px 28px;border-radius:20px;border:1.5px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;font-size:13px;font-weight:700;cursor:pointer;">⏹ Stop</button>
+      <button onclick="stopVoice(true)" style="padding:10px 28px;border-radius:20px;border:1.5px solid #ef4444;background:rgba(239,68,68,0.1);color:#ef4444;font-size:13px;font-weight:700;cursor:pointer;">⏹ Stop & Trimite</button>
     </div>
   </div>
 
@@ -808,7 +808,13 @@ function appendMsg(role, text, name, mode, btns, pill) {
   const div = document.createElement('div');
   div.className = 'msg ' + (role === 'user' ? 'user' : 'bot');
   const icon = mode === 'coding' ? '⌨' : (role === 'user' ? '🧑' : '🤖');
-  div.innerHTML = `<div class="bubble"><div class="msg-meta">${icon} ${name || (role==='user'?'Tu':'Buddy')}</div><div class="msg-body">${render(text)}</div></div>`;
+  const msgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  div.innerHTML = `<div class="bubble" style="position:relative;">
+    <div class="msg-meta">${icon} ${name || (role==='user'?'Tu':'Buddy')}
+      <button onclick="copyMsgText('${msgId}')" title="Copiază mesajul" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);cursor:pointer;color:rgba(255,255,255,0.4);font-size:13px;padding:3px 8px;border-radius:6px;transition:all .2s;opacity:0;" onmouseover="this.style.opacity='1';this.style.color='#00e87a'" onmouseout="this.style.opacity='0'" id="copybtn_${msgId}">⎘</button>
+    </div>
+    <div class="msg-body" id="${msgId}">${render(text)}</div>
+  </div>`;
   msgsEl.appendChild(div);
   if (btns && btns.length) {
     const bd = document.createElement('div');
@@ -817,6 +823,24 @@ function appendMsg(role, text, name, mode, btns, pill) {
     msgsEl.appendChild(bd);
   }
   msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+function copyMsgText(msgId) {
+  const el = document.getElementById(msgId);
+  if (!el) return;
+  // Extragem text pur, inclusiv din code blocks
+  const rawText = el.innerText || el.textContent || '';
+  navigator.clipboard.writeText(rawText.trim()).then(function() {
+    const btn = document.getElementById('copybtn_' + msgId);
+    if (btn) { btn.textContent = '✓'; btn.style.color = '#00ff87'; setTimeout(function(){ btn.textContent = '⎘'; btn.style.color = '#555'; }, 1500); }
+  }).catch(function() {
+    // Fallback pentru browsere mai vechi
+    const ta = document.createElement('textarea');
+    ta.value = el.innerText || el.textContent || '';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    const btn = document.getElementById('copybtn_' + msgId);
+    if (btn) { btn.textContent = '✓'; btn.style.color = '#00ff87'; setTimeout(function(){ btn.textContent = '⎘'; btn.style.color = '#555'; }, 1500); }
+  });
 }
 
 async function sendMessage() {
@@ -879,9 +903,45 @@ async function sendMessage() {
       try { document.getElementById('pipeline-bar').style.display = 'flex'; } catch(e2) {}
       actionCount++;
       try { updateActionUI(); } catch(e2) {}
-      // Afiseaza contorul de mesaje
+      // Counter countdown (mesaje ramase)
+      const remaining100 = typeof d.remaining === 'number' ? d.remaining : Math.max(0, 100 - actionCount);
       const counterEl = document.getElementById('action-text');
-      if (counterEl) counterEl.textContent = actionCount + '/100';
+      if (counterEl) counterEl.textContent = remaining100 + '/100';
+      // Recomandare agent — doar afisam, nu switcham automat
+      if (d.suggestedAgent && d.suggestedMode) {
+        const agentIcons = { OpenClaw:'⌨️', Paperclip:'📎', Hermes:'🚀', Buddy:'🤖' };
+        const agentColors = { OpenClaw:'#00ff87', Paperclip:'#a855f7', Hermes:'#f59e0b', Buddy:'#3b82f6' };
+        const icon = agentIcons[d.suggestedAgent] || '🤖';
+        const color = agentColors[d.suggestedAgent] || '#888';
+        // Stergem recomandarile vechi
+        document.querySelectorAll('.agent-suggest-toast').forEach(el => el.remove());
+        const toast = document.createElement('div');
+        toast.className = 'agent-suggest-toast';
+        toast.style.cssText = 'position:fixed;bottom:90px;right:12px;background:#111;border:1px solid ' + color + ';border-radius:12px;padding:8px 12px;font-size:12px;color:#fff;z-index:9990;display:flex;align-items:center;gap:8px;box-shadow:0 0 12px ' + color + '44;max-width:220px;';
+        toast.innerHTML = icon + ' <span style="flex:1">Recomandat: <strong style="color:' + color + '">' + d.suggestedAgent + '</strong></span><button onclick="this.parentNode.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:14px;padding:0 2px;">✕</button>';
+        document.body.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 6000);
+      }
+      const fillEl = document.getElementById('action-fill');
+      if (fillEl) fillEl.style.width = Math.min(100, actionCount) + '%';
+      // SAVE glow la 5+ mesaje
+      const saveBtn = document.getElementById('btn-export');
+      if (saveBtn && actionCount >= 5) {
+        saveBtn.style.borderColor = '#f59e0b';
+        saveBtn.style.color = '#f59e0b';
+        saveBtn.style.boxShadow = '0 0 8px #f59e0b88';
+        saveBtn.title = '💾 Salvează conversația!';
+      }
+      // Alerta la exact 5 mesaje
+      if (actionCount === 5) {
+        setTimeout(function() {
+          const toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1a1200;border:1px solid #f59e0b;border-radius:12px;padding:12px 20px;color:#fbbf24;font-size:13px;font-weight:700;z-index:9999;text-align:center;box-shadow:0 0 20px #f59e0b44;';
+          toast.innerHTML = '💾 Ai 5 mesaje! <a onclick="exportChat()" style="color:#f59e0b;cursor:pointer;text-decoration:underline;margin-left:8px;">Salvează conversația →</a>';
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 5000);
+        }, 500);
+      }
     }
   } catch(e) {
     console.error('sendMessage error:', e);
@@ -961,15 +1021,15 @@ function buildFileContext() {
 }
 
 // ── VOICE INPUT ───────────────────────────────────────────────────────────
-let _voiceRecog = null;
+// ── VOICE: MediaRecorder + Gemini 2.0 Flash ─────────────────────────────
 let _voiceActive = false;
-let _voiceAnim = null;
-let _voiceAudioCtx = null;
-let _voiceAnalyser = null;
 let _voiceStream = null;
+let _voiceRecorder = null;
+let _voiceChunks = [];
+let _voiceAnim = null;
 
 function toggleVoice() {
-  if (_voiceActive) { stopVoice(); return; }
+  if (_voiceActive) { stopVoice(true); return; }
   startVoice();
 }
 
@@ -978,107 +1038,108 @@ async function startVoice() {
   const statusEl = document.getElementById('voice-status');
   const transcriptEl = document.getElementById('voice-transcript');
   const voiceBtn = document.getElementById('voice-btn');
+
+  try {
+    statusEl.textContent = '🎙️ Permite microfonul...';
+    transcriptEl.textContent = '';
+    _voiceChunks = [];
+    _voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  } catch(e) {
+    statusEl.textContent = '❌ Microfon blocat — permite din 🔒 bara browser';
+    return;
+  }
+
   overlay.style.display = 'flex';
   voiceBtn.style.borderColor = '#ef4444';
   voiceBtn.style.color = '#ef4444';
   _voiceActive = true;
-  transcriptEl.textContent = '';
 
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    statusEl.textContent = '❌ Browser incompatibil — folosește Chrome';
-    return;
-  }
-
-  // Cerem permisiunea microfonului o singura data
-  try {
-    statusEl.textContent = '🎙️ Permite microfonul...';
-    const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    // Eliberam imediat — SpeechRecognition are nevoie de mic liber
-    testStream.getTracks().forEach(t => t.stop());
-  } catch(e) {
-    statusEl.textContent = '❌ Microfon blocat — permite din 🔒 bara browser';
-    voiceBtn.style.borderColor = '';
-    voiceBtn.style.color = '';
-    _voiceActive = false;
-    overlay.style.display = 'none';
-    return;
-  }
-
-  // Animatie waveform simpla CSS (nu mai tine mic-ul ocupat)
+  // Waveform vizual real din microfon
   const canvas = document.getElementById('voice-canvas');
-  if (canvas) {
-    const ctx2 = canvas.getContext('2d');
-    let frame = 0;
-    function fakeWave() {
-      if (!_voiceActive) return;
-      ctx2.clearRect(0, 0, canvas.width, canvas.height);
-      ctx2.strokeStyle = '#00ff87';
-      ctx2.lineWidth = 2;
-      ctx2.beginPath();
-      for (let x = 0; x < canvas.width; x++) {
-        const y = canvas.height/2 + Math.sin((x + frame) * 0.15) * (10 + Math.random() * 8);
-        x === 0 ? ctx2.moveTo(x, y) : ctx2.lineTo(x, y);
-      }
-      ctx2.stroke();
-      frame += 3;
-      _voiceAnim = requestAnimationFrame(fakeWave);
-    }
-    fakeWave();
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const analyser = audioCtx.createAnalyser();
+  const source = audioCtx.createMediaStreamSource(_voiceStream);
+  source.connect(analyser);
+  analyser.fftSize = 256;
+  const freqBuf = new Uint8Array(analyser.frequencyBinCount);
+  const ctx2 = canvas.getContext('2d');
+  function drawWave() {
+    if (!_voiceActive) return;
+    analyser.getByteFrequencyData(freqBuf);
+    ctx2.clearRect(0, 0, canvas.width, canvas.height);
+    const bw = canvas.width / freqBuf.length;
+    freqBuf.forEach((v, i) => {
+      const h = (v / 255) * canvas.height;
+      ctx2.fillStyle = 'hsl(' + (140 + v * 0.5) + ',90%,55%)';
+      ctx2.fillRect(i * bw, canvas.height - h, bw - 1, h);
+    });
+    _voiceAnim = requestAnimationFrame(drawWave);
   }
+  drawWave();
 
-  _voiceRecog = new SR();
-  _voiceRecog.lang = 'ro-RO';
-  _voiceRecog.continuous = true;
-  _voiceRecog.interimResults = true;
+  const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+    ? 'audio/webm;codecs=opus'
+    : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
 
-  let sendTimer = null;
+  _voiceRecorder = new MediaRecorder(_voiceStream, { mimeType });
+  _voiceRecorder.ondataavailable = e => { if (e.data.size > 0) _voiceChunks.push(e.data); };
 
-  _voiceRecog.onresult = function(e) {
-    let interim = '', final = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) final += e.results[i][0].transcript;
-      else interim += e.results[i][0].transcript;
-    }
-    transcriptEl.textContent = final || interim;
-    if (final) {
-      const inputEl = document.getElementById('input');
-      inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + final.trim();
-      // Trimite automat dupa 1.5s de pauza
-      clearTimeout(sendTimer);
-      sendTimer = setTimeout(function() {
-        stopVoice();
-        sendMessage();
-      }, 1500);
-    }
+  _voiceRecorder.onstop = async function() {
+    if (_voiceAnim) { cancelAnimationFrame(_voiceAnim); _voiceAnim = null; }
+    try { audioCtx.close(); } catch(e) {}
+    if (_voiceStream) { _voiceStream.getTracks().forEach(t => t.stop()); _voiceStream = null; }
+    if (_voiceChunks.length === 0) { overlay.style.display = 'none'; return; }
+    statusEl.textContent = '⏳ Gemini transcrie...';
+    const blob = new Blob(_voiceChunks, { type: mimeType });
+    const reader = new FileReader();
+    reader.onloadend = async function() {
+      const base64 = reader.result.split(',')[1];
+      try {
+        const r = await fetch('/api/voice/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ audio: base64, mimeType: mimeType.split(';')[0] })
+        });
+        const d = await r.json();
+        const text = (d.text || '').trim();
+        if (text) {
+          transcriptEl.textContent = text;
+          document.getElementById('input').value = text;
+          overlay.style.display = 'none';
+          voiceBtn.style.borderColor = '#333';
+          voiceBtn.style.color = '#888';
+          _voiceActive = false;
+          sendMessage();
+        } else {
+          statusEl.textContent = '⚠️ Nu am înțeles. Încearcă din nou.';
+          setTimeout(() => { overlay.style.display = 'none'; _voiceActive = false; }, 2000);
+        }
+      } catch(err) {
+        statusEl.textContent = '❌ Eroare: ' + err.message;
+        setTimeout(() => { overlay.style.display = 'none'; _voiceActive = false; }, 2500);
+      }
+      voiceBtn.style.borderColor = '#333';
+      voiceBtn.style.color = '#888';
+    };
+    reader.readAsDataURL(blob);
   };
 
-  _voiceRecog.onerror = function(e) {
-    statusEl.textContent = '❌ Eroare: ' + e.error;
-    if (e.error === 'not-allowed') {
-      statusEl.textContent = '❌ Microfon blocat — permite din 🔒 bara browser';
-      stopVoice();
-    }
-  };
-
-  _voiceRecog.onend = function() { if (_voiceActive) _voiceRecog.start(); };
-  _voiceRecog.start();
-  statusEl.textContent = '🎙️ ASCULT... (vorbește, se trimite automat)';
+  _voiceRecorder.start();
+  statusEl.textContent = '🎙️ ÎNREGISTREZ... apasă ⏹ Stop când termini';
 }
 
-function stopVoice() {
-  _voiceActive = false;
-  if (_voiceRecog) { _voiceRecog.onend = null; _voiceRecog.stop(); _voiceRecog = null; }
+function stopVoice(doSend) {
+  if (!_voiceActive) return;
   if (_voiceAnim) { cancelAnimationFrame(_voiceAnim); _voiceAnim = null; }
-  if (_voiceStream) { _voiceStream.getTracks().forEach(t => t.stop()); _voiceStream = null; }
-  if (_voiceAudioCtx) { _voiceAudioCtx.close(); _voiceAudioCtx = null; }
-  document.getElementById('voice-overlay').style.display = 'none';
-  const voiceBtn = document.getElementById('voice-btn');
-  voiceBtn.style.borderColor = '#333';
-  voiceBtn.style.color = '#888';
-  // Trimite automat daca e text
-  const txt = document.getElementById('input').value.trim();
-  if (txt) sendMessage();
+  if (_voiceRecorder && _voiceRecorder.state !== 'inactive') {
+    _voiceRecorder.stop();
+  } else {
+    _voiceActive = false;
+    if (_voiceStream) { _voiceStream.getTracks().forEach(t => t.stop()); _voiceStream = null; }
+    document.getElementById('voice-overlay').style.display = 'none';
+    document.getElementById('voice-btn').style.borderColor = '#333';
+    document.getElementById('voice-btn').style.color = '#888';
+  }
 }
 
 function drawWaveform() {
@@ -1786,6 +1847,7 @@ window.fetch = function(url, opts) {
   #po-subhead{display:none}
   #po-cards{padding:14px 18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:11px;align-content:start}
 }
+.bubble:hover button[id^="copybtn_"] { opacity: 1 !important; }
 </style>
 <div id="po-wrap">
   <div id="po-sidebar">
