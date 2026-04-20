@@ -259,7 +259,7 @@ body.mode-marketing #buddy-name{letter-spacing:.04em;}
 /* ── INPUT AREA ── */
 #input-area{
   flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);
-  padding:8px 10px;padding-bottom:calc(8px + var(--safe-bot));
+  padding:8px 10px;
   transition:background .4s,border-color .4s;
 }
 
@@ -322,13 +322,11 @@ body.mode-marketing #buddy-name{letter-spacing:.04em;}
 #input-row{position:relative;width:100%;}
 #input-wrap{position:relative;width:100%;}
 #input-wrap textarea#input{width:100%;box-sizing:border-box;}
-#file-btn,#voice-btn,#lucky-btn,#send-btn{position:absolute;bottom:4px;z-index:2;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;}
-#file-btn{left:6px;width:52px;height:52px;background:transparent;color:#888;font-size:22px;opacity:0.2;transition:opacity .2s;}
-#voice-btn{right:100px;width:52px;height:52px;background:transparent;color:#888;font-size:22px;opacity:0.2;transition:opacity .2s;}
-#lucky-btn{right:52px;width:52px;height:52px;background:rgba(168,85,247,0.1);color:#a855f7;font-size:24px;opacity:0.2;transition:opacity .2s;}
-#send-btn{right:6px;width:38px;height:38px;background:var(--accent);color:#fff;font-size:18px;border-radius:10px;opacity:1;}
-#input-row:hover #file-btn,#input-row:hover #voice-btn,#input-row:hover #lucky-btn{opacity:0.8;}
-#input-row:focus-within #file-btn,#input-row:focus-within #voice-btn,#input-row:focus-within #lucky-btn{opacity:0.8;}
+#send-btn{position:absolute;right:6px;bottom:4px;width:38px;height:38px;background:var(--accent);color:#fff;font-size:18px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;}
+#tools-bar{display:flex;align-items:center;justify-content:center;gap:32px;padding:0;}
+#file-btn,#voice-btn,#lucky-btn{position:static;width:52px;height:52px;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:32px;opacity:0.85;transition:opacity .15s;}
+#lucky-btn{background:rgba(168,85,247,0.15);color:#a855f7;}
+#file-btn:active,#voice-btn:active,#lucky-btn:active{opacity:0.2;}
 
 #input{
   flex:1;background:var(--bg3);border:1.5px solid var(--border);
@@ -432,7 +430,7 @@ body.mode-marketing #send-btn{color:#fff;}
   }
 
   /* Input area */
-  #input-area { padding: 6px 8px; padding-bottom: calc(6px + var(--safe-bot)); }
+  #input-area { padding: 6px 8px; }
   #input-row { gap: 6px; }
   #input {
     font-size: 15px; /* iOS auto-zoom fix — min 16px previne zoom */
@@ -790,11 +788,12 @@ async function feelingLucky() {
       <input id="file-input" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.json,.md,.txt,.png,.jpg,.jpeg,.webp,.gif" style="display:none;" onchange="handleFileAttach(this)">
       <div id="input-wrap">
         <textarea id="input" placeholder="Scrie un mesaj..." rows="1"></textarea>
-        <div id="file-preview" style="display:none;padding:4px 8px;background:#111;border:1px solid #333;border-radius:8px;margin-top:4px;font-size:11px;color:#aaa;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"></div>
+        <div id="file-preview" style="display:flex;padding:6px 8px;background:#111;border:1px solid #222;border-radius:8px;margin-top:6px;font-size:11px;color:#aaa;align-items:center;gap:12px;flex-wrap:wrap;min-height:36px;">
+          <button id="voice-btn" onclick="toggleVoice()" title="Comandă vocală" style="background:none;border:none;cursor:pointer;font-size:18px;padding:0;">🎙️</button>
+          <button id="file-btn" onclick="document.getElementById('file-input').click()" title="Atașează fișier" style="background:none;border:none;cursor:pointer;font-size:18px;padding:0;">📎</button>
+          <button id="lucky-btn" onclick="feelingLucky()" title="I'm Feeling Lucky" style="background:none;border:none;cursor:pointer;font-size:18px;padding:0;">🍀</button>
+        </div>
       </div>
-      <button id="voice-btn" onclick="toggleVoice()" title="Comandă vocală">🎙️</button>
-      <button id="file-btn" onclick="document.getElementById('file-input').click()" title="Atașează fișier">📎</button>
-      <button id="lucky-btn" onclick="feelingLucky()" title="I'm Feeling Lucky">🍀</button>
       <button id="send-btn" onclick="sendMessage()">➤</button>
     </div>
     <div id="voice-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9998;flex-direction:column;align-items:center;justify-content:center;gap:20px;">
