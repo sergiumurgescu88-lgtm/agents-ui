@@ -421,6 +421,8 @@ SSociety Tools: Wild Bot (WhatsApp 300/zi), Blotato (6 platforme simultan), AdFu
 
 
 const vibeSessions = new Map(); // userId -> true daca e activ vibe coding
+const userMemory = new Map(); // userId -> array de mesaje (memorie persistenta server-side)
+const MAX_MEMORY = 40; // mesaje maxime per user
 const VIBE_CODING_PROMPT = `Ești operatorul tehnic al VPS-ului meu. Lucrăm în stil VibeCoding — tu dai comenzile, eu le execut.
 
 STACK & INFRASTRUCTURĂ:
@@ -497,7 +499,20 @@ app.post('/api/chat', async (req, res) => {
     // Detecteaza 'vibe cod' si activeaza modul pana la refresh (per userId)
     if (/vibe.?cod/i.test(lower)) { vibeSessions.set(uid, true); }
     const activePrompt = vibeSessions.get(uid) ? VIBE_CODING_PROMPT : SYSTEM_PROMPT + (vpsContext || '');
-    const reply = await callAI(messages, activePrompt, mode);
+    // Memorie server-side: merge istoricul browserului cu memoria serverului
+    const serverHistory = userMemory.get(uid) || [];
+    const lastUserMsg = messages[messages.length-1];
+    // Adauga mesajul nou la memoria server
+    serverHistory.push({ role:'user', content: lastUserMsg?.content || '' });
+    if (serverHistory.length > MAX_MEMORY) serverHistory.splice(0, serverHistory.length - MAX_MEMORY);
+    userMemory.set(uid, serverHistory);
+
+    const reply = await callAI(serverHistory, activePrompt, mode);
+    
+    // Salveaza raspunsul Buddy in memorie
+    serverHistory.push({ role:'assistant', content: reply });
+    if (serverHistory.length > MAX_MEMORY) serverHistory.splice(0, serverHistory.length - MAX_MEMORY);
+    userMemory.set(uid, serverHistory);
     incUsage(uid);
     const newLimit = checkLimit(uid);
     res.json({ success:true, reply, text:reply, intent, mode, agent:'Buddy', suggestedAgent, suggestedMode, jobContext:null, actionCount:newLimit.usage, remaining:newLimit.remaining, limitStatus:'ok' });
