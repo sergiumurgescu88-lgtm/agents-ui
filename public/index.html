@@ -1527,6 +1527,13 @@ window.buddySendToKilo = function(fullText) {
 async function sendToKilo(btn) {
   const code = btn.closest('.code-header').nextElementSibling.querySelector('code').textContent.trim();
 
+  // Trimite direct in Kilo chat
+  if (typeof kiloSendChat === 'function') {
+    kiloSendChat(code, true);
+    btn.textContent = '✅ Trimis';
+    setTimeout(function(){ btn.textContent = '▶ Execută Kilo'; }, 2000);
+    return;
+  }
   // Daca VPS e conectat → executa real via SSH
   if (vpsConfig && vpsConfig.host) {
     btn.textContent = '⏳ Execut...';
