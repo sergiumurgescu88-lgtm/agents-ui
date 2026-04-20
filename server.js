@@ -538,7 +538,7 @@ app.post('/api/chat', async (req, res) => {
   const uid = userId || 'anonymous';
   const limitInfo = checkLimit(uid);
   const userVps = req.app.locals.vpsConfig?.[uid];
-  const vpsContext = userVps ? `\n\n━━━ VPS CONECTAT AL USERULUI ━━━\nHost: ${userVps.host}\nUser: ${userVps.username}\nPort: ${userVps.port || 22}\nFolosește ÎNTOTDEAUNA acest VPS când generezi comenzi de deploy/install/run. Nu mai întreba de VPS.` : '';
+  const vpsContext = userVps ? `\n\n━━━ VPS CONECTAT AL USERULUI ━━━\nHost: ${userVps.host}\nUser: ${userVps.username}\nPort: ${userVps.port || 22}\nKilo CLI este DEJA conectat SSH la acest VPS. NU genera comenzi cu 'ssh root@...' — Kilo execută direct bash pe server.\nGenerează DOAR comenzile bash simple (fără ssh prefix), Kilo le trimite automat pe VPS.` : '';
   
   if (!limitInfo.allowed) {
     return res.json({
