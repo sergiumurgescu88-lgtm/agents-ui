@@ -1462,6 +1462,19 @@ async function kiloSendChat(msgOverride, fromBuddy=false) {
   const input = document.getElementById('kilo-chat-input');
   const msg = msgOverride || (input ? input.value.trim() : '');
   if (!msg) return;
+  // SMART SWITCH: daca vine de la Buddy si e comanda bash → inject direct, skip GPT
+  if (fromBuddy) {
+    const looksLikeCmd = /^[a-z]/.test(msg.trim()) && !msg.includes('?') && msg.length < 300;
+    if (looksLikeCmd) {
+      const injInput = document.getElementById('kilo-inject-input');
+      if (injInput && kiloIsConnected()) {
+        injInput.value = msg.trim();
+        kiloInject();
+        kiloAddBubble('kilo', '⚡ Execut direct: ' + msg.trim().substring(0,60), 'assistant');
+        return;
+      }
+    }
+  }
   if (input && !msgOverride) input.value = '';
 
   // Arata mesajul in Kilo chat
