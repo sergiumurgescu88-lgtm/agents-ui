@@ -1852,10 +1852,14 @@ function kiloToggle() {
   if (!ov) return;
   if (ov.classList.contains('active')) {
     ov.classList.remove('active');
-    if (btn) { btn.style.color='#00ff87'; btn.style.borderColor='#00ff8766'; btn.textContent='⚡ Kilo'; }
+    if (btn) { btn.style.color='#00ff87'; btn.style.background='none'; btn.style.borderColor='#00ff8766'; btn.textContent='⚡ Kilo'; }
   } else {
     ov.classList.add('active');
     if (btn) { btn.style.color='#000'; btn.style.background='#00ff87'; btn.style.borderColor='#00ff87'; btn.textContent='✕ Kilo'; }
+    // Initializeaza terminalul WebSocket daca nu e activ
+    if (!kiloWS || kiloWS.readyState !== WebSocket.OPEN) {
+      kiloOpen('');
+    }
   }
 }
 function kiloClose() {
