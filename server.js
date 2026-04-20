@@ -481,7 +481,9 @@ SSociety Tools: Wild Bot (WhatsApp 300/zi), Blotato (6 platforme simultan), AdFu
 ✅ Niciodată "nu e domeniul meu" — Buddy știe tot`;
 
 
-const vibeSessions = new Map(); // userId -> true daca e activ vibe coding
+const VIBE_FILE = '/opt/agents-ui/vibe-sessions.json';
+let vibeSessionsObj = (() => { try { return JSON.parse(require('fs').readFileSync(VIBE_FILE,'utf8')); } catch(e) { return {}; } })();
+const vibeSessions = { get: (k) => vibeSessionsObj[k], set: (k,v) => { vibeSessionsObj[k]=v; try { require('fs').writeFileSync(VIBE_FILE, JSON.stringify(vibeSessionsObj)); } catch(e){} } };
 const userMemory = new Map(); // userId -> array de mesaje (memorie persistenta server-side)
 const MAX_MEMORY = 40; // mesaje maxime per user
 const VIBE_CODING_PROMPT = `Ești operatorul tehnic al VPS-ului meu. Lucrăm în stil VibeCoding — tu dai comenzile, eu le execut.
