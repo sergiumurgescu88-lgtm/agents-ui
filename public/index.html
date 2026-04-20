@@ -509,7 +509,7 @@ body.mode-marketing #send-btn{color:#fff;}
 #kilo-chat-input{flex:1;background:#0d1117;border:1px solid #30363d;color:#e6edf3;padding:7px 12px;border-radius:7px;font-family:'Space Mono',monospace;font-size:12px;outline:none;}
 #kilo-chat-input:focus{border-color:#00ff87;}
 #kilo-chat-send{background:#00ff87;color:#000;border:none;padding:7px 14px;border-radius:7px;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;}
-#kilo-terminal-section{height:45%;display:flex;flex-direction:column;min-height:120px;}
+#kilo-terminal-section{height:45%;display:flex;flex-direction:column;min-height:180px;}#kilo-xterm-container{flex:1;min-height:150px;overflow:hidden;padding:4px;background:#0d1117;}
 #kilo-terminal-label{padding:4px 16px;background:#0a0f14;font-family:'Space Mono',monospace;font-size:10px;color:#00ff8788;border-bottom:1px solid #30363d;letter-spacing:2px;}
 #app{flex:1;min-width:0;display:flex;flex-direction:column;height:100dvh;overflow:hidden;}
 @media(max-width:700px){
@@ -1805,7 +1805,7 @@ function kiloOpen(initialPrompt) {
       fontSize: 13,
       fontFamily: "'Space Mono','Courier New',monospace",
       theme: { background:'#0d1117', foreground:'#e6edf3', cursor:'#00ff87' },
-      scrollback: 5000, cols: 120, rows: 20
+      scrollback: 5000, cols: 80, rows: 10
     });
     kiloFitAddon = new FitAddon.FitAddon();
     kiloTerm.loadAddon(kiloFitAddon);
