@@ -996,42 +996,7 @@ app.post('/api/ssh-agent', async (req, res) => {
   );
 });
 
-// SSE endpoint pentru kilo local
-app.get('/api/kilo-stream', (req, res) => {
-  const prompt = req.query.prompt || '';
-  if (!prompt) return res.status(400).end();
 
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.flushHeaders();
-
-  const send = (type, data) => {
-    try { res.write('data: ' + JSON.stringify({ type, data }) + '\n\n'); } catch(e) {}
-  };
-
-  kiloChat(prompt, null).then(reply => {
-    if (reply) {
-      // Simuleaza streaming token cu token
-      const words = reply.split(' ');
-      let i = 0;
-      const interval = setInterval(() => {
-        if (i < words.length) {
-          send('token', words[i] + ' ');
-          i++;
-        } else {
-          clearInterval(interval);
-          send('done', '✅ Gata.');
-          res.end();
-        }
-      }, 30);
-    } else {
-      send('error', '❌ Nu am primit răspuns');
-      res.end();
-    }
-  });
-});
 
 
 const PORT = process.env.PORT || 7900;
