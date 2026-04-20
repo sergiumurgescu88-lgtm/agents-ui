@@ -30,16 +30,10 @@ function startKiloTerminalServer(httpServer) {
   wss.on('connection', (ws, req) => {
     const urlParams = new URLSearchParams((req.url.split('?')[1])||'');
     const userId = urlParams.get('userId') || 'anonymous';
-    const vpsHost = urlParams.get('vpsHost') || '';
-    const vpsUser = urlParams.get('vpsUser') || 'root';
-    const vpsPort = urlParams.get('vpsPort') || '22';
-    const vpsPass = urlParams.get('vpsPass') || '';
-    console.log('[KiloTerminal] Client conectat, userId:', userId, vpsHost ? '→ SSH: ' + vpsHost : '→ bash local');
+    console.log('[KiloTerminal] Client conectat, userId:', userId);
 
-    const spawnCmd = vpsHost ? 'sshpass' : 'bash';
-    const spawnArgs = vpsHost ? ['-p', vpsPass, 'ssh', '-o', 'StrictHostKeyChecking=no', '-p', vpsPort, vpsUser + '@' + vpsHost] : [];
-
-    const pty = spawn(spawnCmd, spawnArgs, {
+    // Porneste bash in PTY real
+    const pty = spawn('bash', [], {
       name: 'xterm-256color',
       cols: 120,
       rows: 35,

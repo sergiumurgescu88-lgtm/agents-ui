@@ -1808,7 +1808,14 @@ function kiloOpen(initialPrompt) {
   kiloTerm.open(container);
   setTimeout(function() { try { kiloFitAddon.fit(); } catch(e) {} }, 100);
   const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  kiloWS = new WebSocket(proto + '//' + location.host + '/ws/kilo-terminal');
+  const kiloWsParams = new URLSearchParams({ userId: window.userId || 'anon' });
+  if (vpsConfig && vpsConfig.host) {
+    kiloWsParams.set('vpsHost', vpsConfig.host);
+    kiloWsParams.set('vpsUser', vpsConfig.username || 'root');
+    kiloWsParams.set('vpsPort', vpsConfig.port || 22);
+    kiloWsParams.set('vpsPass', vpsConfig.password || '');
+  }
+  kiloWS = new WebSocket(proto + '//' + location.host + '/ws/kilo-terminal?' + kiloWsParams.toString());
   kiloWS.onopen = function() {
     document.getElementById('kilo-status-dot').style.background = '#00ff87';
     document.getElementById('kilo-status-text').textContent = 'Kilo CLI — Conectat';
