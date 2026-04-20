@@ -1438,8 +1438,7 @@ async function csMusic() {
 }
 
 function kiloIsConnected() {
-  const s = document.getElementById('kilo-status-dot');
-  return s && s.style.background === 'rgb(0, 255, 135)';
+  return kiloWS && kiloWS.readyState === WebSocket.OPEN;
 }
 
 // ── KILO CHAT ────────────────────────────────────────────────────────────────
