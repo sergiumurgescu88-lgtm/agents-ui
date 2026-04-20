@@ -1512,6 +1512,10 @@ async function kiloSendChat(msgOverride, fromBuddy=false) {
 }
 
 // Bridge: Buddy trimite task la Kilo cu rezumat
+window.buddyReceiveKiloReply = function(text) {
+  appendMsg('assistant', '⚡ Kilo: ' + text, 'Kilo', currentMode, null, null);
+};
+
 window.buddySendToKilo = function(fullText) {
   // Extrage esența — max 400 chars
   const summary = fullText.length > 400
