@@ -1,24 +1,6 @@
 const { spawn } = require('node-pty');
 const WebSocket = require('ws');
 
-const kiloSessions = new Map();
-function getKiloSession(userId) { return kiloSessions.get(userId) || null; }
-function runCommandInKilo(userId, command) {
-  return new Promise((resolve) => {
-    const session = kiloSessions.get(userId);
-    if (!session || !session.pty) return resolve('❌ Kilo nu e conectat');
-    let output = '';
-    const timeout = setTimeout(() => resolve(output || '(timeout)'), 15000);
-    session.onOutput = (data) => {
-      output += data;
-      if (data.includes('$') || data.includes('>') || data.includes('✓') || data.includes('error')) {
-        clearTimeout(timeout); session.onOutput = null; resolve(output);
-      }
-    };
-    session.pty.write(command + '\n');
-  });
-}
-
 function startKiloTerminalServer(httpServer) {
   const wss = new WebSocket.Server({ 
     server: httpServer, 
@@ -28,9 +10,7 @@ function startKiloTerminalServer(httpServer) {
   console.log('[KiloTerminal] WebSocket server pornit pe /ws/kilo-terminal');
 
   wss.on('connection', (ws, req) => {
-    const urlParams = new URLSearchParams((req.url.split('?')[1])||'');
-    const userId = urlParams.get('userId') || 'anonymous';
-    console.log('[KiloTerminal] Client conectat, userId:', userId);
+    console.log('[KiloTerminal] Client conectat');
 
     // Porneste kilo CLI in PTY real
     const pty = spawn('kilo', [], {
@@ -47,11 +27,9 @@ function startKiloTerminalServer(httpServer) {
     });
 
     console.log('[KiloTerminal] Kilo PTY pornit, PID:', pty.pid);
-    kiloSessions.set(userId, { pty, onOutput: null, ws });
 
     // Output PTY → Browser
     pty.onData((data) => {
-      const s = kiloSessions.get(userId); if (s && s.onOutput) s.onOutput(data);
       try { ws.send(JSON.stringify({ type: 'output', data })); } catch(e) {}
     });
 
@@ -86,7 +64,6 @@ function startKiloTerminalServer(httpServer) {
 
     ws.on('close', () => {
       console.log('[KiloTerminal] Client deconectat');
-      kiloSessions.delete(userId);
       try { pty.kill(); } catch(e) {}
     });
 
@@ -97,4 +74,4 @@ function startKiloTerminalServer(httpServer) {
   });
 }
 
-module.exports = { startKiloTerminalServer, getKiloSession, runCommandInKilo, kiloSessions };
+module.exports = { startKiloTerminalServer };

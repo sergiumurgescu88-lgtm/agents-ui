@@ -1,7 +1,7 @@
 require('dotenv').config({ path: '/opt/agents-ui/.env' });
 const { kiloChat, sshExecuteStream, kiloGenerateCommands } = require('./kilo-bridge');
 const creator = require('./gemini-creator');
-const { startKiloTerminalServer } = require('./kilo-terminal-server');
+const { startKiloTerminalServer, runCommandInKilo } = require('./kilo-terminal-server');
 const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const express = require('express');
@@ -35,6 +35,15 @@ app.get('/api/auth/me', (req, res) => proxyAuth('/api/auth/me', req, res));
 // PIPELINE ROUTES INLINE
 const Database = require('better-sqlite3');
 const _pdb = new Database('/opt/agents-ui/pipeline.db');
+// ── BUDDY → KILO BRIDGE ─────────────────────────────────────────────────────
+app.post('/api/kilo/run', async (req, res) => {
+  const { command, userId } = req.body;
+  if (!command) return res.json({ success:false, error:'No command' });
+  const uid = userId || 'anonymous';
+  const output = await runCommandInKilo(uid, command);
+  res.json({ success:true, output });
+});
+
 app.post('/api/pipeline/save', (req, res) => {
   try {
     const { userId, step, data, sessionId } = req.body;
