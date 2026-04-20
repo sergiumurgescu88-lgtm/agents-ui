@@ -1451,7 +1451,9 @@ function kiloAddBubble(sender, text, type='assistant') {
   const div = document.createElement('div');
   div.className = 'kilo-msg ' + type;
   const senderLabel = sender === 'buddy' ? '🤖 BUDDY → KILO' : sender === 'you' ? '👤 TU' : '⚡ KILO';
-  div.innerHTML = '<div class="kilo-sender">' + senderLabel + '</div>' + text.replace(/\n/g,'<br>');
+  const kMsgId = 'kmsg_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  const copyBtn = '<button onclick="navigator.clipboard.writeText(document.getElementById(\'' + kMsgId + '\').innerText).then(function(){var b=document.getElementById(\'cb_'+kMsgId+'\');b.textContent=\'✓\';b.style.color=\'#00ff87\';setTimeout(function(){b.textContent=\'⎘\';b.style.color=\'#aaa\';},1500);})" id="cb_'+kMsgId+'" title="Copiază" style="float:right;background:none;border:none;cursor:pointer;color:#aaa;font-size:16px;padding:2px 6px;opacity:0.8;">⎘</button>';
+  div.innerHTML = '<div class="kilo-sender">' + senderLabel + copyBtn + '</div><div id="' + kMsgId + '">' + text.replace(/\n/g,'<br>') + '</div>';
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 }
