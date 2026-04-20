@@ -2,6 +2,25 @@ require('dotenv').config({ path: '/opt/agents-ui/.env' });
 const { kiloChat, sshExecuteStream, kiloGenerateCommands } = require('./kilo-bridge');
 const creator = require('./gemini-creator');
 const { startKiloTerminalServer, runCommandInKilo } = require('./kilo-terminal-server');
+const ssh2 = require('ssh2');
+
+async function readVpsContext(vpsConfig) {
+  return new Promise((resolve) => {
+    const conn = new ssh2.Client();
+    const timeout = setTimeout(() => { try { conn.end(); } catch(e){} resolve(''); }, 8000);
+    conn.on('ready', () => {
+      const cmds = 'echo "=PKG="; cat package.json 2>/dev/null | head -30; echo "=TREE="; find . -maxdepth 2 -not -path "*/node_modules/*" -not -path "*/.git/*" 2>/dev/null | head -40; echo "=ENV="; cat .env.example 2>/dev/null || cat .env 2>/dev/null | grep -v PASSWORD | grep -v SECRET | head -20';
+      conn.exec(cmds, (err, stream) => {
+        if (err) { clearTimeout(timeout); conn.end(); return resolve(''); }
+        let out = '';
+        stream.on('data', d => out += d.toString());
+        stream.on('close', () => { clearTimeout(timeout); conn.end(); resolve(out.slice(0, 2000)); });
+      });
+    });
+    conn.on('error', () => { clearTimeout(timeout); resolve(''); });
+    conn.connect({ host: vpsConfig.host, port: vpsConfig.port||22, username: vpsConfig.username, password: vpsConfig.password, readyTimeout: 6000 });
+  });
+}
 const Stripe = require('stripe');
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const express = require('express');
@@ -507,7 +526,12 @@ app.post('/api/chat', async (req, res) => {
 
     // Detecteaza 'vibe cod' si activeaza modul pana la refresh (per userId)
     if (/vibe.?cod/i.test(lower)) { vibeSessions.set(uid, true); }
-    const activePrompt = vibeSessions.get(uid) ? VIBE_CODING_PROMPT : SYSTEM_PROMPT + (vpsContext || '');
+    let vpsFileContext = '';
+    if (userVps && /cod|build|proiect|deploy|server|node|python|script|api|app/i.test(lower)) {
+      vpsFileContext = await readVpsContext(userVps).catch(() => '');
+      if (vpsFileContext) vpsFileContext = '\n\n━━━ CONTEXT PROIECT DE PE VPS ━━━\n' + vpsFileContext;
+    }
+    const activePrompt = vibeSessions.get(uid) ? VIBE_CODING_PROMPT : SYSTEM_PROMPT + (vpsContext || '') + (vpsFileContext || '');
     // Memorie server-side: merge istoricul browserului cu memoria serverului
     const serverHistory = userMemory.get(uid) || [];
     const lastUserMsg = messages[messages.length-1];
