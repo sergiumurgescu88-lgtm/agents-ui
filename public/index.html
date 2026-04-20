@@ -1842,7 +1842,7 @@ function kiloOpen(initialPrompt) {
               .replace(/\[\?[0-9]+[hl]/g, '')
               .replace(/\[\d+m/g, '')
               .replace(/</g, '&lt;');
-            c.innerHTML += clean;
+            c.innerHTML += clean + '<div style="border-top:1px solid #00ff8755;margin:6px 0 2px 0;"></div>';
             c.scrollTop = c.scrollHeight;
           }
         }
