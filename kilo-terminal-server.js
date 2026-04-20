@@ -32,8 +32,8 @@ function startKiloTerminalServer(httpServer) {
     const userId = urlParams.get('userId') || 'anonymous';
     console.log('[KiloTerminal] Client conectat, userId:', userId);
 
-    // Porneste kilo CLI in PTY real
-    const pty = spawn('kilo', [], {
+    // Porneste bash in PTY real
+    const pty = spawn('bash', [], {
       name: 'xterm-256color',
       cols: 120,
       rows: 35,
@@ -46,7 +46,7 @@ function startKiloTerminalServer(httpServer) {
       }
     });
 
-    console.log('[KiloTerminal] Kilo PTY pornit, PID:', pty.pid);
+    console.log('[KiloTerminal] Bash PTY pornit, PID:', pty.pid);
     kiloSessions.set(userId, { pty, onOutput: null, ws });
 
     // Output PTY → Browser
