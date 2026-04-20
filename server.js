@@ -63,6 +63,38 @@ app.post('/api/kilo/run', async (req, res) => {
   res.json({ success:true, output });
 });
 
+// ── KILO CHAT — GPT-4 cu istoric ─────────────────────────────────────────────
+app.post('/api/kilo/chat', async (req, res) => {
+  const { messages, userId } = req.body;
+  if (!messages || !messages.length) return res.json({ reply: 'No messages' });
+  try {
+    const axios = require('axios');
+    const systemPrompt = `Ești Kilo, un agent AI de execuție tehnic ultra-performant.
+Lucrezi în tandem cu Buddy (un agent Claude în română).
+Buddy îți trimite task-uri tehnice — tu analizezi, generezi comenzi bash precise, explici pe scurt.
+Răspunzi ÎNTOTDEAUNA în română.
+Când generezi comenzi de executat pe server → le pui în bloc \`\`\`bash ... \`\`\`.
+Ești concis, tehnic, precis. Zero explicații inutile.`;
+
+    const r = await axios.post('https://api.openai.com/v1/chat/completions', {
+      model: 'gpt-4.1',
+      messages: [{ role: 'system', content: systemPrompt }, ...messages],
+      max_tokens: 2048
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      timeout: 30000
+    });
+    const reply = r.data?.choices?.[0]?.message?.content || 'Kilo nu a răspuns';
+    res.json({ reply });
+  } catch(e) {
+    console.error('[Kilo Chat]', e.response?.data?.error?.message || e.message);
+    res.json({ reply: '❌ Eroare Kilo: ' + (e.response?.data?.error?.message || e.message) });
+  }
+});
+
 app.post('/api/pipeline/save', (req, res) => {
   try {
     const { userId, step, data, sessionId } = req.body;

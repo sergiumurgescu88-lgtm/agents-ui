@@ -492,9 +492,25 @@ body.mode-marketing #send-btn{color:#fff;}
 <style>
 /* SPLIT VIEW - Kilo panel lateral */
 #split-root{display:flex;flex-direction:row;height:100dvh;width:100vw;overflow:hidden;}
-#kilo-overlay{display:none;width:420px;min-width:320px;max-width:50vw;height:100dvh;background:#0d1117;border-left:2px solid #00ff87;flex-direction:column;flex-shrink:0;box-shadow:-4px 0 40px rgba(0,255,135,0.15);}
+#kilo-overlay{display:none;width:45vw;min-width:340px;max-width:55vw;height:100dvh;background:#0d1117;border-left:2px solid #00ff87;flex-direction:column;flex-shrink:0;box-shadow:-4px 0 40px rgba(0,255,135,0.15);}
 #kilo-overlay.active{display:flex;}
 #kilo-window{display:flex;flex-direction:column;height:100%;width:100%;}
+#kilo-chat-section{flex:1;display:flex;flex-direction:column;min-height:0;border-bottom:2px solid #00ff8744;}
+#kilo-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+#kilo-messages::-webkit-scrollbar{width:4px;}
+#kilo-messages::-webkit-scrollbar-track{background:#0d1117;}
+#kilo-messages::-webkit-scrollbar-thumb{background:#00ff8744;border-radius:2px;}
+.kilo-msg{max-width:85%;padding:10px 14px;border-radius:14px;font-size:13px;line-height:1.6;word-break:break-word;font-family:'Space Mono',monospace;}
+.kilo-msg.user{background:#1a2744;border:1px solid #00d4ff44;align-self:flex-end;color:#e6edf3;border-bottom-right-radius:4px;}
+.kilo-msg.assistant{background:#111c11;border:1px solid #00ff8744;align-self:flex-start;color:#00ff87;border-bottom-left-radius:4px;}
+.kilo-msg.buddy-relay{background:#1a1200;border:1px solid #f59e0b44;align-self:flex-start;color:#f59e0b;border-bottom-left-radius:4px;}
+.kilo-msg .kilo-sender{font-size:10px;font-weight:700;margin-bottom:4px;opacity:0.7;letter-spacing:1px;}
+#kilo-chat-input-row{display:flex;align-items:center;gap:8px;padding:10px 12px;background:#161b22;border-top:1px solid #30363d;}
+#kilo-chat-input{flex:1;background:#0d1117;border:1px solid #30363d;color:#e6edf3;padding:7px 12px;border-radius:7px;font-family:'Space Mono',monospace;font-size:12px;outline:none;}
+#kilo-chat-input:focus{border-color:#00ff87;}
+#kilo-chat-send{background:#00ff87;color:#000;border:none;padding:7px 14px;border-radius:7px;font-family:'Space Mono',monospace;font-size:12px;font-weight:700;cursor:pointer;}
+#kilo-terminal-section{height:45%;display:flex;flex-direction:column;min-height:120px;}
+#kilo-terminal-label{padding:4px 16px;background:#0a0f14;font-family:'Space Mono',monospace;font-size:10px;color:#00ff8788;border-bottom:1px solid #30363d;letter-spacing:2px;}
 #app{flex:1;min-width:0;display:flex;flex-direction:column;height:100dvh;overflow:hidden;}
 @media(max-width:700px){
   #split-root{flex-direction:column;}
@@ -633,7 +649,19 @@ async function feelingLucky() {
       <span id="kilo-status-text">Inițializare...</span>
       <span style="margin-left:auto;color:#00d4ff;font-size:11px">ESC = închide</span>
     </div>
-    <div id="kilo-xterm-container"></div>
+    <!-- KILO CHAT SECTION -->
+    <div id="kilo-chat-section">
+      <div id="kilo-messages"></div>
+      <div id="kilo-chat-input-row">
+        <input id="kilo-chat-input" placeholder="mesaj către Kilo..." onkeydown="if(event.key==='Enter')kiloSendChat()" />
+        <button id="kilo-chat-send" onclick="kiloSendChat()">▶ Send</button>
+      </div>
+    </div>
+    <!-- KILO TERMINAL SECTION -->
+    <div id="kilo-terminal-section">
+      <div id="kilo-terminal-label">⚡ TERMINAL — EXECUȚIE LIVE</div>
+      <div id="kilo-xterm-container"></div>
+    </div>
     <div id="kilo-inject-row">
       <span style="color:#00ff87;font-family:Space Mono,monospace;font-size:12px">inject ▸</span>
       <input id="kilo-inject-input" placeholder="trimite prompt direct în Kilo..." />
@@ -1412,6 +1440,72 @@ function kiloIsConnected() {
   const s = document.getElementById('kilo-status-dot');
   return s && s.style.background === 'rgb(0, 255, 135)';
 }
+
+// ── KILO CHAT ────────────────────────────────────────────────────────────────
+const kiloHistory = [];
+
+function kiloAddBubble(sender, text, type='assistant') {
+  const box = document.getElementById('kilo-messages');
+  if (!box) return;
+  const div = document.createElement('div');
+  div.className = 'kilo-msg ' + type;
+  const senderLabel = sender === 'buddy' ? '🤖 BUDDY → KILO' : sender === 'you' ? '👤 TU' : '⚡ KILO';
+  div.innerHTML = '<div class="kilo-sender">' + senderLabel + '</div>' + text.replace(/\n/g,'<br>');
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+
+async function kiloSendChat(msgOverride, fromBuddy=false) {
+  const input = document.getElementById('kilo-chat-input');
+  const msg = msgOverride || (input ? input.value.trim() : '');
+  if (!msg) return;
+  if (input && !msgOverride) input.value = '';
+
+  // Arata mesajul in Kilo chat
+  kiloAddBubble(fromBuddy ? 'buddy' : 'you', msg, fromBuddy ? 'buddy-relay' : 'user');
+  kiloHistory.push({ role: 'user', content: msg });
+
+  // Asigura ca panelul Kilo e vizibil
+  const ov = document.getElementById('kilo-overlay');
+  if (ov && !ov.classList.contains('active')) ov.classList.add('active');
+
+  // Trimite la server → GPT-4
+  try {
+    const res = await fetch('/api/kilo/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: kiloHistory, userId: window.userId || 'anon' })
+    });
+    const data = await res.json();
+    const reply = data.reply || '❌ Kilo nu a răspuns';
+    kiloHistory.push({ role: 'assistant', content: reply });
+    kiloAddBubble('kilo', reply, 'assistant');
+
+    // Dacă reply-ul conține comenzi bash → le trimite automat în terminal
+    const bashMatch = reply.match(/```(?:bash|sh)\n([\s\S]*?)```/);
+    if (bashMatch && kiloIsConnected()) {
+      const cmd = bashMatch[1].trim();
+      const injInput = document.getElementById('kilo-inject-input');
+      if (injInput) { injInput.value = cmd; kiloInject(); }
+    }
+
+    // Trimite rezumat înapoi la Buddy dacă e nevoie
+    if (fromBuddy && window.buddyReceiveKiloReply) {
+      window.buddyReceiveKiloReply(reply);
+    }
+  } catch(e) {
+    kiloAddBubble('kilo', '❌ Eroare conexiune Kilo: ' + e.message, 'assistant');
+  }
+}
+
+// Bridge: Buddy trimite task la Kilo cu rezumat
+window.buddySendToKilo = function(fullText) {
+  // Extrage esența — max 400 chars
+  const summary = fullText.length > 400
+    ? '📋 Rezumat task:\n' + fullText.substring(0, 400) + '...'
+    : fullText;
+  kiloSendChat(summary, true);
+};
 
 async function sendToKilo(btn) {
   const code = btn.closest('.code-header').nextElementSibling.querySelector('code').textContent.trim();
