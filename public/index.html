@@ -1406,7 +1406,6 @@ async function csMusic() {
     else el.innerHTML = '❌ ' + (d.error || 'Eroare');
   } catch(e) { el.innerHTML = '❌ ' + e.message; }
 }
-function togglePopup() { const p = document.getElementById('qa-popup'); p.style.display = p.style.display === 'block' ? 'none' : 'block'; }
 
 function kiloIsConnected() {
   const s = document.getElementById('kilo-status-dot');
