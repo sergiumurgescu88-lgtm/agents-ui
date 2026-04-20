@@ -1489,6 +1489,16 @@ async function kiloSendChat(msgOverride, fromBuddy=false) {
     if (bashMatch && kiloIsConnected()) {
       const cmd = bashMatch[1].trim();
       const injInput = document.getElementById('kilo-inject-input');
+      if (fromBuddy) {
+        var termBefore = document.getElementById('kilo-xterm-container') ? document.getElementById('kilo-xterm-container').innerText : '';
+        setTimeout(function() {
+          var c = document.getElementById('kilo-xterm-container');
+          var newOutput = c ? c.innerText.slice(termBefore.length).trim() : '';
+          if (newOutput && window.buddyReceiveKiloReply) {
+            window.buddyReceiveKiloReply('Terminal output:\n' + newOutput.slice(0, 1000));
+          }
+        }, 5000);
+      }
       if (injInput) { injInput.value = cmd; kiloInject(); }
     }
 
