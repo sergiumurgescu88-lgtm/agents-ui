@@ -259,7 +259,7 @@ body.mode-marketing #buddy-name{letter-spacing:.04em;}
 /* ── INPUT AREA ── */
 #input-area{
   flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);
-  padding:8px 10px;padding-bottom:calc(8px + var(--safe-bot));margin-bottom:38px;
+  padding:8px 10px;padding-bottom:calc(8px + var(--safe-bot));margin-bottom:76px;
   transition:background .4s,border-color .4s;
 }
 
@@ -788,12 +788,12 @@ async function feelingLucky() {
     </div>
     <div id="input-row">
       <input id="file-input" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.json,.md,.txt,.png,.jpg,.jpeg,.webp,.gif" style="display:none;" onchange="handleFileAttach(this)">
-      <button id="file-btn" onclick="document.getElementById('file-input').click()" title="Atașează fișier">📎</button>
       <div id="input-wrap">
         <textarea id="input" placeholder="Scrie un mesaj..." rows="1"></textarea>
         <div id="file-preview" style="display:none;padding:4px 8px;background:#111;border:1px solid #333;border-radius:8px;margin-top:4px;font-size:11px;color:#aaa;display:flex;align-items:center;gap:8px;flex-wrap:wrap;"></div>
       </div>
       <button id="voice-btn" onclick="toggleVoice()" title="Comandă vocală">🎙️</button>
+      <button id="file-btn" onclick="document.getElementById('file-input').click()" title="Atașează fișier">📎</button>
       <button id="lucky-btn" onclick="feelingLucky()" title="I'm Feeling Lucky">🍀</button>
       <button id="send-btn" onclick="sendMessage()">➤</button>
     </div>
