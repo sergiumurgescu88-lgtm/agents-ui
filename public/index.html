@@ -495,8 +495,8 @@ body.mode-marketing #send-btn{color:#fff;}
 #kilo-overlay{display:none;width:45vw;min-width:340px;max-width:55vw;height:100dvh;background:#0d1117;border-left:2px solid #00ff87;flex-direction:column;flex-shrink:0;box-shadow:-4px 0 40px rgba(0,255,135,0.15);}
 #kilo-overlay.active{display:flex;}
 #kilo-window{display:flex;flex-direction:column;height:100%;width:100%;}
-#kilo-chat-section{flex:1;display:flex;flex-direction:column;min-height:0;border-bottom:2px solid #00ff8744;}
-#kilo-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+#kilo-chat-section{flex:1;display:flex;flex-direction:column;min-height:200px;border-bottom:2px solid #00ff8744;overflow:hidden;}
+#kilo-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0;}
 #kilo-messages::-webkit-scrollbar{width:4px;}
 #kilo-messages::-webkit-scrollbar-track{background:#0d1117;}
 #kilo-messages::-webkit-scrollbar-thumb{background:#00ff8744;border-radius:2px;}
@@ -698,6 +698,7 @@ async function feelingLucky() {
       </div>
       <button onclick="var r=document.getElementById('premium-row');r.style.display=r.style.display==='none'?'flex':'none';" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;" title="Oferte">🎯</button>
       <button id="btn-vps" onclick="openVpsModal()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;" title="Conectează VPS">🖥️</button>
+      <button id="btn-kilo" onclick="kiloToggle()" style="background:none;border:1px solid #00ff8766;border-radius:7px;color:#00ff87;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;font-family:'Space Mono',monospace;font-weight:700;" title="Deschide Kilo">⚡ Kilo</button>
       <button id="btn-export" onclick="exportChat()" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;">💾</button>
       <a href="https://ssociety.eu/" target="_blank" style="background:none;border:1px solid #333;border-radius:7px;color:#aaa;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center;">📊</a>
       <a href="https://daromania.online" target="_blank" style="background:none;border:1px solid #a855f6;border-radius:7px;color:#a855f6;padding:4px 7px;font-size:12px;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center;" title="Daromania">🤖</a>
@@ -1845,6 +1846,18 @@ function kiloOpen(initialPrompt) {
   setTimeout(function() { kiloTerm.focus(); }, 300);
 }
 
+function kiloToggle() {
+  const ov = document.getElementById('kilo-overlay');
+  const btn = document.getElementById('btn-kilo');
+  if (!ov) return;
+  if (ov.classList.contains('active')) {
+    ov.classList.remove('active');
+    if (btn) { btn.style.color='#00ff87'; btn.style.borderColor='#00ff8766'; btn.textContent='⚡ Kilo'; }
+  } else {
+    ov.classList.add('active');
+    if (btn) { btn.style.color='#000'; btn.style.background='#00ff87'; btn.style.borderColor='#00ff87'; btn.textContent='✕ Kilo'; }
+  }
+}
 function kiloClose() {
   document.getElementById('kilo-overlay').classList.remove('active');
   if (kiloWS) { kiloWS.close(); kiloWS = null; }
