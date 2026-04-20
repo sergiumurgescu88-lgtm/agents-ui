@@ -1787,104 +1787,77 @@ function openKiloTerminal(promptEncoded) {
 let kiloTerm = null, kiloWS = null, kiloFitAddon = null;
 
 function kiloOpen(initialPrompt) {
-  document.getElementById('kilo-overlay').classList.add('active');
-  document.getElementById('kilo-status-text').textContent = 'Conectare...';
-  if (kiloTerm) { kiloTerm.dispose(); kiloTerm = null; }
-  if (kiloWS) { kiloWS.close(); kiloWS = null; }
-  kiloTerm = new Terminal({
-    cursorBlink: true,
-    fontSize: window.innerWidth < 600 ? 11 : 14,
-    fontFamily: "'Space Mono','Courier New',monospace",
-    theme: {
-      background: '#0d1117', foreground: '#e6edf3', cursor: '#00ff87',
-      selectionBackground: 'rgba(0,255,135,0.3)'
-    },
-    scrollback: 5000, cols: window.innerWidth < 600 ? 45 : 100, rows: window.innerWidth < 600 ? 28 : 32
-  });
-  kiloFitAddon = new FitAddon.FitAddon();
-  kiloTerm.loadAddon(kiloFitAddon);
-  const container = document.getElementById('kilo-xterm-container');
-  container.innerHTML = '';
-  kiloTerm.open(container);
-  setTimeout(function() { try { kiloFitAddon.fit(); } catch(e) {} }, 100);
-  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const kiloWsParams = new URLSearchParams({ userId: window.userId || 'anon' });
-  if (vpsConfig && vpsConfig.host) {
-    kiloWsParams.set('vpsHost', vpsConfig.host);
-    kiloWsParams.set('vpsUser', vpsConfig.username || 'root');
-    kiloWsParams.set('vpsPort', vpsConfig.port || 22);
-    kiloWsParams.set('vpsPass', vpsConfig.password || '');
-  }
-  kiloWS = new WebSocket(proto + '//' + location.host + '/ws/kilo-terminal?' + kiloWsParams.toString());
-  kiloWS.onopen = function() {
-    document.getElementById('kilo-status-dot').style.background = '#00ff87';
-    // Trimite config VPS ca primul mesaj
-    const cfgMsg = { type: 'config', vps: null };
-    if (vpsConfig && vpsConfig.host) {
-      cfgMsg.vps = {
-        host: vpsConfig.host,
-        username: vpsConfig.username || 'root',
-        password: vpsConfig.password || '',
-        port: vpsConfig.port || 22
-      };
-      document.getElementById('kilo-status-text').textContent = 'Kilo CLI — SSH: ' + vpsConfig.host;
-    } else {
-      document.getElementById('kilo-status-text').textContent = 'Kilo CLI — Conectat (local)';
-    }
-    kiloWS.send(JSON.stringify(cfgMsg));
-    if (initialPrompt) {
-      setTimeout(function() {
-        kiloWS.send(JSON.stringify({type: 'inject', data: initialPrompt}));
-      }, 2000);
-    }
-  };
-  kiloWS.onmessage = function(e) {
-    const msg = JSON.parse(e.data);
-    if (msg.type === 'output') {
-      if (!kiloTerm) {
-        // xterm nu e inca randat — reinitializeaza
-        const container = document.getElementById('kilo-xterm-container');
-        if (container) {
-          kiloTerm = new Terminal({
-            cursorBlink: true, fontSize: 13,
-            fontFamily: "'Space Mono','Courier New',monospace",
-            theme: { background:'#0d1117', foreground:'#e6edf3', cursor:'#00ff87' },
-            scrollback: 5000, cols: 120, rows: 20
-          });
-          kiloFitAddon = new FitAddon.FitAddon();
-          kiloTerm.loadAddon(kiloFitAddon);
-          container.innerHTML = '';
-          kiloTerm.open(container);
-          setTimeout(function(){ try { kiloFitAddon.fit(); } catch(e){} }, 100);
-          kiloTerm.onData(function(data) {
-            if (kiloWS && kiloWS.readyState === WebSocket.OPEN)
-              kiloWS.send(JSON.stringify({type:'input', data}));
-          });
+  // Curata sesiunea anterioara
+  if (kiloWS) { try { kiloWS.close(); } catch(e) {} kiloWS = null; }
+  if (kiloTerm) { try { kiloTerm.dispose(); } catch(e) {} kiloTerm = null; }
+
+  const overlay = document.getElementById('kilo-overlay');
+  if (overlay) overlay.classList.add('active');
+
+  // Initializeaza xterm dupa 200ms ca sa fie DOM-ul vizibil
+  setTimeout(function() {
+    const container = document.getElementById('kilo-xterm-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    kiloTerm = new Terminal({
+      cursorBlink: true,
+      fontSize: 13,
+      fontFamily: "'Space Mono','Courier New',monospace",
+      theme: { background:'#0d1117', foreground:'#e6edf3', cursor:'#00ff87' },
+      scrollback: 5000, cols: 120, rows: 20
+    });
+    kiloFitAddon = new FitAddon.FitAddon();
+    kiloTerm.loadAddon(kiloFitAddon);
+    kiloTerm.open(container);
+    try { kiloFitAddon.fit(); } catch(e) {}
+    kiloTerm.write('\x1b[32mConectare...\x1b[0m\r\n');
+    kiloTerm.focus();
+
+    // Conecteaza WebSocket
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    kiloWS = new WebSocket(proto + '//' + location.host + '/ws/kilo-terminal?userId=' + encodeURIComponent(window.userId || 'anon'));
+
+    kiloWS.onopen = function() {
+      document.getElementById('kilo-status-dot').style.background = '#00ff87';
+      // Trimite config VPS
+      const cfg = { type: 'config', vps: null };
+      if (vpsConfig && vpsConfig.host && vpsConfig.password) {
+        cfg.vps = { host: vpsConfig.host, username: vpsConfig.username || 'root', password: vpsConfig.password, port: vpsConfig.port || 22 };
+        document.getElementById('kilo-status-text').textContent = 'Kilo CLI — SSH: ' + vpsConfig.host;
+      } else {
+        document.getElementById('kilo-status-text').textContent = 'Kilo CLI — Local';
+      }
+      kiloWS.send(JSON.stringify(cfg));
+      if (initialPrompt) {
+        setTimeout(function() { kiloWS.send(JSON.stringify({type:'inject', data: initialPrompt})); }, 2000);
+      }
+    };
+
+    kiloWS.onmessage = function(e) {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'output' && kiloTerm) kiloTerm.write(msg.data);
+        else if (msg.type === 'exit') {
+          if (kiloTerm) kiloTerm.write('\r\n\x1b[33m[Sesiune inchisa]\x1b[0m\r\n');
+          document.getElementById('kilo-status-dot').style.background = '#ff4757';
         }
-      }
-      if (kiloTerm) kiloTerm.write(msg.data);
-    } else if (msg.type === 'exit') {
-      if (kiloTerm) kiloTerm.write("\r\n\x1b[33m[Sesiune inchisa]\x1b[0m");
-      document.getElementById('kilo-status-dot').style.background = '#ff4757';
-    }
-  };
-  kiloWS.onerror = function() {
-    kiloTerm.write("\x1b[31m\r\nEroare WebSocket\r\n\x1b[0m");
-  };
-  kiloTerm.onData(function(data) {
-    if (kiloWS && kiloWS.readyState === WebSocket.OPEN) {
-      kiloWS.send(JSON.stringify({type: 'input', data: data}));
-    }
-  });
-  window.addEventListener('resize', function() {
-    try {
-      kiloFitAddon.fit();
-      if (kiloWS && kiloWS.readyState === WebSocket.OPEN) {
-        kiloWS.send(JSON.stringify({type: 'resize', cols: kiloTerm.cols, rows: kiloTerm.rows}));
-      }
-    } catch(e) {}
-  });
-  setTimeout(function() { kiloTerm.focus(); }, 300);
+      } catch(e) {}
+    };
+
+    kiloWS.onerror = function() {
+      if (kiloTerm) kiloTerm.write('\x1b[31m\r\nEroare WebSocket\r\n\x1b[0m');
+    };
+
+    kiloTerm.onData(function(data) {
+      if (kiloWS && kiloWS.readyState === WebSocket.OPEN)
+        kiloWS.send(JSON.stringify({type:'input', data}));
+    });
+
+    window.addEventListener('resize', function() {
+      try { kiloFitAddon.fit(); } catch(e) {}
+    });
+  }, 200);
 }
 
 function kiloToggle() {
