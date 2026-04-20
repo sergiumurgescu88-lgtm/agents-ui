@@ -1807,12 +1807,8 @@ function kiloOpen(initialPrompt) {
       theme: { background:'#0d1117', foreground:'#e6edf3', cursor:'#00ff87' },
       scrollback: 5000, cols: 120, rows: 20
     });
-    kiloFitAddon = new FitAddon.FitAddon();
-    kiloTerm.loadAddon(kiloFitAddon);
-    kiloTerm.open(container);
-    try { kiloFitAddon.fit(); } catch(e) {}
-    kiloTerm.write('\x1b[32mConectare...\x1b[0m\r\n');
-    kiloTerm.focus();
+    const c = document.getElementById('kilo-xterm-container');
+    if (c) c.innerHTML = '<span style="color:#00ff87">Conectare SSH...</span>\n';
 
     // Conecteaza WebSocket
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1837,7 +1833,19 @@ function kiloOpen(initialPrompt) {
     kiloWS.onmessage = function(e) {
       try {
         const msg = JSON.parse(e.data);
-        if (msg.type === 'output' && kiloTerm) kiloTerm.write(msg.data);
+        if (msg.type === 'output') {
+          const c = document.getElementById('kilo-xterm-container');
+          if (c) {
+            const clean = msg.data
+              .replace(/\x1b\[[0-9;]*[mGKHFABCDJsu]/g, '')
+              .replace(/\x1b\][^\x07]*\x07/g, '')
+              .replace(/\[\?[0-9]+[hl]/g, '')
+              .replace(/\[\d+m/g, '')
+              .replace(/</g, '&lt;');
+            c.innerHTML += clean;
+            c.scrollTop = c.scrollHeight;
+          }
+        }
         else if (msg.type === 'exit') {
           if (kiloTerm) kiloTerm.write('\r\n\x1b[33m[Sesiune inchisa]\x1b[0m\r\n');
           document.getElementById('kilo-status-dot').style.background = '#ff4757';
