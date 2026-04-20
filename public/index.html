@@ -2004,6 +2004,22 @@ async function pipelineNext() {
 
 // ══════ VPS MODAL ══════
 let vpsConfig = null;
+try {
+  const _savedVps = localStorage.getItem('buddy_vps');
+  if (_savedVps) {
+    vpsConfig = JSON.parse(_savedVps);
+    // Actualizeaza butonul VPS din header dupa load
+    document.addEventListener('DOMContentLoaded', function() {
+      const btn = document.getElementById('btn-vps');
+      if (btn && vpsConfig) {
+        btn.textContent = '🖥️✅';
+        btn.style.borderColor = '#00ff87';
+        btn.style.color = '#00ff87';
+        btn.title = 'VPS conectat: ' + vpsConfig.host;
+      }
+    });
+  }
+} catch(e) {}
 
 function openVpsModal() {
   const modal = document.getElementById('vps-modal');
@@ -2132,6 +2148,7 @@ async function testVpsConnection() {
 function saveVpsAndClose() {
   if (!window._vpsTmp) return;
   vpsConfig = window._vpsTmp;
+  localStorage.setItem('buddy_vps', JSON.stringify(vpsConfig));
   // Actualizeaza butonul VPS din header
   const btn = document.getElementById('btn-vps');
   if (btn) {
