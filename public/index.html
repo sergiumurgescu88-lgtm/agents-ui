@@ -1871,10 +1871,22 @@ function kiloClose() {
 function kiloInject() {
   const inp = document.getElementById('kilo-inject-input');
   const text = inp.value.trim();
-  if (!text || !kiloWS || kiloWS.readyState !== WebSocket.OPEN) return;
+  if (!text) return;
+  // Daca WS nu e conectat, reconecteaza si retrimite
+  if (!kiloWS || kiloWS.readyState !== WebSocket.OPEN) {
+    kiloOpen('');
+    setTimeout(function() {
+      if (kiloWS && kiloWS.readyState === WebSocket.OPEN) {
+        kiloWS.send(JSON.stringify({type: 'inject', data: text}));
+        inp.value = '';
+        if (kiloTerm) kiloTerm.focus();
+      }
+    }, 1500);
+    return;
+  }
   kiloWS.send(JSON.stringify({type: 'inject', data: text}));
   inp.value = '';
-  kiloTerm.focus();
+  if (kiloTerm) kiloTerm.focus();
 }
 
 document.addEventListener('DOMContentLoaded', function() {
