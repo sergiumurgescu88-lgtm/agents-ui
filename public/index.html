@@ -660,7 +660,7 @@ async function feelingLucky() {
     <!-- KILO TERMINAL SECTION -->
     <div id="kilo-terminal-section">
       <div id="kilo-terminal-label">⚡ TERMINAL — EXECUȚIE LIVE</div>
-      <div id="kilo-xterm-container" style="flex:1;overflow-y:auto;padding:8px;background:#0d1117;color:#e6edf3;font-family:Space Mono,monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;min-height:200px;max-height:350px;"></div>
+      <div id="kilo-xterm-container" style="flex:1;overflow-y:auto;padding:8px;background:#0d1117;color:#e6edf3;font-family:Space Mono,monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;min-height:200px;"></div>
     </div>
     <div id="kilo-inject-row">
       <span style="color:#00ff87;font-family:Space Mono,monospace;font-size:12px">inject ▸</span>
@@ -1787,497 +1787,553 @@ function openKiloTerminal(promptEncoded) {
 let kiloTerm = null, kiloWS = null, kiloFitAddon = null;
 
 function kiloOpen(initialPrompt) {
+  // Curata sesiunea anterioara
   if (kiloWS) { try { kiloWS.close(); } catch(e) {} kiloWS = null; }
+  if (kiloTerm) { try { kiloTerm.dispose(); } catch(e) {} kiloTerm = null; }
+
   const overlay = document.getElementById('kilo-overlay');
   if (overlay) overlay.classList.add('active');
-  const container = document.getElementById('kilo-xterm-container');
-  if (container) container.innerHTML = '<span style="color:#00ff87">Conectare...</span>\n';
-  // Conecteaza WebSocketarset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
-<meta name="theme-color" content="#0a0a0f"/>
-<title>Vibe Buddy — DaRomania AI</title>
+
+  // Initializeaza xterm dupa 200ms ca sa fie DOM-ul vizibil
+  setTimeout(function() {
+    const container = document.getElementById('kilo-xterm-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    kiloTerm = new Terminal({
+      cursorBlink: true,
+      fontSize: 13,
+      fontFamily: "'Space Mono','Courier New',monospace",
+      theme: { background:'#0d1117', foreground:'#e6edf3', cursor:'#00ff87' },
+      scrollback: 5000, cols: 120, rows: 20
+    });
+    kiloFitAddon = new FitAddon.FitAddon();
+    kiloTerm.loadAddon(kiloFitAddon);
+    kiloTerm.open(container);
+    try { kiloFitAddon.fit(); } catch(e) {}
+    kiloTerm.write('\x1b[32mConectare...\x1b[0m\r\n');
+    kiloTerm.focus();
+
+    // Conecteaza WebSocket
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    kiloWS = new WebSocket(proto + '//' + location.host + '/ws/kilo-terminal?userId=' + encodeURIComponent(window.userId || 'anon'));
+
+    kiloWS.onopen = function() {
+      document.getElementById('kilo-status-dot').style.background = '#00ff87';
+      // Trimite config VPS
+      const cfg = { type: 'config', vps: null };
+      if (vpsConfig && vpsConfig.host && vpsConfig.password) {
+        cfg.vps = { host: vpsConfig.host, username: vpsConfig.username || 'root', password: vpsConfig.password, port: vpsConfig.port || 22 };
+        document.getElementById('kilo-status-text').textContent = 'Kilo CLI — SSH: ' + vpsConfig.host;
+      } else {
+        document.getElementById('kilo-status-text').textContent = 'Kilo CLI — Local';
+      }
+      kiloWS.send(JSON.stringify(cfg));
+      if (initialPrompt) {
+        setTimeout(function() { kiloWS.send(JSON.stringify({type:'inject', data: initialPrompt})); }, 2000);
+      }
+    };
+
+    kiloWS.onmessage = function(e) {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'output' && kiloTerm) kiloTerm.write(msg.data);
+        else if (msg.type === 'exit') {
+          if (kiloTerm) kiloTerm.write('\r\n\x1b[33m[Sesiune inchisa]\x1b[0m\r\n');
+          document.getElementById('kilo-status-dot').style.background = '#ff4757';
+        }
+      } catch(e) {}
+    };
+
+    kiloWS.onerror = function() {
+      if (kiloTerm) kiloTerm.write('\x1b[31m\r\nEroare WebSocket\r\n\x1b[0m');
+    };
+
+    kiloTerm.onData(function(data) {
+      if (kiloWS && kiloWS.readyState === WebSocket.OPEN)
+        kiloWS.send(JSON.stringify({type:'input', data}));
+    });
+
+    window.addEventListener('resize', function() {
+      try { kiloFitAddon.fit(); } catch(e) {}
+    });
+  }, 200);
+}
+
+function kiloToggle() {
+  const ov = document.getElementById('kilo-overlay');
+  const btn = document.getElementById('btn-kilo');
+  if (!ov) return;
+  if (ov.classList.contains('active')) {
+    ov.classList.remove('active');
+    if (btn) { btn.style.color='#00ff87'; btn.style.background='none'; btn.style.borderColor='#00ff8766'; btn.textContent='⚡ Kilo'; }
+  } else {
+    ov.classList.add('active');
+    if (btn) { btn.style.color='#000'; btn.style.background='#00ff87'; btn.style.borderColor='#00ff87'; btn.textContent='✕ Kilo'; }
+    // Initializeaza terminalul WebSocket daca nu e activ
+    if (!kiloWS || kiloWS.readyState !== WebSocket.OPEN) {
+      kiloOpen('');
+    }
+  }
+}
+function kiloClose() {
+  document.getElementById('kilo-overlay').classList.remove('active');
+  if (kiloWS) { kiloWS.close(); kiloWS = null; }
+  if (kiloTerm) { kiloTerm.dispose(); kiloTerm = null; }
+}
+
+function kiloInject() {
+  const inp = document.getElementById('kilo-inject-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  // Daca WS nu e conectat, reconecteaza si retrimite
+  if (!kiloWS || kiloWS.readyState !== WebSocket.OPEN) {
+    kiloOpen('');
+    setTimeout(function() {
+      if (kiloWS && kiloWS.readyState === WebSocket.OPEN) {
+        kiloWS.send(JSON.stringify({type: 'inject', data: text}));
+        inp.value = '';
+        if (kiloTerm) kiloTerm.focus();
+      }
+    }, 1500);
+    return;
+  }
+  kiloWS.send(JSON.stringify({type: 'inject', data: text}));
+  inp.value = '';
+  if (kiloTerm) kiloTerm.focus();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const inp = document.getElementById('kilo-inject-input');
+  if (inp) {
+    inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') kiloInject();
+    });
+  }
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const ov = document.getElementById('kilo-overlay');
+    if (ov && ov.classList.contains('active')) kiloClose();
+  }
+});
+
+</script>
+
+<div id="pipeline-bar" style="display:none;position:fixed;bottom:80px;right:16px;z-index:9000;display:flex;flex-direction:column;gap:8px;">
+  <div style="color:#666;font-size:10px;text-align:right;font-family:Space Mono,monospace;">PIPELINE</div>
+  <button id="pipe-marketing" onclick="pipelineSend('marketing')" style="display:none;background:linear-gradient(135deg,#eab308,#f97316);color:#000;border:none;padding:8px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:Space Mono,monospace;">→ 🟡 Marketing</button>
+  <button id="pipe-creator" onclick="pipelineSend('creator')" style="display:none;background:linear-gradient(135deg,#a855f7,#3b82f6);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:Space Mono,monospace;">→ 🟣 Creator</button>
+  <button id="pipe-hustle" onclick="pipelineSend('hustle')" style="display:none;background:linear-gradient(135deg,#ef4444,#ff6b6b);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:Space Mono,monospace;">→ 🔴 Postează</button>
+</div>
+
+
+
+<div id="pipe-next-btn" style="display:none;position:fixed;bottom:90px;right:16px;z-index:9999;">
+  <button id="pipe-next-inner" onclick="pipelineNext()" style="
+    padding:8px 14px;border:none;border-radius:10px;
+    font-family:Space Mono,monospace;font-size:11px;font-weight:700;
+    cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    transition:all 0.3s;
+  ">→</button>
+</div>
+
+<script>
+let pipelineSessionId = null;
+let pipelineMsgCount = 0;
+const PIPELINE_ORDER = ['chat','coding','marketing','creator','hustle'];
+const PIPELINE_LABELS = {
+  chat: '💬 Idei',
+  coding: '🟢 Coding',
+  marketing: '🟡 Marketing',
+  creator: '🟣 Creator',
+  hustle: '🔴 Postează'
+};
+const PIPELINE_COLORS = {
+  chat: 'linear-gradient(135deg,#3b82f6,#6366f1)',
+  coding: 'linear-gradient(135deg,#22c55e,#00d4ff)',
+  marketing: 'linear-gradient(135deg,#eab308,#f97316)',
+  creator: 'linear-gradient(135deg,#a855f7,#ec4899)',
+  hustle: 'linear-gradient(135deg,#ef4444,#f97316)'
+};
+
+function getNextMode(mode) {
+  const idx = PIPELINE_ORDER.indexOf(mode);
+  if (idx === -1 || idx >= PIPELINE_ORDER.length - 1) return null;
+  return PIPELINE_ORDER[idx + 1];
+}
+
+function updatePipeBtn() {
+  const nextMode = getNextMode(currentMode);
+  const btn = document.getElementById('pipe-next-btn');
+  const inner = document.getElementById('pipe-next-inner');
+  if (!nextMode || pipelineMsgCount < 3) {
+    btn.style.display = 'none';
+    return;
+  }
+  inner.textContent = '→ ' + PIPELINE_LABELS[nextMode];
+  inner.style.background = PIPELINE_COLORS[nextMode];
+  inner.style.color = nextMode === 'marketing' ? '#000' : '#fff';
+  btn.style.display = 'block';
+}
+
+async function pipelineNext() {
+  const nextMode = getNextMode(currentMode);
+  if (!nextMode) return;
+  const lastMsg = history.filter(m => m.role === 'assistant').slice(-1)[0]?.content || '';
+  const fromMode = currentMode;
+
+  // Salveaza in DB
+  try {
+    const r = await fetch('/api/pipeline/save', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId: String(userId||'browser_user'), sessionId: pipelineSessionId, step: fromMode, data: { reply: lastMsg.slice(0,800) } })
+    });
+    const d = await r.json();
+    if (d.sessionId) pipelineSessionId = d.sessionId;
+  } catch(e) {}
+
+  // Reset si switch
+  history.length = 0;
+  pipelineMsgCount = 0;
+  switchMode(nextMode);
+  document.getElementById('pipe-next-btn').style.display = 'none';
+
+  // Auto-trimite context la modul urmator
+  const ctx = 'Pe baza planului anterior: ' + lastMsg.replace(/[`#*\[\]${}|]/g,'').replace(/\n+/g,' ').trim().slice(0,200);
+  inputEl.value = ctx;
+  inputEl.focus();
+  // Auto-send + auto-open Kilo daca urmatorul mod e coding
+  setTimeout(function() {
+    sendMessage();
+    if (nextMode === 'coding') {
+      setTimeout(function() {
+        openKiloTerminal(encodeURIComponent(ctx));
+      }, 3500);
+    }
+  }, 600);
+}
+
+// ══════ VPS MODAL ══════
+let vpsConfig = null;
+try {
+  const _savedVps = localStorage.getItem('buddy_vps');
+  if (_savedVps) {
+    vpsConfig = JSON.parse(_savedVps);
+    // Actualizeaza butonul VPS din header dupa load
+    document.addEventListener('DOMContentLoaded', function() {
+      const btn = document.getElementById('btn-vps');
+      if (btn && vpsConfig) {
+        btn.textContent = '🖥️✅';
+        btn.style.borderColor = '#00ff87';
+        btn.style.color = '#00ff87';
+        btn.title = 'VPS conectat: ' + vpsConfig.host;
+      }
+    });
+  }
+} catch(e) {}
+
+function openVpsModal() {
+  const modal = document.getElementById('vps-modal');
+  modal.style.display = 'flex';
+  // Daca avem deja config, pre-completam
+  if (vpsConfig) {
+    document.getElementById('vps-host').value = vpsConfig.host || '';
+    document.getElementById('vps-user').value = vpsConfig.username || 'root';
+    document.getElementById('vps-port').value = vpsConfig.port || 22;
+    showVpsStatus('✅ VPS conectat: ' + vpsConfig.host, 'success');
+    document.getElementById('vps-save-btn').disabled = false;
+    document.getElementById('vps-save-btn').style.opacity = '1';
+  }
+}
+
+function closeVpsModal() {
+  document.getElementById('vps-modal').style.display = 'none';
+  document.getElementById('vps-status').style.display = 'none';
+}
+
+function showVpsStatus(msg, type) {
+  const el = document.getElementById('vps-status');
+  el.style.display = 'block';
+  el.textContent = msg;
+  if (type === 'success') {
+    el.style.background = 'rgba(0,255,135,0.1)';
+    el.style.border = '1px solid #00ff87';
+    el.style.color = '#00ff87';
+  } else if (type === 'error') {
+    el.style.background = 'rgba(239,68,68,0.1)';
+    el.style.border = '1px solid #ef4444';
+    el.style.color = '#ef4444';
+  } else {
+    el.style.background = 'rgba(255,255,255,0.05)';
+    el.style.border = '1px solid #333';
+    el.style.color = '#aaa';
+  }
+}
+
+function showDeployModal() {
+  const os = navigator.platform.toLowerCase();
+  const isWin = os.includes('win');
+  const isMac = os.includes('mac');
+  
+  const installCmd = "curl -fsSL https://buddy.daeu.online/install.sh -o install.sh && bash install.sh";
+  const winCmd = "irm https://buddy.daeu.online/install.ps1 | iex";
+  
+  const modal = document.createElement('div');
+  modal.id = 'deploy-modal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:#0d0d1a;border:1px solid #00d4ff33;border-radius:16px;padding:28px;max-width:420px;width:90%;position:relative;">
+      <button onclick="document.getElementById('deploy-modal').remove()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:#666;font-size:18px;cursor:pointer;">✕</button>
+      <h3 style="color:#00d4ff;font-size:16px;margin-bottom:6px;">⬇️ Descarcă Buddy Agent</h3>
+      <p style="color:#666;font-size:12px;margin-bottom:20px;">Instalează agentul complet pe serverul sau calculatorul tău</p>
+      
+      <div style="margin-bottom:12px;padding:16px;background:#0a0a14;border-radius:10px;border:1px solid ${isMac ? '#00ff8733' : '#333'};">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:18px;">🍎</span>
+          <span style="color:#fff;font-size:13px;font-weight:700;">Mac / Linux</span>
+          ${isMac ? '<span style="font-size:10px;padding:2px 8px;background:#00ff8722;color:#00ff87;border-radius:8px;">detectat</span>' : ''}
+        </div>
+        <code style="display:block;background:#060610;padding:8px;border-radius:6px;font-size:11px;color:#00ff87;word-break:break-all;">${installCmd}</code>
+        <button onclick="navigator.clipboard.writeText('${installCmd}');this.textContent='✓ Copiat!';setTimeout(()=>this.textContent='Copiază comanda',2000)" style="margin-top:8px;padding:6px 12px;background:#00ff8715;color:#00ff87;border:1px solid #00ff8733;border-radius:6px;font-size:11px;cursor:pointer;width:100%;">Copiază comanda</button>
+      </div>
+      
+      <div style="margin-bottom:12px;padding:16px;background:#0a0a14;border-radius:10px;border:1px solid ${isWin ? '#00d4ff33' : '#333'};">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:18px;">🪟</span>
+          <span style="color:#fff;font-size:13px;font-weight:700;">Windows (PowerShell)</span>
+          ${isWin ? '<span style="font-size:10px;padding:2px 8px;background:#00d4ff22;color:#00d4ff;border-radius:8px;">detectat</span>' : ''}
+        </div>
+        <code style="display:block;background:#060610;padding:8px;border-radius:6px;font-size:11px;color:#00d4ff;word-break:break-all;">${winCmd}</code>
+        <button onclick="navigator.clipboard.writeText('${winCmd}');this.textContent='✓ Copiat!';setTimeout(()=>this.textContent='Copiază comanda',2000)" style="margin-top:8px;padding:6px 12px;background:#00d4ff15;color:#00d4ff;border:1px solid #00d4ff33;border-radius:6px;font-size:11px;cursor:pointer;width:100%;">Copiază comanda</button>
+      </div>
+      
+      <div style="padding:16px;background:#0a0a14;border-radius:10px;border:1px solid #333;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:18px;">📦</span>
+          <span style="color:#fff;font-size:13px;font-weight:700;">Cod sursă GitHub</span>
+        </div>
+        <button onclick="window.open('https://github.com/sergiumurgescu88-lgtm/agents-ui','_blank')" style="padding:6px 12px;background:#ffffff10;color:#aaa;border:1px solid #333;border-radius:6px;font-size:11px;cursor:pointer;width:100%;">Deschide GitHub →</button>
+      </div>
+      
+      <p style="color:#333;font-size:11px;text-align:center;margin-top:16px;">Licența $9/lună e necesară și după instalare locală</p>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if(e.target === modal) modal.remove(); });
+}
+
+async function testVpsConnection() {
+  const host = document.getElementById('vps-host').value.trim();
+  const username = document.getElementById('vps-user').value.trim() || 'root';
+  const password = document.getElementById('vps-pass').value;
+  const port = parseInt(document.getElementById('vps-port').value) || 22;
+
+  if (!host || !password) {
+    showVpsStatus('❌ Completează host și password', 'error');
+    return;
+  }
+
+  showVpsStatus('⏳ Se testează conexiunea SSH...', 'loading');
+
+  try {
+    const resp = await fetch('/api/ssh-test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ host, username, password, port })
+    });
+    const d = await resp.json();
+    if (d.success !== false) {
+      showVpsStatus('✅ Conexiune reușită la ' + host + '!', 'success');
+      document.getElementById('vps-save-btn').disabled = false;
+      document.getElementById('vps-save-btn').style.opacity = '1';
+      // Salvam temp pentru butonul save
+      window._vpsTmp = { host, username, password, port };
+    } else {
+      showVpsStatus('❌ ' + (d.error || 'Conexiune eșuată'), 'error');
+    }
+  } catch(e) {
+    showVpsStatus('❌ Eroare: ' + e.message, 'error');
+  }
+}
+
+function saveVpsAndClose() {
+  if (!window._vpsTmp) return;
+  vpsConfig = window._vpsTmp;
+  localStorage.setItem('buddy_vps', JSON.stringify(vpsConfig));
+  // Actualizeaza butonul VPS din header
+  const btn = document.getElementById('btn-vps');
+  if (btn) {
+    btn.textContent = '🖥️✅';
+    btn.style.borderColor = '#00ff87';
+    btn.style.color = '#00ff87';
+    btn.title = 'VPS conectat: ' + vpsConfig.host;
+  }
+  closeVpsModal();
+  // Trimite mesaj in chat ca confirmare
+  appendMsg('assistant', '✅ VPS conectat: **' + vpsConfig.host + '**\nAcum pot executa comenzi direct pe serverul tău. Spune-mi ce vrei să construim!', null, currentMode, null, null);
+}
+
+// Override sendMessage sa injecteze vpsConfig in contextul Buddy
+const _origSendMessage = sendMessage;
+// Injectam vpsConfig in fiecare request catre /api/chat
+const _origFetch = window.fetch;
+window.fetch = function(url, opts) {
+  if (url === '/api/chat' && opts && opts.body && vpsConfig) {
+    try {
+      const body = JSON.parse(opts.body);
+      body.vpsConfig = vpsConfig;
+      opts.body = JSON.stringify(body);
+    } catch(e) {}
+  }
+  return _origFetch.apply(this, arguments);
+};
+
+
+</script>
+
+
+<div id="prompt-overlay" style="display:none;position:fixed;inset:0;z-index:99999;overflow:hidden;">
 <style>
-:root {
-  --bg:      #0a0a0f;
-  --bg2:     #111118;
-  --bg3:     #18181f;
-  --border:  #222230;
-  --text:    #e8e9f0;
-  --muted:   #6b6c80;
-  --accent:  #6366f1;
-  --accent2: #818cf8;
-
-  /* MODE COLORS */
-  --green:   #22d3a0;
-  --green2:  #4ade80;
-  --purple:  #a855f7;
-  --purple2: #c084fc;
-  --orange:  #f97316;
-  --orange2: #fb923c;
-  --red:     #ef4444;
-  --red2:    #f87171;
-  --redlight:#ff6b6b;
-  --redlight2:#ff8e8e;
-  --blue:    #3b82f6;
-  --blue2:   #60a5fa;
-  --red:     #ef4444;
-  --amber:   #f59e0b;
-
-  --code-bg: #0d1117;
-  --radius:  12px;
-  --safe-bot: env(safe-area-inset-bottom, 0px);
-  --safe-top: env(safe-area-inset-top, 0px);
+#po-wrap{position:absolute;inset:0;background:rgba(0,0,0,0.93);display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:hidden}
+#po-top{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 12px;flex-shrink:0;border-bottom:1px solid #111}
+#po-top h2{margin:0;color:#00ff87;font-size:20px;font-weight:900;letter-spacing:-.3px}
+#po-top p{margin:2px 0 0;color:#555;font-size:11px}
+#po-xbtn{background:#1a1a2e;border:none;color:#888;font-size:22px;cursor:pointer;width:40px;height:40px;border-radius:12px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+#po-tabs{display:flex;gap:8px;overflow-x:auto;padding:12px 16px;flex-shrink:0;scrollbar-width:none}
+#po-tabs::-webkit-scrollbar{display:none}
+.po-tab{flex-shrink:0;padding:8px 14px;border-radius:22px;border:2px solid #1a1a2e;background:#0a0a14;color:#555;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.po-tab.on{color:#000!important;border-color:transparent!important}
+#po-subhead{padding:4px 16px 8px;flex-shrink:0}
+#po-subhead-name{font-size:16px;font-weight:900;margin:0}
+#po-subhead-count{font-size:11px;color:#444;margin:2px 0 0}
+#po-cards{flex:1;overflow-y:auto;overflow-x:hidden;padding:4px 16px 100px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
+.po-card{border-radius:14px;padding:15px 15px 12px;cursor:pointer;border:1.5px solid transparent;transition:all .18s;position:relative}
+.po-card:active{opacity:.8;transform:scale(.98)}
+.po-card-icon{font-size:18px;margin-bottom:7px}
+.po-card-title{font-weight:800;font-size:15px;margin:0 0 6px}
+.po-card-preview{font-size:12px;line-height:1.6;color:#888}
+.po-card-hint{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-top:10px;opacity:.5}
+@media(min-width:700px){
+  #po-wrap{flex-direction:row;max-width:1050px;margin:auto;position:absolute;inset:30px;border-radius:18px;border:1px solid #1a1a2e;overflow:hidden}
+  #po-sidebar{width:210px;min-width:210px;background:#06060e;border-right:1px solid #111;display:flex;flex-direction:column}
+  #po-sidebar-head{padding:20px;border-bottom:1px solid #111}
+  #po-sidebar-head h2{margin:0;color:#00ff87;font-size:15px;font-weight:900}
+  #po-sidebar-head p{margin:3px 0 0;color:#444;font-size:11px}
+  #po-sidebar-list{flex:1;overflow-y:auto;padding:6px 0}
+  .po-sbtn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 16px;background:none;border:none;border-left:3px solid transparent;cursor:pointer;text-align:left;transition:all .15s}
+  .po-sbtn:hover{background:rgba(255,255,255,0.03)}
+  .po-sbtn.on{background:rgba(255,255,255,0.05)}
+  .po-sbtn .si{font-size:20px;flex-shrink:0}
+  .po-sbtn .sn{color:#bbb;font-size:12px;font-weight:700;line-height:1.3}
+  .po-sbtn .sc{color:#333;font-size:10px}
+  #po-right{flex:1;display:flex;flex-direction:column;background:#080810;overflow:hidden}
+  #po-right-head{padding:16px 20px;border-bottom:1px solid #111;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+  #po-right-head-name{color:#fff;font-size:15px;font-weight:900;margin:0}
+  #po-right-head-count{color:#444;font-size:11px}
+  #po-top{display:none}
+  #po-tabs{display:none}
+  #po-subhead{display:none}
+  #po-cards{padding:14px 18px 20px;display:grid;grid-template-columns:1fr 1fr;gap:11px;align-content:start}
 }
-
-/* ── MODES ── */
-body.mode-coding    { --accent:var(--green);    --accent2:var(--green2);    }
-body.mode-marketing { --accent:var(--orange);   --accent2:var(--orange2);   }
-body.mode-business  { --accent:var(--red);      --accent2:var(--red2);      }
-body.mode-sidehustle{ --accent:var(--redlight); --accent2:var(--redlight2); }
-body.mode-chat      { --accent:var(--purple);   --accent2:var(--purple2);   }
-body.mode-lock      { --accent:var(--amber);    --accent2:var(--amber);     }
-
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;font-size:15px;}
-
-#app{display:flex;flex-direction:column;height:100%;height:100dvh;max-width:700px;margin:0 auto;}
-
-/* ── HEADER ── */
-#header{
-  flex-shrink:0;
-  background:var(--bg2);
-  border-bottom:1px solid var(--border);
-  padding:8px 10px;
-  padding-top:var(--safe-top);
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  transition:border-color .4s;
-  position:relative;
-  overflow:hidden;
-}
-#header-row1{
-  display:flex;align-items:center;gap:8px;width:100%;
-}
-#header-row2{
-  display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;
-}
-#header-row2::-webkit-scrollbar{display:none;}
-
-/* glow line sub header care se schimbă cu modul */
-#header::after{
-  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
-  background:var(--accent);opacity:0.6;
-  transition:background .4s;
-}
-
-#buddy-avatar{
-  width:38px;height:38px;border-radius:10px;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;flex-shrink:0;transition:all .4s;
-}
-body.mode-coding   #buddy-avatar{border-radius:6px;font-size:15px;}
-body.mode-marketing #buddy-avatar{border-radius:50%;}
-
-#header-info{flex:1;min-width:0;}
-#buddy-name{
-  font-size:14px;font-weight:700;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  transition:color .4s;color:var(--accent2);
-}
-body.mode-coding   #buddy-name{font-family:'Courier New',monospace;}
-body.mode-marketing #buddy-name{letter-spacing:.04em;}
-
-#mode-badge{
-  display:inline-flex;align-items:center;gap:4px;
-  font-size:10px;font-weight:700;letter-spacing:.06em;
-  padding:2px 8px;border-radius:20px;margin-top:2px;
-  border:1px solid var(--accent);
-  background:rgba(0,0,0,.3);color:var(--accent2);
-  transition:all .4s;
-}
-#mode-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-
-/* Action counter */
-#action-counter{
-  flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:3px;
-}
-#action-bar{
-  width:60px;height:3px;background:var(--border);border-radius:3px;overflow:hidden;
-}
-#action-fill{
-  height:100%;background:var(--accent);border-radius:3px;
-  transition:width .4s ease, background .4s;
-}
-#action-text{font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums;}
-
-/* ── CTX BANNER ── */
-#ctx-banner{
-  flex-shrink:0;display:none;
-  align-items:center;gap:8px;
-  padding:7px 14px;
-  background:rgba(99,102,241,.08);
-  border-bottom:1px solid rgba(99,102,241,.15);
-  font-size:12px;color:var(--accent2);
-}
-#ctx-banner.show{display:flex;}
-.ctx-tag{
-  background:rgba(99,102,241,.15);
-  padding:1px 8px;border-radius:20px;font-size:11px;font-weight:700;
-}
-
-/* ── MESSAGES ── */
-#messages{
-  flex:1;overflow-y:auto;overflow-x:hidden;
-  padding:14px 12px 8px;
-  display:flex;flex-direction:column;gap:14px;
-  -webkit-overflow-scrolling:touch;
-  overscroll-behavior:contain;
-  scroll-behavior:smooth;
-}
-
-.msg{display:flex;gap:8px;max-width:94%;animation:fadeUp .18s ease-out;}
-@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
-.msg.user{flex-direction:row-reverse;align-self:flex-end;}
-.msg.assistant{align-self:flex-start;}
-
-.msg-av{
-  width:30px;height:30px;border-radius:8px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;flex-shrink:0;margin-top:2px;
-  transition:background .4s;
-}
-.msg.user .msg-av{background:rgba(99,102,241,.2);}
-.msg.assistant .msg-av{background:var(--bg3);}
-
-.msg.mode-coding   .msg-av{background:rgba(34,211,160,.12);}
-.msg.mode-marketing .msg-av{background:rgba(168,85,247,.12);}
-.msg.mode-lock      .msg-av{background:rgba(245,158,11,.12);}
-
-.msg-body{min-width:0;}
-
-.msg-bubble{
-  padding:10px 14px;border-radius:14px;
-  font-size:14px;line-height:1.6;word-break:break-word;
-  user-select:text;-webkit-user-select:text;
-}
-.msg.user .msg-bubble{
-  background:var(--accent);color:#fff;
-  border-bottom-right-radius:4px;
-  transition:background .4s;
-}
-.msg.assistant .msg-bubble{
-  background:var(--bg3);border:1px solid var(--border);
-  border-bottom-left-radius:4px;
-  transition:background .4s,border-color .4s;
-}
-.msg.mode-coding.assistant   .msg-bubble{background:var(--code-bg);border-color:#30363d;}
-.msg.mode-marketing.assistant .msg-bubble{background:#160d20;border-color:#3b1f5e;}
-.msg.mode-lock.assistant      .msg-bubble{background:#1a1200;border-color:#5c3a00;}
-
-/* Code blocks */
-.msg-bubble pre{
-  background:#0a0e16;border:1px solid #30363d;
-  border-radius:8px;padding:10px;margin:8px 0;
-  overflow-x:auto;-webkit-overflow-scrolling:touch;
-  font-family:'Courier New',monospace;font-size:12px;line-height:1.5;
-}
-.msg-bubble code{
-  font-family:'Courier New',monospace;font-size:12px;
-  background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;
-}
-.msg-bubble pre code{background:transparent;padding:0;}
-.code-header{
-  display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;
-}
-.code-lang{font-family:'Courier New',monospace;font-size:10px;color:var(--accent);letter-spacing:.05em;}
-.copy-btn{
-  background:none;border:1px solid #30363d;color:var(--muted);
-  font-size:10px;padding:2px 8px;border-radius:4px;cursor:pointer;
-  min-height:24px;transition:color .15s;font-family:'Courier New',monospace;
-}
-.copy-btn:hover{color:var(--text);}
-
-/* Meta info */
-.msg-meta{
-  font-size:10px;color:var(--muted);margin-top:4px;padding-left:2px;
-  display:flex;align-items:center;gap:5px;flex-wrap:wrap;
-}
-.model-tag{
-  background:var(--bg3);border:1px solid var(--border);
-  padding:1px 6px;border-radius:20px;font-size:10px;
-}
-.fallback-tag{
-  background:rgba(245,158,11,.1);color:var(--amber);
-  border:1px solid rgba(245,158,11,.2);
-  padding:1px 6px;border-radius:20px;font-size:10px;
-}
-.intent-tag{
-  background:rgba(99,102,241,.1);color:var(--accent2);
-  border:1px solid rgba(99,102,241,.2);
-  padding:1px 6px;border-radius:20px;font-size:10px;
-}
-
-/* Upgrade CTA bubble */
-.upgrade-bubble{
-  background:linear-gradient(135deg,#1a1200,#2a1500);
-  border:1px solid var(--amber);border-radius:14px;
-  padding:16px;margin-top:8px;
-}
-.upgrade-bubble h3{color:var(--amber);font-size:14px;margin-bottom:8px;}
-.upgrade-bubble ul{color:#ccc;font-size:13px;line-height:1.8;margin-bottom:12px;padding-left:4px;list-style:none;}
-.upgrade-bubble ul li::before{content:'✅ ';margin-right:4px;}
-.upgrade-btn{
-  display:block;text-align:center;padding:12px;border-radius:10px;
-  background:var(--amber);color:#000;font-weight:800;font-size:14px;
-  text-decoration:none;transition:opacity .15s;
-}
-.upgrade-btn:hover{opacity:.88;}
-
-/* ── TYPING ── */
-#typing{
-  display:none;align-items:center;gap:6px;
-  padding:4px 12px 8px 50px;font-size:12px;color:var(--muted);
-}
-#typing.show{display:flex;}
-.dot{width:5px;height:5px;border-radius:50%;background:var(--muted);animation:blink 1.2s infinite;}
-.dot:nth-child(2){animation-delay:.2s;}.dot:nth-child(3){animation-delay:.4s;}
-@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
-#typing-model{margin-left:4px;font-size:11px;}
-
-/* ── INPUT AREA ── */
-#input-area{
-  flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);
-  padding:8px 10px;
-  transition:background .4s,border-color .4s;
-}
-
-/* Quick actions */
-#quick-actions{display:flex;gap:6px;padding:6px 8px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
-#quick-actions::-webkit-scrollbar{display:none;}
-#qa-popup{display:none;position:fixed;bottom:130px;left:50%;transform:translateX(-50%);width:min(480px,94vw);background:#111;border:1px solid #333;border-radius:16px;padding:12px;z-index:999;box-shadow:0 -8px 40px rgba(0,0,0,.8);}
-#qa-popup.open{display:block;animation:popIn .18s ease;}
-@keyframes popIn{from{opacity:0;transform:translateX(-50%) translateY(10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-#qa-popup-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#666;margin-bottom:8px;padding:0 4px;display:flex;justify-content:space-between;align-items:center;}
-#qa-popup-title span{cursor:pointer;font-size:16px;color:#555;}
-#qa-popup-btns{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
-#qa-popup-btns .qa{width:100%;text-align:left;padding:9px 12px;font-size:12px;border-radius:10px;white-space:normal;line-height:1.3;}
-#qa-overlay{display:none;position:fixed;inset:0;z-index:998;}
-#ref-modal{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;}
-#ref-modal.open{display:flex;}
-#ref-box{background:#111;border:1px solid #f59e0b;border-radius:20px;padding:24px;max-width:420px;width:100%;text-align:center;}
-#ref-box h2{font-size:22px;font-weight:900;color:#fbbf24;margin-bottom:4px;}
-#ref-box .ref-sub{font-size:13px;color:#888;margin-bottom:20px;}
-.ref-stat{background:#1a1a1a;border-radius:12px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
-.ref-stat-label{font-size:12px;color:#666;}
-.ref-stat-val{font-size:18px;font-weight:900;color:#fbbf24;}
-#ref-link-box{background:#0a0a0a;border:1px solid #333;border-radius:10px;padding:10px 14px;font-size:12px;color:#22d3a0;word-break:break-all;margin:16px 0;cursor:pointer;transition:border-color .2s;}
-#ref-link-box:hover{border-color:#22d3a0;}
-.ref-btn{display:block;width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:800;border:none;cursor:pointer;margin-bottom:8px;text-decoration:none;text-align:center;}
-.ref-btn-gold{background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;}
-.ref-btn-green{background:#25d366;color:#fff;}
-.ref-btn-close{background:#1a1a1a;color:#888;font-size:13px;}
-#qa-overlay.open{display:block;}
-.qa-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#555;padding:4px 8px 2px;flex-shrink:0;align-self:center;}
-#qa-tabs{display:flex;gap:6px;padding:6px 8px 4px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
-#qa-tabs::-webkit-scrollbar{display:none;}
-.qa-tab{flex-shrink:0;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;border:1.5px solid #333;background:transparent;color:#888;cursor:pointer;transition:all .2s;white-space:nowrap;}
-.qa-tab.active,.qa-tab:hover{color:#fff;}
-.qa-tab-chat.active,.qa-tab-chat:hover{border-color:#3b82f6;color:#3b82f6;background:rgba(59,130,246,.1);}
-.qa-tab-coding.active,.qa-tab-coding:hover{border-color:#22c55e;color:#22c55e;background:rgba(34,197,94,.1);}
-.qa-tab-marketing.active,.qa-tab-marketing:hover{border-color:#eab308;color:#eab308;background:rgba(234,179,8,.1);}
-.qa-tab-creator.active,.qa-tab-creator:hover{border-color:#a855f7;color:#a855f7;background:rgba(168,85,247,.1);}
-.qa-tab-sidehustle.active,.qa-tab-sidehustle:hover{border-color:#ef4444;color:#ef4444;background:rgba(239,68,68,.1);}
-.qa-tab-prompturi.active,.qa-tab-prompturi:hover{border-color:#f97316;color:#f97316;background:rgba(249,115,22,.12);}
-.qa-creator{border-color:#3b82f6!important;color:#3b82f6!important;}
-.qa-cat{display:none;gap:6px;padding:4px 8px 6px;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap;}
-.qa-cat::-webkit-scrollbar{display:none;}
-.qa-cat.active{display:flex;}
-.qa-coding   { border-color:#22d3a0!important; color:#22d3a0!important; }
-.qa-marketing{ border-color:#f97316!important; color:#f97316!important; }
-.qa-sidehustle{ border-color:#ff6b6b!important; color:#ff6b6b!important; }
-.qa-business { border-color:#ef4444!important; color:#ef4444!important; }
-.qa-chat     { border-color:#a855f7!important; color:#a855f7!important; }
-.qa{
-  flex-shrink:0;font-size:12px;font-weight:500;
-  padding:6px 12px;border-radius:20px;
-  border:1px solid var(--border);color:var(--text);
-  background:var(--bg3);cursor:pointer;white-space:nowrap;
-  min-height:32px;transition:border-color .15s,background .15s;
-  -webkit-appearance:none;
-}
-.qa:active{border-color:var(--accent);background:rgba(99,102,241,.1);}
-
-#input-row{position:relative;width:100%;}
-#input-wrap{position:relative;width:100%;}
-#input-wrap textarea#input{width:100%;box-sizing:border-box;}
-#send-btn{position:absolute;right:6px;bottom:4px;width:38px;height:38px;background:var(--accent);color:#fff;font-size:18px;border-radius:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;}
-#tools-bar{display:flex;align-items:center;justify-content:center;gap:32px;padding:0;}
-#file-btn,#voice-btn,#lucky-btn{position:static;width:52px;height:52px;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;font-size:32px;opacity:0.85;transition:opacity .15s;}
-#lucky-btn{background:rgba(168,85,247,0.15);color:#a855f7;}
-#file-btn:active,#voice-btn:active,#lucky-btn:active{opacity:0.2;}
-
-#input{
-  flex:1;background:var(--bg3);border:1.5px solid var(--border);
-  border-radius:12px;color:var(--text);
-  font-family:inherit;font-size:15px;
-  padding:10px 13px;resize:none;outline:none;
-  line-height:1.45;min-height:44px;max-height:50vh;
-  overflow-y:auto;-webkit-appearance:none;
-  transition:border-color .15s,font-family .4s;
-}
-body.mode-coding #input{font-family:'Courier New',monospace;font-size:13px;}
-#input:focus{border-color:var(--accent);}
-#input::placeholder{color:var(--muted);}
-
-#send-btn{
-  width:44px;height:44px;border-radius:12px;
-  background:var(--accent);border:none;color:#fff;
-  font-size:19px;cursor:pointer;flex-shrink:0;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .4s,transform .1s;-webkit-appearance:none;
-}
-body.mode-coding   #send-btn{color:#0d1117;}
-body.mode-marketing #send-btn{color:#fff;}
-#send-btn:active{transform:scale(.94);}
-#send-btn:disabled{opacity:.4;}
-
-/* ── MODE TRANSITION OVERLAY ── */
-#mode-overlay{
-  position:fixed;inset:0;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  z-index:100;opacity:0;pointer-events:none;transition:opacity .2s;
-  background:var(--bg);
-}
-#mode-overlay.show{opacity:1;pointer-events:all;}
-#overlay-icon{font-size:32px;margin-bottom:12px;}
-#overlay-text{
-  font-family:'Courier New',monospace;font-size:13px;
-  color:var(--accent);letter-spacing:.1em;
-}
-#overlay-bar{width:180px;height:2px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden;}
-#overlay-fill{height:100%;width:0;background:var(--accent);border-radius:2px;transition:width .65s ease;}
-
-/* scrollbar */
-#messages::-webkit-scrollbar{width:3px;}
-#messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-.btn-funnel{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:var(--accent);color:#fff;text-decoration:none;font-size:13px;font-weight:600;transition:all .2s;margin-left:auto;}
-.btn-funnel:hover{background:var(--accent2);transform:scale(1.05);}
-
-/* ══════════════════════════════════════
-   MOBILE OPTIMIZATION — max 480px
-   ══════════════════════════════════════ */
-@media (max-width: 480px) {
-  /* App container */
-  #app { max-width: 100vw; }
-
-  /* Header mai compact */
-  #header { padding: 6px 8px; padding-top: var(--safe-top); gap: 6px; }
-  #buddy-avatar { width: 32px; height: 32px; font-size: 15px; border-radius: 8px; }
-  #buddy-name { font-size: 13px; }
-  #mode-badge { font-size: 9px; padding: 2px 6px; }
-  #action-bar { width: 44px; }
-  #action-text { font-size: 9px; }
-
-  /* Messages */
-  #messages { padding: 10px 8px 6px; gap: 10px; }
-  .msg { max-width: 100%; }
-  .msg-av { width: 26px; height: 26px; font-size: 12px; }
-  .msg-bubble {
-    font-size: 14px;
-    line-height: 1.55;
-    padding: 9px 12px;
-    border-radius: 12px;
-  }
-  .msg-bubble pre {
-    font-size: 11px;
-    padding: 8px;
-    border-radius: 6px;
-  }
-  .msg-bubble code { font-size: 11px; }
-  .msg-meta { font-size: 10px; }
-  .model-tag, .fallback-tag, .intent-tag { font-size: 9px; padding: 1px 5px; }
-
-  /* Upgrade bubble */
-  .upgrade-bubble { padding: 12px; }
-  .upgrade-bubble h3 { font-size: 13px; }
-  .upgrade-bubble ul { font-size: 12px; }
-  .upgrade-btn { font-size: 13px; padding: 11px; }
-
-  /* Typing */
-  #typing { padding: 4px 8px 6px 44px; font-size: 11px; }
-
-  /* Quick actions tabs */
-  #qa-tabs { padding: 4px 6px 3px; gap: 5px; }
-  .qa-tab { font-size: 10px; padding: 4px 10px; }
-  .qa-cat { padding: 3px 6px 5px; gap: 5px; }
-  .qa {
-    font-size: 11px;
-    padding: 7px 11px;
-    min-height: 36px;  /* touch-friendly */
-    border-radius: 18px;
-  }
-
-  /* Input area */
-  #input-area { padding: 6px 8px; }
-  #input-row { gap: 6px; }
-  #input {
-    font-size: 15px; /* iOS auto-zoom fix — min 16px previne zoom */
-    min-height: 44px;
-    padding: 9px 11px;
-    border-radius: 10px;
-  }
-  body.mode-coding #input { font-size: 13px; }
-  #send-btn {
-    width: 44px; height: 44px;
-    border-radius: 10px;
-    font-size: 18px;
-  }
-
-  /* QA Popup */
-  #qa-popup {
-    bottom: 120px;
-    width: 96vw;
-    padding: 10px;
-    border-radius: 14px;
-  }
-  #qa-popup-btns { grid-template-columns: 1fr 1fr; gap: 6px; }
-  #qa-popup-btns .qa { font-size: 11px; padding: 8px 10px; min-height: 40px; }
-
-  /* Referral modal */
-  #ref-modal { padding: 12px; }
-  #ref-box { padding: 18px 14px; border-radius: 16px; }
-  #ref-box h2 { font-size: 18px; }
-  #ref-box .ref-sub { font-size: 12px; }
-  .ref-stat { padding: 10px; }
-  .ref-stat-label { font-size: 11px; }
-  .ref-stat-val { font-size: 16px; }
-  #ref-link-box { font-size: 11px; padding: 8px 12px; }
-  .ref-btn { padding: 11px; font-size: 13px; }
-
-  /* Mode overlay */
-  #overlay-icon { font-size: 28px; }
-  #overlay-text { font-size: 12px; }
-  #overlay-bar { width: 150px; }
-}
-
-/* iOS zoom fix — input font min 16px */
-@media (max-width: 480px) {
-  input, textarea, select { font-size: 16px !important; }
-  body.mode-coding #input { font-size: 14px !important; }
-}
-
-/* Extra small — 360px și sub */
-@media (max-width: 360px) {
-  .msg-bubble { font-size: 13px; padding: 8px 10px; }
-  #buddy-name { font-size: 12px; }
-  .qa-tab { font-size: 9px; padding: 3px 8px; }
-  .qa { font-size: 10px; padding: 6px 9px; }
-}
-
 </style>
+<div id="po-wrap">
+  <div id="po-sidebar">
+    <div id="po-sidebar-head"><h2>📚 Prompturi</h2><p>130 prompturi gata</p></div>
+    <div id="po-sidebar-list"></div>
+  </div>
+  <div id="po-right">
+    <div id="po-right-head">
+      <div><p id="po-right-head-name"></p><p id="po-right-head-count"></p></div>
+      <button onclick="PLclose()" style="background:#1a1a2e;border:none;color:#777;font-size:20px;cursor:pointer;width:34px;height:34px;border-radius:9px">&times;</button>
+    </div>
+    <div id="po-top">
+      <div><h2>📚 Prompturi</h2><p>130 prompturi</p></div>
+      <button id="po-xbtn" onclick="PLclose()">&times;</button>
+    </div>
+    <div id="po-tabs"></div>
+    <div id="po-subhead">
+      <p id="po-subhead-name"></p>
+      <p id="po-subhead-count"></p>
+    </div>
+    <div id="po-cards"></div>
+  </div>
+</div>
+</div>
+<script>(function(){
+var C=[{"icon":"🐛","name":"Fix Bug","color":"#ff4d4d","bg":"rgba(255,77,77,0.08)","prompts":[{"t":"Fix bug rapid","p":"Am aceasta eroare:\n[paste eroarea]\n\nCodul:\n[paste codul]\n\nVreau: fix complet + explicatie de ce aparea."},{"t":"Debug pas cu pas","p":"Ajuta-ma sa depanez pas cu pas:\n[descrie problema]\n\nContextul aplicatiei:\n[descrie contextul]"},{"t":"Eroare sintaxa","p":"Urmatorul cod are eroare de sintaxa. Gaseste-o si corecteaz-o:\n\n[paste codul]"},{"t":"TypeError undefined","p":"Primesc Cannot read property of undefined.\nCodul:\n[paste codul]\n\nExplica si rezolva."},{"t":"Async Promise bug","p":"Am o problema cu async/await sau Promise:\n[paste codul]\n\nFix + explicatie."},{"t":"CORS error","p":"Primesc eroare CORS la:\n[URL]\n\nFix pentru server:\n[tehnologia serverului]"},{"t":"Memory leak","p":"Aplicatia are memory leak. Codul suspect:\n[paste codul]\n\nIdentifica si propune fix."},{"t":"SQL query broken","p":"Query-ul SQL returneaza eroare:\n[paste query]\n\nCorecteza si explica."},{"t":"Import module error","p":"Primesc eroare module not found:\n[paste eroarea]\n\nStructura proiect:\n[descrie structura]"},{"t":"Race condition","p":"Codul are comportament impredictibil:\n[paste codul]\n\nIdentifica si rezolva."}]},{"icon":"💻","name":"Coding","color":"#00ff87","bg":"rgba(0,255,135,0.08)","prompts":[{"t":"Scrie functie","p":"Scrie o functie [limbaj] care:\n- Primeste: [input]\n- Returneaza: [output]\n- Face: [ce face]\n\nInclude type hints si docstring."},{"t":"Refactorizeaza","p":"Refactorizeaza urmatorul cod sa fie mai curat:\n\n[paste codul]"},{"t":"Optimizeaza performanta","p":"Optimizeaza performanta acestui cod:\n\n[paste codul]\n\nIdentifica bottleneck-urile."},{"t":"Clase OOP","p":"Creeaza o clasa [limbaj] pentru [ce reprezinta].\nAtribute: [lista]. Metode: [lista]."},{"t":"API endpoint","p":"Scrie un endpoint [GET/POST/PUT/DELETE] in [framework]:\n- Ruta: [ruta]\n- Input: [ce primeste]\n- Output: [ce returneaza]"},{"t":"Teste unitare","p":"Scrie teste unitare pentru:\n\n[paste codul]\n\nAcopera: cazuri normale, edge cases, erori."},{"t":"Converteste limbaj","p":"Converteste din [limbaj sursa] in [limbaj destinatie]:\n\n[paste codul]"},{"t":"Design pattern","p":"Implementeaza pattern-ul [Observer/Singleton/Factory] pentru:\n[descrie problema]\n\nIn [limbaj]."},{"t":"Regex","p":"Scrie un regex care: [ce trebuie sa faca].\nExemple valide: [exemple].\nExplica fiecare parte."},{"t":"Documentatie cod","p":"Scrie documentatie tehnica (JSDoc/docstring) pentru:\n\n[paste codul]"}]},{"icon":"🤖","name":"Agenti AI","color":"#a78bfa","bg":"rgba(167,139,250,0.08)","prompts":[{"t":"Agent Python","p":"Creeaza un agent AI in Python cu:\n- LLM: [OpenAI/Anthropic]\n- Tool-uri: [lista]\n- Memorie: [tip]\n- Loop: ReAct\n\nInclude handling erori."},{"t":"Tool calling","p":"Agent cu function calling pentru:\n[descrie task]\n\nTool-uri:\n[lista]\n\nIn [limbaj]."},{"t":"Scraper inteligent","p":"Scraper pentru [site] care:\n- Extrage: [ce date]\n- Gestioneaza: paginatie, rate limiting\n- Salveaza in: [CSV/JSON/DB]"},{"t":"Automation workflow","p":"Automatizeaza workflow:\n1. [pasul 1]\n2. [pasul 2]\n3. [pasul 3]\n\nTrigger: [manual/cron/webhook]"},{"t":"Bot Telegram","p":"Bot Telegram cu comenzile:\n[lista comenzi]\n\nCu inline keyboards si state management."},{"t":"Pipeline AI","p":"Pipeline care:\n1. Preia date din [sursa]\n2. Proceseaza cu AI pentru [task]\n3. Salveaza in [destinatie]"},{"t":"Multi-agent","p":"Sistem multi-agent pentru:\n[descrie task]\n\nRoluri:\n[lista roluri]\n\nCum comunica intre ei."},{"t":"RAG system","p":"Sistem RAG care:\n- Indexeaza: [tip documente]\n- Vector DB: [Pinecone/Chroma]\n- LLM: [model]"},{"t":"Chatbot custom","p":"Chatbot cu:\n- Nume: [nume]\n- Ton: [formal/casual]\n- Domeniu: [domeniu]\n\nIn [framework]."},{"t":"Agent monitoring","p":"Adauga monitoring agentului:\n[paste codul]\n\nTrack: latenta, costuri, erori, success rate."}]},{"icon":"📈","name":"Marketing","color":"#f59e0b","bg":"rgba(245,158,11,0.08)","prompts":[{"t":"Ad copy Meta/Google","p":"3 variante ad copy pentru:\n- Produs: [descriere]\n- Audienta: [ICP]\n- Obiectiv: [awareness/conversii]\n- Ton: [formal/casual]"},{"t":"Email sequence","p":"Secventa 5 emailuri pentru:\n- Context: [ce vinde]\n- Lead-ul a facut: [actiune]\n- Obiectiv: [conversie dorita]\n\nInclude subject lines."},{"t":"Hook viral","p":"10 hook-uri pentru [topic] pe [platforma].\nAudienta: [descriere].\nStiluri: curiozitate, soc, cifre, poveste."},{"t":"Calendar continut","p":"Calendar continut 30 zile pentru [platforma] despre [nisa].\nInclude: tip post, topic, hook, CTA."},{"t":"Script YouTube","p":"Script video YouTube [durata] despre:\n[topic]\n\nInclude: hook 30sec, intro, cuprins, CTA."},{"t":"Caption Instagram","p":"5 variante caption pentru postare despre [topic]:\n- Audienta: [descriere]\n- Ton: [ton]\n- CTA: [ce vrei sa faca]"},{"t":"Landing page copy","p":"Copy landing page:\n- Produs: [descriere]\n- ICP: [client ideal]\n- Problema: [ce rezolva]\n\nInclude: headline, benefits, CTA, FAQ."},{"t":"Strategie launch","p":"Strategie lansare pentru:\n[produs]\n\nBuget: [buget]\nTimeline: [timeline]\nPlatforme: [platforme]"},{"t":"VSL script","p":"Video Sales Letter [durata] pentru:\n- Produs: [descriere]\n- Audienta: [ICP]\n- Formula: [PAS/AIDA/Story]"},{"t":"Campanie WhatsApp","p":"Campanie outreach WhatsApp:\n- Oferta: [descriere]\n- Audienta: [cine contactezi]\n- Secventa: [nr mesaje]\n\nNatural, non-spam."}]},{"icon":"📝","name":"Continut","color":"#06b6d4","bg":"rgba(6,182,212,0.08)","prompts":[{"t":"Articol blog SEO","p":"Articol blog [nr cuvinte] despre:\n[topic]\n\nKeyword: [keyword]\nAudienta: [descriere]\n\nInclude: H2-uri, meta description, FAQ."},{"t":"Thread Twitter/X","p":"Thread [nr tweet-uri] despre [topic].\nHook puternic la inceput.\nFiecare tweet sa stea singur.\nFinal cu CTA."},{"t":"Carousel LinkedIn","p":"Carousel LinkedIn [nr slide-uri] despre [topic]:\n- Slide 1: hook\n- Slide 2-N: continut\n- Slide final: CTA"},{"t":"Newsletter issue","p":"Issue newsletter despre [topic]:\n- Audienta: [descriere]\n- Ton: [ton]\n- Lungime: [scurt/mediu/lung]"},{"t":"Bio profesional","p":"Bio profesional pentru:\n- Persoana: [descriere]\n- Platforma: [LinkedIn/Instagram]\n- Highlight-uri: [realizari]\n\nVersiuni: scurta si lunga."},{"t":"Case study","p":"Case study:\n- Problema: [problema initiala]\n- Solutie: [ce ai implementat]\n- Rezultate: [rezultate]\n\nFormat: poveste + date."},{"t":"FAQ complet","p":"15 intrebari frecvente cu raspunsuri pentru:\n[produs/serviciu]\n\nInclude: obiectii vanzare, tehnice, pret."},{"t":"Press release","p":"Comunicat presa pentru:\n[eveniment/lansare]\n\nFormat jurnalistic. Include: citat, facts, contact."},{"t":"Rezumat executiv","p":"Rezuma urmatorul text in:\n1. Rezumat executiv (3 randuri)\n2. Key points\n3. Actiuni recomandate\n\n[paste textul]"},{"t":"Pitch deck text","p":"Continut pitch deck [nr slide-uri]:\n[descriere business]\n\nAudienta: [investitori/clienti]\nObiectiv: [ce vrei sa obtii]"}]},{"icon":"🔍","name":"SEO","color":"#10b981","bg":"rgba(16,185,129,0.08)","prompts":[{"t":"Keyword research","p":"Keyword research pentru:\n- Nisa: [nisa]\n- Competitor: [competitor]\n- Obiectiv: [trafic/conversii]\n\nGrupat: seed, long-tail, LSI, questions."},{"t":"Meta tags","p":"Meta title si description pentru:\n- Pagina: [tip pagina]\n- Keyword: [keyword]\n- Limite: title 60, description 155 chars."},{"t":"Audit SEO on-page","p":"Audit SEO on-page pentru:\n[paste continutul]\n\nKeyword: [keyword]\nVerifica: titluri, densitate, links, readability."},{"t":"Schema markup","p":"Schema.org markup JSON-LD pentru:\n- Tip: [Article/Product/FAQ/LocalBusiness]\n- Detalii: [datele]"},{"t":"Cluster topical","p":"Cluster topical pentru:\n- Pillar page: [topic principal]\n\n1 pillar + 10 cluster pages cu title si angle unic."},{"t":"Analiza SERP","p":"Analizeaza intentiile de cautare pentru:\n[keyword]\n\nIdentifica: tip intent, ce vor, cum sa bat top 3."},{"t":"Link building email","p":"Email outreach link building:\n- Site-ul meu: [url si topic]\n- Target: [url]\n- Motivul: [de ce e relevant]"},{"t":"Titluri click-worthy","p":"10 titluri SEO pentru articol despre:\n[topic]\n\nKeyword: [keyword]\nMix: cifre, cum sa, de ce, liste."},{"t":"Content gap","p":"Content gap-uri:\n- Site-ul meu: [lista topicuri]\n- Competitor: [competitor]\n\n10 topicuri nepublicate."},{"t":"Featured snippet","p":"Optimizeaza pentru featured snippet:\nKeyword: [keyword]\n\n[paste continutul]\n\nFormat: [paragraph/list/table]"}]},{"icon":"💼","name":"Business","color":"#f97316","bg":"rgba(249,115,22,0.08)","prompts":[{"t":"Business plan rapid","p":"Business plan pentru:\n- Idee: [descriere]\n- Buget: [suma]\n- Timeline: [timeline]\n\nInclude: venituri, costuri, ICP, riscuri."},{"t":"Analiza competitie","p":"Analiza competitiva:\n- Businessul meu: [descriere]\n- Competitori: [lista]\n\nSWOT + diferentiere + oportunitate."},{"t":"Pricing strategy","p":"Strategie pricing pentru:\n- Produs: [descriere]\n- Costuri: [costuri]\n- Competitie: [pret]\n- ICP: [audienta]"},{"t":"Elevator pitch","p":"Pitch 1 minut pentru:\n[descriere business]\n\nPentru: [investitori/clienti]\nInclude: problema, solutie, market, cerere."},{"t":"OKRs trimestriale","p":"OKR-uri trimestrul urmator:\n- Business: [descriere]\n- Obiectiv anual: [obiectiv]\n\n3 Objectives cu 3 Key Results fiecare."},{"t":"SOP procedura","p":"SOP pentru:\n[proces]\n\nInclude: scop, cine face, pasi detaliati, tool-uri necesare."},{"t":"Propunere comerciala","p":"Propunere comerciala:\n- Client: [tip client]\n- Serviciu: [descriere]\n- Pret: [pret]\n- Durata: [durata]"},{"t":"Cold email B2B","p":"Cold email B2B:\n- Produsul meu: [descriere]\n- Prospectul: [titlu/companie]\n- Problema lor: [problema]\n- CTA: [actiune]\n\nSub 150 cuvinte."},{"t":"SWOT analysis","p":"Analiza SWOT pentru:\n[descriere business/produs]\n\nFii specific. Include recomandari concrete per sectiune."},{"t":"Validare idee","p":"Valideaza aceasta idee:\n[descriere idee]\n\nAnalizeaza: cerere, competitie, venituri, riscuri. Spune si ce NU merge."}]},{"icon":"📊","name":"Analiza","color":"#8b5cf6","bg":"rgba(139,92,246,0.08)","prompts":[{"t":"Analiza date","p":"Analizeaza datele:\n1. Ce patterns observi\n2. Ce anomalii exista\n3. Ce recomandari ai\n\n[paste datele]"},{"t":"Review document","p":"Review critic al documentului:\n[paste documentul]\n\nVerifica: claritate, logica, completitudine, imbunatatiri."},{"t":"Explica concept","p":"Explica-mi [concept] ca si cum as fi:\n[nivel: incepator/junior/expert alt domeniu]\n\nFoloseste analogii si exemple."},{"t":"Compara optiuni","p":"Compara si recomanda:\nOptiunea A: [descriere]\nOptiunea B: [descriere]\nOptiunea C: [descriere]\n\nContextul meu: [situatia]"},{"t":"Root cause analysis","p":"Root cause analysis pentru:\nProblema: [descriere]\nCe am incercat: [ce ai incercat]\n\nFoloseste metoda 5 Whys."},{"t":"Rezumat executiv","p":"Rezumat executiv o pagina pentru:\n[paste documentul]\n\nPentru audienta: [descriere]\nFocus pe: [ce e important]"},{"t":"Decision framework","p":"Ajuta-ma sa decid intre:\n[optiunile]\n\nCriterii importante:\n[lista]\n\nConstrangeri:\n[constrangeri]"},{"t":"Forecast simplu","p":"Pe baza datelor istorice:\n[paste datele]\n\nForecast pentru [perioada]. Include asumptiile."},{"t":"Analiza feedback","p":"Analizeaza reviewurile:\n1. Top 5 plangeri\n2. Top 5 laude\n3. Actiuni prioritare\n\n[paste feedback-urile]"},{"t":"Metrici business","p":"Analizeaza metricile si da insights actionabile:\n[paste metricile]\n\nContextul businessului:\n[descriere]"}]},{"icon":"✉️","name":"Email","color":"#ec4899","bg":"rgba(236,72,153,0.08)","prompts":[{"t":"Follow-up politicos","p":"Email follow-up:\n- Context: [ce s-a discutat]\n- Zile de la ultimul contact: [nr]\n- Ce vreau: [actiunea dorita]\n\nScurt, politicos, cu valoare."},{"t":"Refuz elegant","p":"Email refuz elegant:\n[cererea/oferta]\n\nMentinand relatia buna. Ton: [formal/casual]."},{"t":"Cerere colaborare","p":"Email colaborare catre:\n[tip persoana/companie]\n\nPropunerea: [descriere]\nValoarea pentru ei: [ce castiga]\nCTA: [pasul urmator]"},{"t":"Reactivare client","p":"Email reactivare client inactiv [perioada]:\n- Contextul: [descriere]\n- Oferta: [oferta]\n- Ton: cald, ne-agresiv."},{"t":"Welcome email","p":"Email bun venit nou abonat la:\n[topic newsletter]\n\nInclude: cine sunt, ce vor primi, primul pas."},{"t":"Cerere testimonial","p":"Email cerere testimonial de la:\n[tip client, ce a cumparat]\n\nUsor de facut, link direct."},{"t":"Oferta limitata","p":"Email oferta cu urgenta:\n- Oferta: [descriere]\n- Deadline: [data]\n- Pret normal vs promo: [preturi]"},{"t":"Email echipa","p":"Email intern catre echipa despre:\n[subiect]\n\nActiuni necesare: [lista]\nDeadline: [data]"},{"t":"Scuze profesionale","p":"Email scuze profesionale pentru:\n[situatia]\n\nCatre: [client/partener]\nOfera: [compensatie/solutie]"},{"t":"Cold LinkedIn","p":"Mesaj cold outreach LinkedIn:\n- Target: [titlu/companie]\n- Ce ofer: [descriere]\n\nSub 100 cuvinte, uman, non-spam."}]},{"icon":"💰","name":"Make Money","color":"#22d3ee","bg":"rgba(34,211,238,0.08)","prompts":[{"t":"Idee venit online","p":"Vreau sa fac bani online cu:\n- Skills: [ce stii sa faci]\n- Timp disponibil: [ore/zi]\n- Buget initial: [suma]\n- Obiectiv lunar: [suma]\n\nDa-mi top 3 idei concrete cu pasii de start."},{"t":"Primul client","p":"Ajuta-ma sa gasesc primul client platitor pentru:\n- Serviciul meu: [descriere]\n- Nisa: [domeniu]\n- Buget marketing: [suma]\n\nStrategie pas cu pas pentru primele 7 zile."},{"t":"Venit pasiv rapid","p":"Vreau venit pasiv cu:\n- Expertiza: [domeniu]\n- Timp initial: [ore]\n- Tinta: [suma/luna]\n\nTop 3 modele realiste cu timeline si efort necesar."},{"t":"Freelance pricing","p":"Cat sa cer ca freelancer pentru:\n- Serviciul: [descriere]\n- Experienta: [ani/nivel]\n- Piata: [Romania/EU/US]\n\nDa-mi rate orare, per proiect si retainer lunar."},{"t":"Digital product","p":"Vreau sa vand un produs digital despre:\n[domeniu/skill]\n\nAudienta: [cine are nevoie]\nFormate posibile: [ebook/curs/template]\n\nPlan complet: creare, pret, vanzare."},{"t":"Agentie micro","p":"Vreau sa lansez o micro-agentie de [serviciu].\n\nBuget: [suma]\nTeam: [singur/cu parteneri]\n\nModel operational, primul client, pricing, scalare."},{"t":"Monetizare audienta","p":"Am o audienta de [nr] pe [platforma] despre [nisa].\n\nTop 5 metode sa o monetizez acum fara produs propriu."},{"t":"Arbitraj si revanzare","p":"Vreau sa fac arbitraj/revanzare in [nisa].\n\nBuget: [suma]\nTimp: [ore/saptamana]\n\nGhid complet: unde cumpar, unde vand, marja realista."},{"t":"SaaS micro","p":"Vreau sa construiesc un micro-SaaS pentru:\n[problema de rezolvat]\n\nAudienta: [cine plateste]\nStack recomandat, pret, go-to-market in 30 zile."},{"t":"Sistem $1000/luna","p":"Construieste-mi un sistem complet ca sa fac $1000/luna cu:\n- Skill principal: [skill]\n- Timp: [ore/zi]\n- Buget: [suma]\n\nPlan 90 zile, saptamana cu saptamana."}]},{"icon":"🏢","name":"SSociety Proiecte","color":"#f97316","bg":"rgba(249,115,22,0.08)","prompts":[{"t":"CRM Imobiliar AI","p":"Ajuta-ma sa lansez un CRM imobiliar cu AI similar SocietyHUB.\n\nFunctii necesare: [proprietati/leads/matching/contracte]\nStack: [Node/React/SQLite]\n\nArhitectura completa + pasii de implementare."},{"t":"Agent AI restaurante","p":"Construieste un chatbot AI pentru restaurante care:\n- Preia comenzi prin chat\n- Raspunde la intrebari meniu\n- Informeaza despre alergeni\n\nStack: [Telegram Bot/WhatsApp]\nIntegrare: [POS/Kitchen display]"},{"t":"Dashboard solar","p":"Dashboard monitorizare sisteme fotovoltaice:\n- Productie curentă real-time\n- Economii calculate\n- Consum vs productie\n- Stare baterii\n\nStack: [tech stack]\nAPI-uri: [surse date]"},{"t":"Agentie content AI","p":"Setup complet agentie content automat:\n- Script AI → Audio TTS → Video → SEO → Publish\n- Platforme: YouTube, TikTok, Instagram\n\nFlux complet + tool-uri + costuri reale per continut."},{"t":"Wild Bot WhatsApp","p":"Sistem outreach WhatsApp care:\n- Trimite 300 mesaje/zi\n- Mesaje 100% unice\n- Timpi umani aleatorii\n- Anti-ban protection\n\nArhitectura + stack + riscuri legale."},{"t":"Platform tutoriat AI","p":"Platforma tutoriat AI personalizat:\n- Lectii adaptate nivelului studentului\n- Quiz-uri automate\n- Tracking progres\n\nStack complet + model monetizare $29/elev/luna."},{"t":"Trading agent AI","p":"Agent AI trading 24/7 care:\n- Analizeaza actiuni si crypto\n- Identifica pattern-uri tehnice\n- Evalueaza sentiment piata\n\nStack Python + API-uri gratuite + disclaimer riscuri."},{"t":"SEO agency AI","p":"Agentie SEO complet automatizata:\n- 8 articole optimizate/luna per client\n- Audit tehnic automat\n- Raport PDF livrat automat\n\nStack + API-uri + pret per client ($499-$2999)."},{"t":"LifeOS personal","p":"Sistem personal de management viata cu AI:\n- Obiective + finante + sanatate + rutine\n- Goal tracking\n- AI journal\n\nStack: [web app/mobile]\nFunctii prioritare + MVP in 30 zile."},{"t":"Scanner vulnerabilitati","p":"Platforma ethical hacking pentru bug bounty:\n- Scanare API-uri\n- Detectare vulnerabilitati comune\n- Rapoarte HackerOne/Bugcrowd\n\nStack + librarii Python + conformitate legala Romania."}]},{"icon":"⚡","name":"Arsenal API","color":"#a78bfa","bg":"rgba(167,139,250,0.08)","prompts":[{"t":"Stack gratuit complet","p":"Construieste un stack complet gratuit pentru:\n[tip aplicatie: SaaS/bot/dashboard/marketplace]\n\nNecesitati: [autentificare/plati/email/AI/stocare]\n\nListeaza API-urile gratuite exacte cu tier-ul free."},{"t":"AI gratuit productie","p":"Am nevoie de AI in productie cu budget $0.\n\nTask-ul AI: [generare text/imagini/voce/analiza]\nVolum: [nr requesturi/zi]\n\nTop 3 API-uri gratuite cu limite si cod de integrare."},{"t":"Email automat gratuit","p":"Sistem email automat complet gratuit pentru:\n- Tip: [transactional/newsletter/outreach]\n- Volum: [emailuri/luna]\n\nAPI recomandat + cod Python/Node + setup complet."},{"t":"Baza de date gratuita","p":"Am nevoie de baza de date gratuita pentru:\n- Tip date: [relational/document/vector/cache]\n- Volum: [GB]\n- Stack: [limbaj]\n\nRecomandare + tier gratuit exact + cod conexiune."},{"t":"Plati fara comision","p":"Integrare plati cu comision minim pentru:\n- Tara: [Romania/EU]\n- Volum: [tranzactii/luna]\n- Tip: [one-time/subscriptie]\n\nComparatie Stripe vs Paddle vs LemonSqueezy + cod."},{"t":"Scraping gratuit","p":"Scraper pentru [site] cu API gratuit:\n- Date necesare: [ce date]\n- Frecventa: [zilnic/saptamanal]\n- Output: [JSON/CSV]\n\nApify free tier vs Bright Data vs alternative."},{"t":"Auth gratuit","p":"Sistem autentificare gratuit pentru app cu [nr useri]:\n- Metode: [email/Google/GitHub/magic link]\n- Stack: [framework]\n\nClerk vs Supabase Auth vs Firebase Auth - comparatie + cod."},{"t":"Storage gratuit","p":"Storage fisiere gratuit pentru:\n- Tip fisiere: [imagini/video/documente]\n- Volum: [GB/luna]\n- Acces: [public/privat]\n\nCloudflare R2 vs Supabase vs Backblaze B2 + integrare."},{"t":"Monitoring gratuit","p":"Stack monitoring gratuit pentru app in productie:\n- Erori: [frontend/backend]\n- Uptime: [da/nu]\n- Analytics: [da/nu]\n\nSentry free + UptimeRobot + Plausible - setup complet."},{"t":"Deploy gratuit","p":"Deploy gratuit pentru:\n- Tip app: [Node/Python/React/static]\n- Traffic estimat: [vizitatori/luna]\n- DB necesara: [da/nu]\n\nRailway vs Render vs Fly.io vs Vercel - cel mai bun pentru cazul meu."}]},{"icon":"🚀","name":"Side Hustles","color":"#22c55e","bg":"rgba(34,197,94,0.08)","prompts":[{"t":"Freelance writing","p":"Vreau sa fac bani din scris freelance:\n- Nisa preferata: [tech/finance/health/altele]\n- Timp: [ore/saptamana]\n- Nivel engleza: [nivel]\n\nPlatforme, rata realista, primul articol platit in 7 zile."},{"t":"Revanzare produse","p":"Vreau sa resvand produse online:\n- Buget: [suma]\n- Platforma: [OLX/eBay/Amazon/Marketplace]\n- Nisa: [electronice/haine/colectii/altele]\n\nStrategie + surse + marja realista."},{"t":"Social media management","p":"Vreau sa manageriez social media pentru clienti locali.\n\nNisa clienti: [restaurante/saloane/clinici/altele]\nOras: [oras]\n\nPachet servicii, pret, cum gasesc primii 3 clienti."},{"t":"Print on demand","p":"Business print on demand:\n- Nisa design: [gaming/motivational/nisa specifica]\n- Platforma: [Redbubble/Printful/Merch by Amazon]\n\nSetup complet + primul design + strategie trafic."},{"t":"YouTube automation","p":"Canal YouTube automatizat in nisa:\n[nisa aleasa]\n\nFara sa apari pe camera. Tool-uri AI, frecventa postare, monetizare la 1000 abonati."},{"t":"Dropshipping AI","p":"Dropshipping cu AI pentru:\n- Nisa: [produs/categorie]\n- Buget: [suma]\n- Platforma: [Shopify/WooCommerce]\n\nFurnizori, reclame, automatizare comenzi, marja neta realista."},{"t":"Traduceri si transcriere","p":"Venit din traduceri si transcriere:\n- Limbi: [perechi limbi]\n- Timp: [ore/zi]\n\nPlatforme platite, rata per cuvant, tool-uri AI care te ajuta sa faci 3x mai mult."},{"t":"Tutoriat online","p":"Vreau sa dau meditatii online pentru:\n- Materia: [materia]\n- Nivel: [scoala/liceu/facultate]\n- Pret target: [suma/ora]\n\nPlatforme, cum ma promovez, primul student in 14 zile."},{"t":"Newsletter monetizat","p":"Newsletter monetizat in nisa:\n[nisa]\n\nDe la 0 la 500 abonati platitori la $5/luna.\nStrategy + tool-uri gratuite + primul issue."},{"t":"Servicii locale AI","p":"Ofer servicii locale automatizate cu AI:\n- Serviciul: [contabilitate/legal/marketing/altul]\n- Oras: [oras]\n- Target: [IMM-uri/persoane fizice]\n\nPachet, pret, cum gasesc primii clienti offline."}]}];
+var ai=0;
+function rSide(){
+  var el=document.getElementById('po-sidebar-list');
+  if(!el)return;
+  el.innerHTML='';
+  C.forEach(function(c,i){
+    var b=document.createElement('button');
+    b.className='po-sbtn'+(i===ai?' on':'');
+    b.style.borderLeftColor=i===ai?c.color:'transparent';
+    b.innerHTML='<span class="si">'+c.icon+'</span><div><div class="sn" style="color:'+(i===ai?c.color:'#bbb')+'">'+c.name+'</div><div class="sc">'+c.prompts.length+' prompturi</div></div>';
+    b.onclick=function(){ai=i;rAll();};
+    el.appendChild(b);
+  });
+}
+function rTabs(){
+  var el=document.getElementById('po-tabs');
+  if(!el)return;
+  el.innerHTML='';
+  C.forEach(function(c,i){
+    var b=document.createElement('button');
+    b.className='po-tab'+(i===ai?' on':'');
+    if(i===ai){b.style.background=c.color;b.style.color='#000';}
+    else{b.style.borderColor='#1a1a2e';b.style.color='#555';}
+    b.innerHTML=c.icon+' '+c.name;
+    b.onclick=function(){ai=i;rAll();};
+    el.appendChild(b);
+    if(i===ai)setTimeout(function(){b.scrollIntoView({behavior:'smooth',inline:'center',block:'nearest'});},60);
+  });
+}
+function rCards(){
+  var c=C[ai];
+  var rn=document.getElementById('po-right-head-name');
+  var rk=document.getElementById('po-right-head-count');
+  var sn=document.getElementById('po-subhead-name');
+  var sk=document.getElementById('po-subhead-count');
+  if(rn){rn.textContent=c.icon+' '+c.name;rn.style.color=c.color;}
+  if(rk)rk.textContent=c.prompts.length+' prompturi disponibile';
+  if(sn){sn.textContent=c.icon+' '+c.name;sn.style.color=c.color;sn.style.fontWeight='900';sn.style.fontSize='15px';sn.style.margin='0';}
+  if(sk)sk.textContent=c.prompts.length+' prompturi';
+  var el=document.getElementById('po-cards');
+  el.innerHTML='';el.scrollTop=0;
+  c.prompts.forEach(function(p){
+    var d=document.createElement('div');
+    d.className='po-card';
+    d.style.background=c.bg;
+    d.style.borderColor=c.color+'33';
+    d.innerHTML='<div class="po-card-icon">'+c.icon+'</div>'
+      +'<div class="po-card-title" style="color:'+c.color+'">'+p.t+'</div>'
+      +'<div class="po-card-preview">'+p.p.split(String.fromCharCode(10)).join(' ').substring(0,95)+'...</div>'
+      +'<div class="po-card-hint" style="color:'+c.color+'">👆 Atinge pentru a folosi</div>';
+    d.onclick=function(){
+      var ta=document.querySelector('textarea');
+      if(ta){ta.value=p.p;ta.dispatchEvent(new Event('input',{bubbles:true}));ta.focus();}
+      PLclose();
+    };
+    el.appendChild(d);
+  });
+}
+function rAll(){rSide();rTabs();rCards();}
+window.PLopen=function(){
+  document.getElementById('prompt-overlay').style.display='block';
+  document.body.style.overflow='hidden';
+  rAll();
+};
+window.PLclose=function(){
+  document.getElementById('prompt-overlay').style.display='none';
+  document.body.style.overflow='';
+};
+document.addEventListener('keydown',function(e){if(e.key==='Escape')PLclose();});
+})()</script>
+</div><!-- /split-root -->
 </body>
 </html>
