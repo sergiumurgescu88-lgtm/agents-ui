@@ -1818,11 +1818,24 @@ function kiloOpen(initialPrompt) {
   kiloWS = new WebSocket(proto + '//' + location.host + '/ws/kilo-terminal?' + kiloWsParams.toString());
   kiloWS.onopen = function() {
     document.getElementById('kilo-status-dot').style.background = '#00ff87';
-    document.getElementById('kilo-status-text').textContent = 'Kilo CLI — Conectat';
+    // Trimite config VPS ca primul mesaj
+    const cfgMsg = { type: 'config', vps: null };
+    if (vpsConfig && vpsConfig.host) {
+      cfgMsg.vps = {
+        host: vpsConfig.host,
+        username: vpsConfig.username || 'root',
+        password: vpsConfig.password || '',
+        port: vpsConfig.port || 22
+      };
+      document.getElementById('kilo-status-text').textContent = 'Kilo CLI — SSH: ' + vpsConfig.host;
+    } else {
+      document.getElementById('kilo-status-text').textContent = 'Kilo CLI — Conectat (local)';
+    }
+    kiloWS.send(JSON.stringify(cfgMsg));
     if (initialPrompt) {
       setTimeout(function() {
         kiloWS.send(JSON.stringify({type: 'inject', data: initialPrompt}));
-      }, 1500);
+      }, 2000);
     }
   };
   kiloWS.onmessage = function(e) {
