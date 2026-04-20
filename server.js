@@ -102,75 +102,16 @@ const incUsage = (uid) => { usageMap[uid] = (usageMap[uid]||0)+1; saveUsage(); }
 async function callAI(messages, system, mode='chat') {
   const msgs = messages.map(m => ({ role: m.role==='model'?'assistant':m.role, content: String(m.content||m.text||'') })).filter(m=>m.content);
   const allMsgs = system ? [{role:'system',content:system},...msgs] : msgs;
-
-  // 🟢 CODING → Kilo CLI (gpt-4.1-mini) cu fallback OpenAI gpt-4o
-  if (mode === 'coding') {
-    try {
-      console.log('[AI] CODING → Kilo CLI gpt-4.1-mini...');
-      const lastUserMsg = messages.filter(m => m.role === 'user').pop();
-      const prompt = lastUserMsg?.content || lastUserMsg?.text || '';
-      const kiloReply = await kiloChat(prompt, system);
-      if (kiloReply) { console.log('[AI] Kilo CLI OK'); return kiloReply; }
-    } catch(e) { console.error('[AI] Kilo failed:', e.message); }
-    // Fallback la OpenAI direct
-    try {
-      console.log('[AI] CODING fallback → OpenAI gpt-4o...');
-      const r = await axios.post('https://api.openai.com/v1/chat/completions',
-        { model:'gpt-4o', messages:allMsgs, max_tokens:2000 },
-        { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
-      );
-      const reply = r.data?.choices?.[0]?.message?.content;
-      if (reply) { console.log('[AI] OpenAI gpt-4o fallback OK'); return reply; }
-    } catch(e) { console.error('[AI] OpenAI failed:', e.response?.data?.error?.message || e.message); }
-  }
-
-  // 🔵 MARKETING → xAI Grok (cel mai creativ)
-  if (mode === 'marketing') {
-    try {
-      console.log('[AI] MARKETING → xAI Grok...');
-      const r = await axios.post('https://api.x.ai/v1/chat/completions',
-        { model:'grok-3', messages:allMsgs, max_tokens:2000 },
-        { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.XAI_API_KEY}` }, timeout:30000 }
-      );
-      const reply = r.data?.choices?.[0]?.message?.content;
-      if (reply) { console.log('[AI] xAI Grok OK'); return reply; }
-    } catch(e) { console.error('[AI] xAI failed:', e.response?.data?.error?.message || e.message); }
-  }
-
-  // 💬 CHAT → OpenAI gpt-4.1-mini
   try {
-    console.log('[AI] CHAT → OpenAI gpt-4.1-mini...');
+    console.log('[AI] → gpt-4o-mini...');
     const r = await axios.post('https://api.openai.com/v1/chat/completions',
-      { model:'gpt-4.1-mini', messages:allMsgs, max_tokens:2000 },
+      { model:'gpt-4.1-mini', messages:allMsgs, max_tokens:3000 },
       { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
     );
     const reply = r.data?.choices?.[0]?.message?.content;
-    if (reply) { console.log('[AI] gpt-4.1-mini OK'); return reply; }
-  } catch(e) { console.error('[AI] gpt-4.1-mini failed:', e.response?.data?.error?.message || e.message); }
-
-  // FALLBACK UNIVERSAL → OpenAI gpt-4o-mini
-  try {
-    console.log('[AI] FALLBACK → OpenAI gpt-4o-mini...');
-    const r = await axios.post('https://api.openai.com/v1/chat/completions',
-      { model:'gpt-4o-mini', messages:allMsgs, max_tokens:2000 },
-      { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
-    );
-    const reply = r.data?.choices?.[0]?.message?.content;
-    if (reply) { console.log('[AI] OpenAI fallback OK'); return reply; }
-  } catch(e) { console.error('[AI] OpenAI fallback failed:', e.message); }
-
-  // LAST RESORT → OpenAI gpt-4.1
-  try {
-    console.log('[AI] LAST RESORT → OpenAI gpt-4.1...');
-    const r = await axios.post('https://api.openai.com/v1/chat/completions',
-      { model:'gpt-4.1', messages:allMsgs, max_tokens:2000 },
-      { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
-    );
-    const reply = r.data?.choices?.[0]?.message?.content;
-    if (reply) return reply;
-  } catch(e) {}
-
-  return '⚠️ Toate modelele sunt indisponibile momentan.';
+    if (reply) { console.log('[AI] gpt-4o-mini OK'); return reply; }
+  } catch(e) { console.error('[AI] gpt-4o-mini failed:', e.response?.data?.error?.message || e.message); }
+  return '⚠️ Modelul este indisponibil momentan.';
 }
 
 const SYSTEM_PROMPT = `Ești BUDDY — platforma DaRomania. Asistentul AI secvențial în 5 pași care transformă orice idee în business real.
