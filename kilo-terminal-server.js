@@ -1,5 +1,6 @@
 const { spawn } = require('node-pty');
 const WebSocket = require('ws');
+const ssh2 = require('ssh2');
 const kiloSessions = new Map();
 
 function getKiloSession(userId) { return kiloSessions.get(userId) || null; }
@@ -7,7 +8,7 @@ function getKiloSession(userId) { return kiloSessions.get(userId) || null; }
 function runCommandInKilo(userId, command) {
   return new Promise((resolve) => {
     const session = kiloSessions.get(userId);
-    if (!session || !session.pty) return resolve('❌ Kilo nu e conectat');
+    if (!session || !session.write) return resolve('❌ Kilo nu e conectat');
     let output = '';
     const timeout = setTimeout(() => resolve(output || '(timeout)'), 15000);
     session.onOutput = (data) => {
@@ -16,7 +17,7 @@ function runCommandInKilo(userId, command) {
         clearTimeout(timeout); session.onOutput = null; resolve(output);
       }
     };
-    session.pty.write(command + '\n');
+    session.write(command + '\n');
   });
 }
 
@@ -29,95 +30,116 @@ function startKiloTerminalServer(httpServer) {
     const userId = urlParams.get('userId') || 'anonymous';
     console.log('[KiloTerminal] Client conectat, userId:', userId);
 
-    let pty = null;
+    let session = null; // { write, resize, kill }
+    let configured = false;
 
-    function startPty(cfg) {
-      let spawnCmd, spawnArgs;
-      if (cfg && cfg.host) {
-        spawnCmd = 'sshpass';
-        spawnArgs = [
-          '-p', cfg.password,
-          'ssh',
-          '-o', 'StrictHostKeyChecking=no',
-          '-o', 'ConnectTimeout=10',
-          '-p', String(cfg.port || 22),
-          (cfg.username || 'root') + '@' + cfg.host
-        ];
-        console.log('[KiloTerminal] SSH PTY →', (cfg.username||'root') + '@' + cfg.host);
-      } else {
-        spawnCmd = 'bash';
-        spawnArgs = [];
-        console.log('[KiloTerminal] Bash local PTY');
-      }
-
-      pty = spawn(spawnCmd, spawnArgs, {
-        name: 'xterm-256color',
-        cols: 120,
-        rows: 35,
-        cwd: '/root',
-        env: { ...process.env, HOME: '/root', TERM: 'xterm-256color', COLORTERM: 'truecolor' }
+    function startLocalBash() {
+      console.log('[KiloTerminal] Pornire bash local');
+      const pty = spawn('bash', [], {
+        name: 'xterm-256color', cols: 120, rows: 35, cwd: '/root',
+        env: { ...process.env, HOME: '/root', TERM: 'xterm-256color' }
       });
-
-      console.log('[KiloTerminal] PTY PID:', pty.pid);
-      kiloSessions.set(userId, { pty, onOutput: null, ws });
-
       pty.onData((data) => {
         const s = kiloSessions.get(userId);
         if (s && s.onOutput) s.onOutput(data);
         try { ws.send(JSON.stringify({ type: 'output', data })); } catch(e) {}
       });
-
       pty.onExit(({ exitCode }) => {
-        console.log('[KiloTerminal] PTY exit:', exitCode);
+        console.log('[KiloTerminal] Bash exit:', exitCode);
         try { ws.send(JSON.stringify({ type: 'exit', code: exitCode })); ws.close(); } catch(e) {}
+      });
+      session = {
+        write: (d) => pty.write(d),
+        resize: (c, r) => pty.resize(c, r),
+        kill: () => { try { pty.kill(); } catch(e) {} },
+        onOutput: null
+      };
+      kiloSessions.set(userId, session);
+    }
+
+    function startSSH(cfg) {
+      console.log('[KiloTerminal] Pornire SSH →', cfg.username + '@' + cfg.host + ':' + (cfg.port||22));
+      const conn = new ssh2.Client();
+      conn.on('ready', () => {
+        console.log('[KiloTerminal] SSH conectat la', cfg.host);
+        conn.shell({ term: 'xterm-256color', cols: 120, rows: 35 }, (err, stream) => {
+          if (err) {
+            console.error('[KiloTerminal] SSH shell error:', err.message);
+            try { ws.send(JSON.stringify({ type: 'output', data: '❌ SSH shell error: ' + err.message + '\r\n' })); } catch(e) {}
+            conn.end(); return;
+          }
+          stream.on('data', (data) => {
+            const s = kiloSessions.get(userId);
+            if (s && s.onOutput) s.onOutput(data.toString());
+            try { ws.send(JSON.stringify({ type: 'output', data: data.toString() })); } catch(e) {}
+          });
+          stream.on('close', () => {
+            console.log('[KiloTerminal] SSH stream închis');
+            conn.end();
+            try { ws.send(JSON.stringify({ type: 'exit', code: 0 })); ws.close(); } catch(e) {}
+          });
+          session = {
+            write: (d) => { try { stream.write(d); } catch(e) {} },
+            resize: (c, r) => { try { stream.setWindow(r, c, 0, 0); } catch(e) {} },
+            kill: () => { try { stream.close(); conn.end(); } catch(e) {} },
+            onOutput: null
+          };
+          kiloSessions.set(userId, session);
+        });
+      });
+      conn.on('error', (err) => {
+        console.error('[KiloTerminal] SSH error:', err.message);
+        try { ws.send(JSON.stringify({ type: 'output', data: '❌ SSH eroare: ' + err.message + '\r\n' })); } catch(e) {}
+        // Fallback la bash local
+        startLocalBash();
+      });
+      conn.connect({
+        host: cfg.host,
+        port: cfg.port || 22,
+        username: cfg.username || 'root',
+        password: cfg.password,
+        readyTimeout: 15000,
+        keepaliveInterval: 10000
       });
     }
 
-    // Primul mesaj poate fi config VPS sau input normal
-    let configured = false;
     ws.on('message', (msg) => {
       try {
         const parsed = JSON.parse(msg);
 
-        // Config VPS — primul mesaj cu type:'config'
         if (parsed.type === 'config' && !configured) {
           configured = true;
-          startPty(parsed.vps || null);
+          if (parsed.vps && parsed.vps.host && parsed.vps.password) {
+            startSSH(parsed.vps);
+          } else {
+            startLocalBash();
+          }
           return;
         }
 
-        // Daca nu e inca configurat → porneste bash local
-        if (!configured) {
-          configured = true;
-          startPty(null);
-        }
+        if (!configured) { configured = true; startLocalBash(); }
+        if (!session) return;
 
-        if (!pty) return;
-
-        if (parsed.type === 'input') {
-          pty.write(parsed.data);
-        } else if (parsed.type === 'inject') {
-          pty.write(parsed.data + '\n');
-        } else if (parsed.type === 'resize') {
-          pty.resize(
-            Math.max(1, parseInt(parsed.cols) || 120),
-            Math.max(1, parseInt(parsed.rows) || 35)
-          );
-        }
+        if (parsed.type === 'input') session.write(parsed.data);
+        else if (parsed.type === 'inject') session.write(parsed.data + '\n');
+        else if (parsed.type === 'resize') session.resize(
+          Math.max(1, parseInt(parsed.cols) || 120),
+          Math.max(1, parseInt(parsed.rows) || 35)
+        );
       } catch(e) {
-        if (pty) pty.write(msg.toString());
+        if (session) session.write(msg.toString());
       }
     });
 
     ws.on('close', () => {
       console.log('[KiloTerminal] Client deconectat');
+      if (session) session.kill();
       kiloSessions.delete(userId);
-      try { if (pty) pty.kill(); } catch(e) {}
     });
 
     ws.on('error', (e) => {
       console.error('[KiloTerminal] WS error:', e.message);
-      try { if (pty) pty.kill(); } catch(e2) {}
+      if (session) session.kill();
     });
   });
 }

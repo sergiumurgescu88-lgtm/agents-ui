@@ -1841,9 +1841,30 @@ function kiloOpen(initialPrompt) {
   kiloWS.onmessage = function(e) {
     const msg = JSON.parse(e.data);
     if (msg.type === 'output') {
-      kiloTerm.write(msg.data);
+      if (!kiloTerm) {
+        // xterm nu e inca randat — reinitializeaza
+        const container = document.getElementById('kilo-xterm-container');
+        if (container) {
+          kiloTerm = new Terminal({
+            cursorBlink: true, fontSize: 13,
+            fontFamily: "'Space Mono','Courier New',monospace",
+            theme: { background:'#0d1117', foreground:'#e6edf3', cursor:'#00ff87' },
+            scrollback: 5000, cols: 120, rows: 20
+          });
+          kiloFitAddon = new FitAddon.FitAddon();
+          kiloTerm.loadAddon(kiloFitAddon);
+          container.innerHTML = '';
+          kiloTerm.open(container);
+          setTimeout(function(){ try { kiloFitAddon.fit(); } catch(e){} }, 100);
+          kiloTerm.onData(function(data) {
+            if (kiloWS && kiloWS.readyState === WebSocket.OPEN)
+              kiloWS.send(JSON.stringify({type:'input', data}));
+          });
+        }
+      }
+      if (kiloTerm) kiloTerm.write(msg.data);
     } else if (msg.type === 'exit') {
-      kiloTerm.write("\r\n\x1b[33m[Sesiune inchisa]\x1b[0m");
+      if (kiloTerm) kiloTerm.write("\r\n\x1b[33m[Sesiune inchisa]\x1b[0m");
       document.getElementById('kilo-status-dot').style.background = '#ff4757';
     }
   };
