@@ -1,5 +1,6 @@
 require('dotenv').config({ path: '/opt/agents-ui/.env' });
 const { kiloChat, sshExecuteStream, kiloGenerateCommands } = require('./kilo-bridge');
+const { runOpenClaw } = require('./openclaw-bridge');
 const creator = require('./gemini-creator');
 const { startKiloTerminalServer, runCommandInKilo } = require('./kilo-terminal-server');
 const ssh2 = require('ssh2');
@@ -55,6 +56,14 @@ app.get('/api/auth/me', (req, res) => proxyAuth('/api/auth/me', req, res));
 const Database = require('better-sqlite3');
 const _pdb = new Database('/opt/agents-ui/pipeline.db');
 // ── BUDDY → KILO BRIDGE ─────────────────────────────────────────────────────
+
+app.post('/api/openclaw/run', async (req, res) => {
+  const { task } = req.body;
+  if (!task) return res.json({ error: 'No task' });
+  const output = await new Promise(resolve => resolve(runOpenClaw(task)));
+  res.json({ output });
+});
+
 app.post('/api/kilo/run', async (req, res) => {
   const { command, userId } = req.body;
   if (!command) return res.json({ success:false, error:'No command' });
