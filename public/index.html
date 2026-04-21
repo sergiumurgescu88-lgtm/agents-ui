@@ -933,7 +933,7 @@ function render(text) {
   let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   h = h.replace(/```(\w*)\n?([\s\S]*?)```/g, (_,lang,code) => {
     const l = lang || 'code';
-    const kiloBtn = kiloIsConnected() ? `<button class="copy-btn" onclick="sendToKilo(this)" style="margin-left:6px;color:#00ff87;border-color:#00ff8744;">▶ Kilo</button><button class="copy-btn" onclick="sendToOpenClaw(this)" style="margin-left:4px;color:#f5c842;border-color:#f5c84244;">🤖 OpenClaw</button>` : (vpsConfig ? `<button class="copy-btn" onclick="sendToKilo(this)" style="margin-left:6px;color:#00ff87;border-color:#00ff8744;">▶ Kilo</button><button class="copy-btn" onclick="sendToOpenClaw(this)" style="margin-left:4px;color:#f5c842;border-color:#f5c84244;">🤖 OpenClaw</button>` : `<button class="copy-btn" onclick="showVpsModal()" style="margin-left:6px;color:#f59e0b;border-color:#f59e0b44;">🔌 Conectează VPS</button>`); return `<div class="code-header"><span class="code-lang">${l}</span><button class="copy-btn" onclick="copyCode(this)">copy</button>${kiloBtn}</div><pre><code>${code.trim()}</code></pre>`;
+    const kiloBtn = `<button class="copy-btn" onclick="sendToOpenClaw(this)" style="margin-left:6px;color:#f5c842;border-color:#f5c84244;font-weight:700;">🤖 OpenClaw</button>` + (kiloIsConnected() ? `<button class="copy-btn" onclick="sendToKilo(this)" style="margin-left:4px;color:#00ff87;border-color:#00ff8744;">▶ Kilo</button>` : ''); return `<div class="code-header"><span class="code-lang">${l}</span><button class="copy-btn" onclick="copyCode(this)">copy</button>${kiloBtn}</div><pre><code>${code.trim()}</code></pre>`;
   });
   h = h.replace(/`([^`]+)`/g, '<code>$1</code>');
   h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
