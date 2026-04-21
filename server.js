@@ -171,15 +171,26 @@ const incUsage = (uid) => { usageMap[uid] = (usageMap[uid]||0)+1; saveUsage(); }
 async function callAI(messages, system, mode='chat') {
   const msgs = messages.map(m => ({ role: m.role==='model'?'assistant':m.role, content: String(m.content||m.text||'') })).filter(m=>m.content);
   const allMsgs = system ? [{role:'system',content:system},...msgs] : msgs;
+  // Incearca Qwen3-Coder 480B via NVIDIA
   try {
-    console.log('[AI] → gpt-4o-mini...');
+    console.log('[AI] → qwen3-coder-480b (NVIDIA)...');
+    const r = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions',
+      { model:'qwen/qwen3-coder-480b-a35b-instruct', messages:allMsgs, max_tokens:3000, temperature:0.7, top_p:0.8 },
+      { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.NVIDIA_API_KEY}` }, timeout:60000 }
+    );
+    const reply = r.data?.choices?.[0]?.message?.content;
+    if (reply) { console.log('[AI] qwen3-coder-480b OK'); return reply; }
+  } catch(e) { console.error('[AI] qwen3-coder failed:', e.response?.data?.error?.message || e.message); }
+  // Fallback gpt-4.1
+  try {
+    console.log('[AI] → fallback gpt-4.1...');
     const r = await axios.post('https://api.openai.com/v1/chat/completions',
-      { model:'gpt-4.1-mini', messages:allMsgs, max_tokens:3000 },
+      { model:'gpt-4.1', messages:allMsgs, max_tokens:3000 },
       { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
     );
     const reply = r.data?.choices?.[0]?.message?.content;
-    if (reply) { console.log('[AI] gpt-4o-mini OK'); return reply; }
-  } catch(e) { console.error('[AI] gpt-4o-mini failed:', e.response?.data?.error?.message || e.message); }
+    if (reply) { console.log('[AI] fallback gpt-4.1 OK'); return reply; }
+  } catch(e) { console.error('[AI] gpt-4.1 failed:', e.response?.data?.error?.message || e.message); }
   return '⚠️ Modelul este indisponibil momentan.';
 }
 

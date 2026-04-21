@@ -1540,6 +1540,21 @@ window.buddySendToKilo = function(fullText) {
   }
 };
 
+async function sendToOpenClaw(btn) {
+  // Trimite codul direct in Kilo terminal (executa cap-coada)
+  const code = btn.closest('.code-header').nextElementSibling.querySelector('code').textContent.trim();
+  const injInput = document.getElementById('kilo-inject-input');
+  if (injInput) {
+    injInput.value = code;
+    kiloInject();
+    kiloAddBubble('kilo', '🤖 OpenClaw executa: ' + code.substring(0,80), 'assistant');
+    btn.textContent = '✅ Executat';
+    setTimeout(function(){ btn.textContent = '🤖 OpenClaw'; }, 2000);
+    return;
+  }
+  btn.textContent = '⚠️ Kilo offline';
+  setTimeout(function(){ btn.textContent = '🤖 OpenClaw'; }, 2000);
+}
 async function sendToKilo(btn) {
   const code = btn.closest('.code-header').nextElementSibling.querySelector('code').textContent.trim();
   // DIRECT INJECT → skip GPT complet
