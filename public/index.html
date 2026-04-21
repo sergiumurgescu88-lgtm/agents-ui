@@ -799,54 +799,16 @@ async function feelingLucky() {
 </div>
 
 
-<div id="vibecoding-modal" style="display:none;position:fixed;inset:0;z-index:1002;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;overflow-y:auto;">
-  <div style="background:#0d0d0d;border:1px solid #f5c842;border-radius:20px;padding:28px;max-width:520px;width:100%;margin:auto;">
-    <div style="text-align:center;margin-bottom:16px;">
-      <div style="font-size:32px;">🤖</div>
-      <h2 style="font-size:20px;font-weight:900;color:#f5c842;margin:6px 0 4px;">Setup VibeCoding</h2>
-      <p style="font-size:12px;color:#666;">Completează datele tale — generăm prompt-ul personalizat pentru Claude</p>
+<div id="vibecoding-modal" style="display:none;position:fixed;inset:0;z-index:1002;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#0d0d0d;border:1px solid #f5c842;border-radius:20px;padding:20px;max-width:480px;width:100%;display:flex;flex-direction:column;height:80vh;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:900;color:#f5c842;">⚡ VibeCoding</div>
+      <button onclick="closeVibeCodingModal()" style="background:none;border:none;color:#666;font-size:18px;cursor:pointer;">✕</button>
     </div>
-
-    <div style="margin-bottom:12px;">
-      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">🌐 Site-uri principale (unul per linie)</label>
-      <textarea id="vc-sites" rows="3" placeholder="ex: buddy.daeu.online → chat AI&#10;daromania.online → platforma principala" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:12px;outline:none;box-sizing:border-box;resize:vertical;"></textarea>
-    </div>
-
-    <div style="margin-bottom:12px;">
-      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">🖥️ VPS Host / IP</label>
-      <input id="vc-host" type="text" placeholder="ex: 123.45.67.89 sau server.ro" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:12px;outline:none;box-sizing:border-box;" />
-    </div>
-
-    <div style="margin-bottom:12px;">
-      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">⚙️ Stack & OS</label>
-      <input id="vc-stack" type="text" placeholder="ex: Ubuntu 24.04, Nginx, Node.js + Express, pm2" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:12px;outline:none;box-sizing:border-box;" />
-    </div>
-
-    <div style="margin-bottom:12px;">
-      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">🔄 Servicii pm2 (unul per linie)</label>
-      <textarea id="vc-pm2" rows="3" placeholder="ex: buddy (id 6) → chat AI&#10;daromania (id 4) → platforma&#10;tgbot (id 7) → telegram bot" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:12px;outline:none;box-sizing:border-box;resize:vertical;"></textarea>
-    </div>
-
-    <div style="margin-bottom:12px;">
-      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">📁 Căi proiect principale</label>
-      <textarea id="vc-paths" rows="2" placeholder="ex: /opt/agents-ui/ → frontend&#10;/var/www/ → site-uri statice" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:12px;outline:none;box-sizing:border-box;resize:vertical;"></textarea>
-    </div>
-
-    <div style="margin-bottom:20px;">
-      <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">🔧 Git remote (optional)</label>
-      <input id="vc-git" type="text" placeholder="ex: origin main → github.com/user/repo" style="width:100%;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;padding:10px 12px;font-size:12px;outline:none;box-sizing:border-box;" />
-    </div>
-
-    <button onclick="generateVibeCodingPrompt()" style="display:block;width:100%;padding:13px;border-radius:10px;background:linear-gradient(135deg,#f5c842,#ff9500);color:#000;font-weight:900;font-size:14px;border:none;cursor:pointer;margin-bottom:8px;">⚡ Generează Prompt-ul Meu</button>
-    <button onclick="closeVibeCodingModal()" style="display:block;width:100%;padding:10px;border-radius:10px;background:#1a1a1a;color:#666;font-size:13px;border:none;cursor:pointer;">✕ Închide</button>
-
-    <div id="vc-result" style="display:none;margin-top:20px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <span style="font-size:12px;color:#f5c842;font-weight:700;">✅ Prompt-ul tău personalizat:</span>
-        <button onclick="copyVibeCodingPrompt()" style="padding:6px 14px;border-radius:6px;background:#f5c842;color:#000;font-weight:800;font-size:11px;border:none;cursor:pointer;">📋 Copiază</button>
-      </div>
-      <textarea id="vc-prompt-output" rows="18" readonly style="width:100%;background:#0a0a0a;border:1px solid #333;border-radius:8px;color:#aaa;padding:12px;font-size:11px;font-family:monospace;outline:none;box-sizing:border-box;resize:vertical;line-height:1.5;"></textarea>
-      <p style="font-size:11px;color:#555;margin-top:8px;text-align:center;">Copiază și pune-l în Claude.ai → System Prompt sau la începutul conversației</p>
+    <div id="vc-messages" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:12px;padding-right:4px;"></div>
+    <div style="display:flex;gap:8px;">
+      <textarea id="vc-input" rows="2" placeholder="Descrie problema ta..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendVibe();}" style="flex:1;background:#1a1a1a;border:1px solid #333;border-radius:10px;color:#fff;padding:10px 12px;font-size:13px;outline:none;resize:none;font-family:inherit;"></textarea>
+      <button onclick="sendVibe()" style="background:linear-gradient(135deg,#f5c842,#ff9500);border:none;border-radius:10px;color:#000;font-weight:900;font-size:18px;padding:0 16px;cursor:pointer;">➤</button>
     </div>
   </div>
 </div>
@@ -1597,78 +1559,56 @@ window.buddySendToKilo = function(fullText) {
 
 function showVibeCodingModal() {
   document.getElementById('vibecoding-modal').style.display = 'flex';
+  const msgs = document.getElementById('vc-messages');
+  if (!msgs.children.length) {
+    addVibeBubble('assistant', 'Salut! Descrie problema sau task-ul — îți dau comenzile exacte.');
+  }
+  setTimeout(() => document.getElementById('vc-input').focus(), 100);
 }
 function closeVibeCodingModal() {
   document.getElementById('vibecoding-modal').style.display = 'none';
-  document.getElementById('vc-result').style.display = 'none';
 }
-function generateVibeCodingPrompt() {
-  const sites = document.getElementById('vc-sites').value.trim();
-  const host = document.getElementById('vc-host').value.trim();
-  const stack = document.getElementById('vc-stack').value.trim();
-  const pm2 = document.getElementById('vc-pm2').value.trim();
-  const paths = document.getElementById('vc-paths').value.trim();
-  const git = document.getElementById('vc-git').value.trim();
-  const pm2Lines = pm2 ? pm2.split('\n').map(l => '- ' + l).join('\n') : '- (necompletat)';
-  const pathLines = paths ? paths.split('\n').map(l => '- ' + l).join('\n') : '- (necompletat)';
-  const siteLines = sites ? sites.split('\n').map(l => '- ' + l).join('\n') : '- (necompletat)';
-  const gitLine = git ? '\nGIT: ' + git : '';
-  const prompt = [
-    'Esti operatorul tehnic al VPS-ului meu. Lucram in stil VibeCoding — tu dai comenzile, eu le execut.',
-    '',
-    'STACK & INFRASTRUCTURA:',
-    '- OS & Server: ' + (stack || 'Ubuntu 24.04, Nginx activ, acces root'),
-    '- VPS Host: ' + (host || '(necompletat)'),
-    '- Node.js + Express, pm2',
-    '',
-    'SERVICII PM2:',
-    pm2Lines,
-    '',
-    'CAI PROIECT:',
-    pathLines,
-    '',
-    'LINKURI PROIECT:',
-    siteLines,
-    gitLine,
-    '',
-    'REGULI STRICTE:',
-    '- Max 2-3 comenzi per mesaj — niciodata mai multe',
-    '- Daca e doar diagnostic → 1-2 comenzi de verificare, astepti output',
-    '- Daca e modificare de fisier → 1 singur pas odata, backup automat inainte',
-    '- Nu strici nimic fara confirmarea mea',
-    '- Nu explici teoretic — diagnostichezi, gasesti cauza, dai fix-ul exact',
-    '- Astepti output-ul inainte sa trimiti urmatoarea comanda',
-    '- Daca output-ul arata altceva decat asteptai, te adaptezi',
-    '- Daca sunt mai multe site-uri, intrebi pe care lucram',
-    '- Daca vezi ceva dubios pe server, opresti si intrebi',
-    '',
-    'FLOW DE LUCRU:',
-    '1. Pui intrebari sa intelegi exact problema (max 1-2 intrebari scurte)',
-    '2. Dai comanda de diagnostic (grep / sed / python3 one-liner)',
-    '3. Analizezi output-ul primit',
-    '4. Dai fix-ul exact — python3 heredoc pentru modificari HTML/JS',
-    '5. Confirmi cu pm2 restart + git add -A && git commit -m "fix: ..." && git push',
-    '',
-    'FORMAT COMENZI:',
-    '- INTOTDEAUNA pune comenzile in bloc ```bash ... ``` — NICIODATA text simplu',
-    '- Bash blocks curate, copy-paste ready',
-    '- python3 heredoc pentru modificari de fisiere complexe',
-    '- Verifici ca string-ul de inlocuit exista inainte sa scrii fisierul',
-    '- Romana intotdeauna',
-    '',
-    'Raspunde scurt, direct, fara explicatii inutile. Esti un operator experimentat.'
-  ].join('\n');
-  document.getElementById('vc-prompt-output').value = prompt;
-  document.getElementById('vc-result').style.display = 'block';
-  document.getElementById('vc-result').scrollIntoView({ behavior: 'smooth' });
+let vibeHistory = [];
+async function sendVibe() {
+  const input = document.getElementById('vc-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addVibeBubble('user', text);
+  vibeHistory.push({ role: 'user', content: text });
+  const typing = addVibeBubble('assistant', '...');
+  try {
+    const r = await fetch('/api/vibecoding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: vibeHistory })
+    });
+    const data = await r.json();
+    const reply = data.reply || '⚠️ Eroare';
+    typing.innerHTML = formatVibeMsg(reply);
+    vibeHistory.push({ role: 'assistant', content: reply });
+  } catch(e) {
+    typing.textContent = '⚠️ Eroare conexiune';
+  }
+  document.getElementById('vc-messages').scrollTop = 999999;
 }
-function copyVibeCodingPrompt() {
-  const txt = document.getElementById('vc-prompt-output');
-  txt.select();
-  document.execCommand('copy');
-  const btn = event.target;
-  btn.textContent = '✅ Copiat!';
-  setTimeout(() => { btn.textContent = '📋 Copiaza'; }, 2000);
+function addVibeBubble(role, text) {
+  const msgs = document.getElementById('vc-messages');
+  const div = document.createElement('div');
+  div.style.cssText = role === 'user'
+    ? 'align-self:flex-end;background:#1a1a1a;border:1px solid #333;border-radius:12px 12px 2px 12px;padding:10px 14px;font-size:13px;color:#fff;max-width:85%;white-space:pre-wrap;'
+    : 'align-self:flex-start;background:#111;border:1px solid #f5c84233;border-radius:12px 12px 12px 2px;padding:10px 14px;font-size:13px;color:#eee;max-width:95%;';
+  div.innerHTML = role === 'user' ? text : formatVibeMsg(text);
+  msgs.appendChild(div);
+  msgs.scrollTop = 999999;
+  return div;
+}
+function formatVibeMsg(text) {
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/```bash\n?([\s\S]*?)```/g, '<div style="background:#0a0a0a;border:1px solid #f5c84266;border-radius:8px;padding:10px 12px;margin:6px 0;font-family:monospace;font-size:12px;color:#f5c842;white-space:pre-wrap;">$1</div>')
+    .replace(/```([\s\S]*?)```/g, '<div style="background:#0a0a0a;border-radius:8px;padding:8px 12px;margin:4px 0;font-family:monospace;font-size:12px;color:#aaa;white-space:pre-wrap;">$1</div>')
+    .replace(/\n/g, '<br>');
 }
 
 async function sendToOpenClaw(btn) {

@@ -628,6 +628,32 @@ Răspunde scurt, direct, fără explicații inutile. Ești un operator experimen
 
 app.get('/api/health', (req, res) => res.json({ status:'ok', version:'v14-clean', providers:{ anthropic:!!process.env.ANTHROPIC_API_KEY, openai:!!process.env.OPENAI_API_KEY } }));
 
+
+// ── VIBECODING ENDPOINT ───────────────────────────────────────────────────────
+const VIBE_SYSTEM = `Esti operatorul tehnic VibeCoding. Userul iti da o problema, tu dai comenzile bash exacte sa o rezolvi.
+REGULI:
+- Max 2-3 comenzi per mesaj, niciodata mai multe
+- Daca e diagnostic: 1-2 comenzi de verificare, astepti output
+- Daca e modificare fisier: python3 heredoc, un pas odata
+- Comenzile INTOTDEAUNA in bloc bash ... nicodata text simplu
+- Astepti output inainte sa trimiti urmatoarea comanda
+- Daca output-ul e altfel decat asteptai, te adaptezi
+- Raspunde scurt, direct, fara explicatii inutile
+- Romana intotdeauna`;
+
+app.post('/api/vibecoding', async (req, res) => {
+  try {
+    const { messages } = req.body;
+    if (!messages || !Array.isArray(messages)) return res.status(400).json({ error: 'messages required' });
+    const reply = await callAI(messages, VIBE_SYSTEM, 'chat');
+    res.json({ reply });
+  } catch(e) {
+    console.error('[VibeCoding]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+// ── END VIBECODING ────────────────────────────────────────────────────────────
+
 // ── VOICE TRANSCRIPTION (Gemini 2.0 Flash) ───────────────────────────────
 app.post('/api/voice/transcribe', async (req, res) => {
   try {
