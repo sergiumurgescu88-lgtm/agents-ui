@@ -1530,20 +1530,25 @@ window.buddyReceiveKiloReply = function(text) {
 };
 
 window.buddySendToKilo = function(fullText) {
-  // Extrage esența — max 400 chars
-  const summary = fullText.length > 400
-    ? '📋 Rezumat task:\n' + fullText.substring(0, 400) + '...'
-    : fullText;
-  kiloSendChat(summary, true);
+  // DIRECT INJECT → skip GPT complet
+  const injInput = document.getElementById('kilo-inject-input');
+  if (injInput) {
+    const cmd = fullText.trim().substring(0, 500);
+    injInput.value = cmd;
+    kiloInject();
+    kiloAddBubble('kilo', '⚡ Buddy→Terminal: ' + cmd.substring(0,60), 'assistant');
+  }
 };
 
 async function sendToKilo(btn) {
   const code = btn.closest('.code-header').nextElementSibling.querySelector('code').textContent.trim();
-
-  // Trimite direct in Kilo chat
-  if (typeof kiloSendChat === 'function') {
-    kiloSendChat(code, true);
-    btn.textContent = '✅ Trimis';
+  // DIRECT INJECT → skip GPT complet
+  const injInput = document.getElementById('kilo-inject-input');
+  if (injInput) {
+    injInput.value = code;
+    kiloInject();
+    kiloAddBubble('kilo', '⚡ Execut: ' + code.substring(0,80), 'assistant');
+    btn.textContent = '✅ Executat';
     setTimeout(function(){ btn.textContent = '▶ Execută Kilo'; }, 2000);
     return;
   }
@@ -1850,6 +1855,13 @@ function kiloOpen(initialPrompt) {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     kiloWS = new WebSocket(proto + '//' + location.host + '/ws/kilo-terminal?userId=' + encodeURIComponent(window.userId || 'anon'));
 
+    // Keepalive ping la 30s - previne reconectare SSH
+    if (window._kiloPingInterval) clearInterval(window._kiloPingInterval);
+    window._kiloPingInterval = setInterval(function() {
+      if (kiloWS && kiloWS.readyState === WebSocket.OPEN) {
+        kiloWS.send(JSON.stringify({type:'ping'}));
+      }
+    }, 30000);
     kiloWS.onopen = function() {
       document.getElementById('kilo-status-dot').style.background = '#00ff87';
       // Trimite config VPS
