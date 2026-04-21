@@ -590,7 +590,7 @@ FORMAT COMENZI:
 - Română întotdeauna
 
 Răspunde scurt, direct, fără explicații inutile. Ești un operator experimentat.`;
-    const activePrompt = vibeSessions.get(uid) ? dynamicCodingPrompt : SYSTEM_PROMPT + (vpsContext || '') + (vpsFileContext || '');
+    const activePrompt = (vibeSessions.get(uid) || intent === 'EXECUTOR') ? dynamicCodingPrompt : SYSTEM_PROMPT + (vpsContext || '') + (vpsFileContext || '');
     // Memorie server-side: merge istoricul browserului cu memoria serverului
     const serverHistory = userMemory.get(uid) || [];
     const lastUserMsg = messages[messages.length-1];
