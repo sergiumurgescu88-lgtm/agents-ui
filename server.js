@@ -171,26 +171,39 @@ const incUsage = (uid) => { usageMap[uid] = (usageMap[uid]||0)+1; saveUsage(); }
 async function callAI(messages, system, mode='chat') {
   const msgs = messages.map(m => ({ role: m.role==='model'?'assistant':m.role, content: String(m.content||m.text||'') })).filter(m=>m.content);
   const allMsgs = system ? [{role:'system',content:system},...msgs] : msgs;
-  // Incearca Qwen3-Coder 480B via NVIDIA
+
+  const isCoding = mode === 'coding';
+
+  // PRIMARY: Qwen3-Coder pentru coding, Kimi K2 pentru chat
+  const primary = isCoding
+    ? { model:'qwen/qwen3-coder-480b-a35b-instruct', key: process.env.NVIDIA_API_KEY_QWEN, label:'qwen3-coder-480b', temp:0.7, top_p:0.8 }
+    : { model:'moonshotai/kimi-k2-instruct', key: process.env.NVIDIA_API_KEY_KIMI, label:'kimi-k2', temp:0.6, top_p:0.9 };
+
   try {
-    console.log('[AI] → qwen3-coder-480b (NVIDIA)...');
+    console.log('[AI] →', primary.label, '(NVIDIA)...');
     const r = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions',
-      { model:'qwen/qwen3-coder-480b-a35b-instruct', messages:allMsgs, max_tokens:3000, temperature:0.7, top_p:0.8 },
-      { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.NVIDIA_API_KEY}` }, timeout:60000 }
+      { model: primary.model, messages: allMsgs, max_tokens:3000, temperature: primary.temp, top_p: primary.top_p },
+      { headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + primary.key }, timeout:60000 }
     );
     const reply = r.data?.choices?.[0]?.message?.content;
-    if (reply) { console.log('[AI] qwen3-coder-480b OK'); return reply; }
-  } catch(e) { console.error('[AI] qwen3-coder failed:', e.response?.data?.error?.message || e.message); }
-  // Fallback gpt-4.1
+    if (reply) { console.log('[AI]', primary.label, 'OK'); return reply; }
+  } catch(e) { console.error('[AI]', primary.label, 'failed:', e.response?.data?.error?.message || e.message); }
+
+  // FALLBACK: inversam modelele
+  const fallback = isCoding
+    ? { model:'moonshotai/kimi-k2-instruct', key: process.env.NVIDIA_API_KEY_KIMI, label:'kimi-k2-fallback', temp:0.6, top_p:0.9 }
+    : { model:'qwen/qwen3-coder-480b-a35b-instruct', key: process.env.NVIDIA_API_KEY_QWEN, label:'qwen3-coder-fallback', temp:0.7, top_p:0.8 };
+
   try {
-    console.log('[AI] → fallback gpt-4.1...');
-    const r = await axios.post('https://api.openai.com/v1/chat/completions',
-      { model:'gpt-4.1', messages:allMsgs, max_tokens:3000 },
-      { headers:{ 'Content-Type':'application/json', 'Authorization':`Bearer ${process.env.OPENAI_API_KEY}` }, timeout:30000 }
+    console.log('[AI] → fallback', fallback.label, '(NVIDIA)...');
+    const r = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions',
+      { model: fallback.model, messages: allMsgs, max_tokens:3000, temperature: fallback.temp, top_p: fallback.top_p },
+      { headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + fallback.key }, timeout:60000 }
     );
     const reply = r.data?.choices?.[0]?.message?.content;
-    if (reply) { console.log('[AI] fallback gpt-4.1 OK'); return reply; }
-  } catch(e) { console.error('[AI] gpt-4.1 failed:', e.response?.data?.error?.message || e.message); }
+    if (reply) { console.log('[AI]', fallback.label, 'OK'); return reply; }
+  } catch(e) { console.error('[AI]', fallback.label, 'failed:', e.response?.data?.error?.message || e.message); }
+
   return '⚠️ Modelul este indisponibil momentan.';
 }
 
