@@ -998,12 +998,104 @@ function copyMsgText(msgId) {
   });
 }
 
+let _ttsAudio = null;
+let _ttsUrl = null;
+let _ttsPlayerInterval = null;
+
+function formatTTSTime(s) {
+  if (!isFinite(s)) return '0:00';
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return m + ':' + (sec<10?'0':'') + sec;
+}
+
+function showTTSPlayer(text) {
+  let player = document.getElementById('tts-media-player');
+  if (!player) {
+    player = document.createElement('div');
+    player.id = 'tts-media-player';
+    player.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:#0d0d0d;border:1px solid #a78bfa;border-radius:16px;padding:14px 18px;min-width:320px;max-width:420px;box-shadow:0 8px 32px rgba(167,139,250,0.25);transition:all .3s;';
+    document.body.appendChild(player);
+  }
+  player.style.display = 'block';
+  player.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:700;color:#a78bfa;">🔊 Se redă acum</div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="toggleTTSPlayer()" id="tts-minimize-btn" style="background:none;border:1px solid #333;border-radius:6px;color:#aaa;font-size:11px;padding:3px 8px;cursor:pointer;">_ Minimizează</button>
+        <button onclick="stopTTS()" style="background:none;border:1px solid #ef4444;border-radius:6px;color:#ef4444;font-size:11px;padding:3px 8px;cursor:pointer;">✕ Stop</button>
+      </div>
+    </div>
+    <div id="tts-player-body">
+      <div style="font-size:11px;color:#666;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:350px;" id="tts-text-preview">${text.substring(0,80)}${text.length>80?'...':''}</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onclick="toggleTTSPlayPause()" id="tts-playpause-btn" style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border:none;border-radius:50%;width:36px;height:36px;color:#fff;font-size:16px;cursor:pointer;flex-shrink:0;">⏸</button>
+        <div style="flex:1;">
+          <div style="position:relative;height:4px;background:#222;border-radius:4px;cursor:pointer;" onclick="seekTTS(event, this)">
+            <div id="tts-progress-bar" style="height:100%;background:linear-gradient(90deg,#a78bfa,#7c3aed);border-radius:4px;width:0%;transition:width .1s;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;">
+            <span id="tts-current-time" style="font-size:10px;color:#666;">0:00</span>
+            <span id="tts-total-time" style="font-size:10px;color:#666;">0:00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleTTSPlayer() {
+  const body = document.getElementById('tts-player-body');
+  const btn = document.getElementById('tts-minimize-btn');
+  if (!body) return;
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    btn.textContent = '_ Minimizează';
+  } else {
+    body.style.display = 'none';
+    btn.textContent = '▲ Maximizează';
+  }
+}
+
+function toggleTTSPlayPause() {
+  if (!_ttsAudio) return;
+  const btn = document.getElementById('tts-playpause-btn');
+  if (_ttsAudio.paused) { _ttsAudio.play(); if(btn) btn.textContent='⏸'; }
+  else { _ttsAudio.pause(); if(btn) btn.textContent='▶'; }
+}
+
+function seekTTS(e, bar) {
+  if (!_ttsAudio || !isFinite(_ttsAudio.duration)) return;
+  const rect = bar.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  _ttsAudio.currentTime = pct * _ttsAudio.duration;
+}
+
+function stopTTS() {
+  if (_ttsAudio) { _ttsAudio.pause(); _ttsAudio.currentTime=0; _ttsAudio=null; }
+  if (_ttsUrl) { URL.revokeObjectURL(_ttsUrl); _ttsUrl=null; }
+  clearInterval(_ttsPlayerInterval);
+  const player = document.getElementById('tts-media-player');
+  if (player) player.style.display='none';
+}
+
+function updateTTSProgress() {
+  if (!_ttsAudio) return;
+  const pct = _ttsAudio.duration ? (_ttsAudio.currentTime / _ttsAudio.duration * 100) : 0;
+  const bar = document.getElementById('tts-progress-bar');
+  const cur = document.getElementById('tts-current-time');
+  const tot = document.getElementById('tts-total-time');
+  if (bar) bar.style.width = pct + '%';
+  if (cur) cur.textContent = formatTTSTime(_ttsAudio.currentTime);
+  if (tot) tot.textContent = formatTTSTime(_ttsAudio.duration);
+}
+
 async function speakMsg(msgId) {
   const el = document.getElementById(msgId);
   if (!el) return;
   const text = (el.innerText || el.textContent || '').trim();
   if (!text) return;
   const btn = document.getElementById('ttsbtn_' + msgId);
+  if (_ttsAudio) { stopTTS(); if(btn){btn.textContent='🔊';btn.style.color='#555';} return; }
   if (btn) { btn.textContent = '⏳'; btn.style.color = '#a78bfa'; }
   try {
     const resp = await fetch('/api/tts/speak', {
@@ -1013,13 +1105,23 @@ async function speakMsg(msgId) {
     });
     if (!resp.ok) throw new Error('TTS failed');
     const blob = await resp.blob();
-    const url = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.play();
+    _ttsUrl = URL.createObjectURL(blob);
+    _ttsAudio = new Audio(_ttsUrl);
+    showTTSPlayer(text);
+    _ttsAudio.play();
     if (btn) { btn.textContent = '🔊'; btn.style.color = '#a78bfa'; }
-    audio.onended = function() { URL.revokeObjectURL(url); if (btn) { btn.style.color = '#555'; } };
+    clearInterval(_ttsPlayerInterval);
+    _ttsPlayerInterval = setInterval(updateTTSProgress, 200);
+    _ttsAudio.onended = function() {
+      clearInterval(_ttsPlayerInterval);
+      updateTTSProgress();
+      const pb = document.getElementById('tts-playpause-btn');
+      if(pb) pb.textContent='▶';
+      if(btn){btn.textContent='🔊';btn.style.color='#555';}
+      setTimeout(stopTTS, 2000);
+    };
   } catch(e) {
-    if (btn) { btn.textContent = '❌'; btn.style.color = '#ef4444'; setTimeout(function(){ btn.textContent = '🔊'; btn.style.color = '#555'; }, 2000); }
+    if (btn) { btn.textContent='❌'; btn.style.color='#ef4444'; setTimeout(function(){ btn.textContent='🔊'; btn.style.color='#555'; },2000); }
   }
 }
 
