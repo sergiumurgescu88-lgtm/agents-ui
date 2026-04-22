@@ -174,10 +174,8 @@ async function callAI(messages, system, mode='chat') {
 
   const isCoding = mode === 'coding';
 
-  // PRIMARY: Qwen3-Coder pentru coding, Kimi K2 pentru chat
-  const primary = isCoding
-    ? { model:'qwen/qwen3-coder-480b-a35b-instruct', key: process.env.NVIDIA_API_KEY_QWEN, label:'qwen3-coder-480b', temp:0.7, top_p:0.8 }
-    : { model:'moonshotai/kimi-k2-instruct', key: process.env.NVIDIA_API_KEY_KIMI, label:'kimi-k2', temp:0.6, top_p:0.9 };
+  // PRIMARY: Qwen pentru tot - mai rapid si stabil
+  const primary = { model:'qwen/qwen3-coder-480b-a35b-instruct', key: process.env.NVIDIA_API_KEY_QWEN, label:'qwen3-coder-480b', temp:0.7, top_p:0.8 };
 
   try {
     console.log('[AI] →', primary.label, '(NVIDIA)...');
