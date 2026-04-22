@@ -85,16 +85,16 @@ Răspunzi ÎNTOTDEAUNA în română.
 Când generezi comenzi de executat pe server → le pui în bloc \`\`\`bash ... \`\`\`.
 Ești concis, tehnic, precis. Zero explicații inutile.`;
 
-    const r = await axios.post('https://api.openai.com/v1/chat/completions', {
-      model: 'gpt-4.1',
+    const r = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
+      model: 'moonshotai/kimi-k2-instruct',
       messages: [{ role: 'system', content: systemPrompt }, ...messages],
-      max_tokens: 2048
+      max_tokens: 2048, temperature: 0.6, top_p: 0.9
     }, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`
+        'Authorization': 'Bearer ' + process.env.NVIDIA_API_KEY_KIMI
       },
-      timeout: 30000
+      timeout: 60000
     });
     const reply = r.data?.choices?.[0]?.message?.content || 'Kilo nu a răspuns';
     res.json({ reply });
@@ -924,7 +924,7 @@ app.get('/api/kilo-stream', (req, res) => {
   send('status', '⚡ Kilo CLI pornit...');
   console.log('[Kilo SSE] Start pentru userId:', userId);
 
-  const proc = spawn('kilo', ['run', '-m', 'openai/gpt-4.1-mini', '--', prompt], {
+  const proc = spawn('kilo', ['run', '-m', 'nvidia/qwen3-coder-480b', '--', prompt], {
     env: { ...process.env, HOME: '/root' },
     cwd: '/root'
   });
