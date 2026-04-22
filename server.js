@@ -523,7 +523,7 @@ FLOW DE LUCRU:
 5. Confirmi cu pm2 restart + git add -A && git commit -m "fix: ..." && git push
 
 FORMAT COMENZI:
-- ÎNTOTDEAUNA pune comenzile în bloc \`\`\`bash ... \`\`\` — NICIODATĂ text simplu
+- INTOTDEAUNA pune comenzile in bloc bash ... NICIODATA text simplu
 - Bash blocks curate, copy-paste ready
 - python3 heredoc pentru modificări de fișiere complexe
 - Verifici că string-ul de înlocuit există înainte să scrii fișierul
@@ -595,7 +595,7 @@ FLOW DE LUCRU:
 5. Confirmi că totul merge
 
 FORMAT COMENZI:
-- ÎNTOTDEAUNA pune comenzile în bloc \`\`\`bash ... \`\`\` — NICIODATĂ text simplu
+- INTOTDEAUNA pune comenzile in bloc bash ... NICIODATA text simplu
 - Bash blocks curate, copy-paste ready
 - python3 heredoc pentru modificări de fișiere complexe
 - Verifici că string-ul de înlocuit există înainte să scrii fișierul
