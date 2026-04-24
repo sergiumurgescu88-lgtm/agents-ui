@@ -7,3 +7,4 @@ npm-debug.log*
 public/generated/
 index.html.bak*
 patch-*.js
+*.bak.*
