@@ -107,7 +107,7 @@ Ești concis, tehnic, precis.` };
     const response = await axios.post('https://api.kimi.com/coding/v1/chat/completions', {
       model: 'kimi-for-coding',
       messages: allMessages,
-      max_tokens: 8192,
+      max_tokens: 4096,
       temperature: 0.6,
       stream: true
     }, {
@@ -154,22 +154,19 @@ Generezi DOAR comenzi bash gata de rulat pe Ubuntu, fără explicații.
 Returnezi un JSON: { "commands": ["cmd1", "cmd2", ...], "description": "ce face" }
 Maxim 5 comenzi per răspuns. Comenzile trebuie să fie safe și reversibile.`;
   try {
-    const r = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
-      model: 'qwen/qwen3-coder-480b-a35b-instruct',
+    const r = await axios.post('https://api.kimi.com/coding/v1/chat/completions', {
+      model: 'kimi-for-coding',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Task: ${task}\nContext server: ${context || 'Ubuntu 24.04 LTS'}\nRaspunde DOAR cu JSON valid, fara explicatii.` }
+        { role: 'user', content: `Task: ${task}\nContext server: ${context || 'Ubuntu 24.04 LTS'}\nRăspunde DOAR cu JSON valid.` }
       ],
       max_tokens: 512, temperature: 0.3, stream: false
     }, {
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NVIDIA_API_KEY_QWEN}` },
-      timeout: 45000
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.KIMI_API_KEY}`, 'User-Agent': 'claude-code/1.0.0' },
+      timeout: 30000
     });
-    const msg = r.data?.choices?.[0]?.message;
-    const raw = [msg?.content, msg?.reasoning_content].filter(Boolean).join('\n');
-    const jsonMatch = raw.match(/\{[^{}]*"commands"[^{}]*\}/s) || raw.match(/\{[\s\S]*?\}/);
-    if (!jsonMatch) throw new Error('No JSON found in response');
-    return JSON.parse(jsonMatch[0]);
+    const content = r.data?.choices?.[0]?.message?.content;
+    return JSON.parse(content.replace(/```json|```/g,'').trim());
   } catch(e) {
     console.error('[KiloGenerateKimi] Error:', e.response?.data?.error?.message || e.message);
     return null;

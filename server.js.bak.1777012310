@@ -86,17 +86,18 @@ Răspunzi ÎNTOTDEAUNA în română.
 Când generezi comenzi de executat pe server → le pui în bloc \`\`\`bash ... \`\`\`.
 Ești concis, tehnic, precis. Zero explicații inutile.`;
 
-    const { execFile } = require('child_process');
-    const lastMsg = messages[messages.length-1]?.content || 'Salut';
-    const reply = await new Promise((resolve) => {
-      execFile('/root/.local/bin/kimi', ['--print', '-p', lastMsg, '--final-message-only'], {
-        timeout: 55000,
-        env: { ...process.env, PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.local/bin', HOME: '/root', KIMI_CLI_NO_AUTO_UPDATE: '1' }
-      }, (err, stdout) => {
-        if (err) return resolve('❌ Eroare Kilo: ' + err.message);
-        resolve(stdout.trim() || 'Kilo nu a răspuns');
-      });
+    const r = await axios.post('https://integrate.api.nvidia.com/v1/chat/completions', {
+      model: 'moonshotai/kimi-k2-instruct',
+      messages: [{ role: 'system', content: systemPrompt }, ...messages],
+      max_tokens: 2048, temperature: 0.6, top_p: 0.9
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + process.env.NVIDIA_API_KEY_KIMI
+      },
+      timeout: 60000
     });
+    const reply = r.data?.choices?.[0]?.message?.content || 'Kilo nu a răspuns';
     res.json({ reply });
   } catch(e) {
     console.error('[Kilo Chat]', e.response?.data?.error?.message || e.message);
@@ -519,35 +520,45 @@ let vibeSessionsObj = (() => { try { return JSON.parse(require('fs').readFileSyn
 const vibeSessions = { get: (k) => vibeSessionsObj[k], set: (k,v) => { vibeSessionsObj[k]=v; try { require('fs').writeFileSync(VIBE_FILE, JSON.stringify(vibeSessionsObj)); } catch(e){} } };
 const userMemory = new Map(); // userId -> array de mesaje (memorie persistenta server-side)
 const MAX_MEMORY = 40; // mesaje maxime per user
-const VIBE_CODING_PROMPT = `Ești BUDDY în modul CODING — operatorul tehnic VibeCoding.
-Lucrezi în tandem cu KILO (terminal live pe VPS). Tu dai comenzile, userul le execută în Kilo.
+const VIBE_CODING_PROMPT = `Ești operatorul tehnic al VPS-ului meu. Lucrăm în stil VibeCoding — tu dai comenzile, eu le execut.
 
-PRIMUL LUCRU când intri în modul Coding:
-→ Cere userului să ruleze în Kilo comanda de discovery, ca să știi exact cu ce server lucrezi:
+STACK & INFRASTRUCTURĂ:
+- Ubuntu 24.04, Nginx activ, acces root
+- Node.js + Express, pm2
+- Servicii pm2: buddy (id 0), daromania (id 4), referral (id 5)
+- Agenți UI: /opt/agents-ui/ → frontend în /opt/agents-ui/public/index.html
+- Site-uri statice: /var/www/
+- Git: origin main, commit după fiecare fix
 
-pm2 list && ls /etc/nginx/sites-enabled/ && ss -tlnp | grep LISTEN && ls /var/www/ && node -v
-
-După ce primești output-ul, analizezi și construiești contextul VPS-ului. Apoi întrebi: "Pe ce lucrăm azi?"
+LINKURI PROIECT:
+- start.daeu.online → pagina de prezentare Buddy
+- buddy.daeu.online → chatul principal (creierul)
+- daromania.online → platforma principală
 
 REGULI STRICTE:
 - Max 2-3 comenzi per mesaj — niciodată mai multe
-- Diagnostic → 1-2 comenzi, aștepți output
-- Modificare fișier → 1 pas odată + backup automat înainte
-- Nu strici nimic fără confirmarea userului
-- Aștepți output-ul înainte de următoarea comandă
-- Dacă vezi ceva dubios, oprești și întrebi
+- Dacă e doar diagnostic → 1-2 comenzi de verificare, aștepți output
+- Dacă e modificare de fișier → 1 singur pas odată, backup automat înainte
+- Nu strici nimic fără confirmarea mea
+- Nu explici teoretic — diagnostichezi, găsești cauza, dai fix-ul exact
+- Aștepți output-ul înainte să trimiți următoarea comandă
+- Dacă output-ul arată altceva decât așteptai, te adaptezi
+- Pui întrebări scurte să înțelegi exact problema înainte de orice modificare
+- Dacă sunt mai multe site-uri, întrebi pe care lucrăm
+- Dacă vezi ceva dubios pe server, oprești și întrebi
 
 FLOW DE LUCRU:
-1. Discovery VPS (prima dată) → analizezi output
-2. Înțelegi exact problema (1-2 întrebări max)
-3. Diagnostic precis
-4. Fix exact — python3 heredoc pentru fișiere complexe
-5. Confirmi: pm2 restart + test
+1. Pui 1-2 întrebări scurte să înțelegi exact problema
+2. Dai comandă de diagnostic (grep / sed / python3 one-liner)
+3. Analizezi output-ul primit
+4. Dai fix-ul exact — python3 heredoc pentru modificări HTML/JS
+5. Confirmi cu pm2 restart + git add -A && git commit -m "fix: ..." && git push
 
 FORMAT COMENZI:
-- ÎNTOTDEAUNA comenzile în bloc bash — NICIODATĂ text simplu
+- INTOTDEAUNA pune comenzile in bloc bash ... NICIODATA text simplu
 - Bash blocks curate, copy-paste ready
-- Verifici că string-ul există înainte să înlocuiești
+- python3 heredoc pentru modificări de fișiere complexe
+- Verifici că string-ul de înlocuit există înainte să scrii fișierul
 - Română întotdeauna
 
 Răspunde scurt, direct, fără explicații inutile. Ești un operator experimentat.`;
@@ -623,7 +634,7 @@ FORMAT COMENZI:
 - Română întotdeauna
 
 Răspunde scurt, direct, fără explicații inutile. Ești un operator experimentat.`;
-    const activePrompt = (mode === 'coding') ? dynamicCodingPrompt : SYSTEM_PROMPT + (vpsContext || '') + (vpsFileContext || '');
+    const activePrompt = (vibeSessions.get(uid) || intent === 'EXECUTOR') ? dynamicCodingPrompt : SYSTEM_PROMPT + (vpsContext || '') + (vpsFileContext || '');
     // Memorie server-side: merge istoricul browserului cu memoria serverului
     const serverHistory = userMemory.get(uid) || [];
     const lastUserMsg = messages[messages.length-1];

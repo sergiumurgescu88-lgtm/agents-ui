@@ -494,10 +494,13 @@ body.mode-marketing #send-btn{color:#fff;}
 <style>
 /* SPLIT VIEW - Kilo panel lateral */
 #split-root{display:flex;flex-direction:row;height:100dvh;width:100vw;overflow:hidden;}
+#kilo-resizer{width:6px;background:linear-gradient(180deg,#00ff8700 0%,#00ff87 30%,#00d4ff 70%,#00ff8700 100%);cursor:col-resize;flex-shrink:0;box-shadow:0 0 12px rgba(0,255,135,0.6),0 0 24px rgba(0,212,255,0.3);transition:box-shadow 0.2s;z-index:100;}
+#kilo-resizer:hover{box-shadow:0 0 20px rgba(0,255,135,0.9),0 0 40px rgba(0,212,255,0.5);}
 #kilo-overlay{display:none;width:45vw;min-width:340px;max-width:55vw;height:100dvh;background:#0d1117;border-left:2px solid #00ff87;flex-direction:column;flex-shrink:0;box-shadow:-4px 0 40px rgba(0,255,135,0.15);}
 #kilo-overlay.active{display:flex;}
+
 #kilo-window{display:flex;flex-direction:column;height:100%;width:100%;}
-#kilo-chat-section{flex:0 0 50%;min-height:80px;display:flex;flex-direction:column;border-bottom:none;overflow:hidden;}
+#kilo-chat-section{display:none;}#kilo-messages{display:none;}
 #kilo-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:0;}
 #kilo-messages::-webkit-scrollbar{width:4px;}
 #kilo-messages::-webkit-scrollbar-track{background:#0d1117;}
@@ -652,26 +655,24 @@ async function feelingLucky() {
       <span style="margin-left:auto;color:#00d4ff;font-size:11px">ESC = închide</span>
     </div>
     <!-- KILO CHAT SECTION -->
+    <!-- KILO UNIFIED SECTION -->
     <div id="kilo-chat-section">
       <div id="kilo-messages"></div>
-      <div id="kilo-chat-input-row">
-        <input id="kilo-chat-input" placeholder="mesaj către Kilo..." onkeydown="if(event.key==='Enter')kiloSendChat()" />
-        <button id="kilo-chat-send" onclick="kiloSendChat()">▶ Send</button>
-      </div>
     </div>
-    <div id="kilo-drag-handle" style="height:6px;background:#00ff8733;cursor:row-resize;flex-shrink:0;border-top:1px solid #00ff8766;border-bottom:1px solid #00ff8766;" title="Trage pentru redimensionare"></div>
-    <!-- KILO TERMINAL SECTION -->
     <div id="kilo-terminal-section">
       <div id="kilo-terminal-label">⚡ TERMINAL — EXECUȚIE LIVE</div>
       <div id="kilo-xterm-container" style="flex:1;overflow-y:auto;padding:8px;background:#0d1117;color:#e6edf3;font-family:Space Mono,monospace;font-size:13px;white-space:pre-wrap;word-break:break-all;min-height:200px;"></div>
     </div>
+    <div id="kilo-thinking-indicator" style="display:none;align-items:center;gap:8px;padding:6px 14px;background:#0d1117;border-top:1px solid #00ff8722;">
+      <span style="color:#00ff87;font-family:Space Mono,monospace;font-size:11px;animation:pulse 1.2s infinite;">⚡ Kilo gândește...</span>
+    </div>
     <div id="kilo-inject-row">
-      <span style="color:#00ff87;font-family:Space Mono,monospace;font-size:12px">inject ▸</span>
-      <input id="kilo-inject-input" placeholder="trimite prompt direct în Kilo..." />
-      <button id="kilo-inject-btn" onclick="kiloInject()">▶ Send</button>
+      <input id="kilo-inject-input" placeholder="💬 mesaj AI sau $ comandă bash..." onkeydown="if(event.key==='Enter'){kiloUnified(this.value);this.value=''}" style="flex:1;background:#0d1117;border:1px solid #30363d;color:#e6edf3;padding:10px 14px;border-radius:8px;font-family:Space Mono,monospace;font-size:13px;outline:none;" />
+      <button onclick="var i=document.getElementById('kilo-inject-input');kiloUnified(i.value);i.value=''" style="background:#00ff87;color:#000;border:none;padding:10px 18px;border-radius:8px;font-family:Space Mono,monospace;font-size:13px;font-weight:700;cursor:pointer;">▶ Send</button>
     </div>
   </div>
 </div>
+<div id="kilo-resizer"></div>
 
 
 <!-- MODE TRANSITION -->
@@ -1145,7 +1146,7 @@ async function sendMessage() {
     const resp = await fetch('/api/chat', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ messages: history, userId: String(userId || 'browser_user') }),
+      body: JSON.stringify({ messages: history, userId: String(userId || 'browser_user'), mode: currentMode }),
     });
     const d = await resp.json();
     if (d.error) {
@@ -1171,7 +1172,7 @@ async function sendMessage() {
         inputEl.disabled = true;
         document.getElementById('send-btn').disabled = true;
       } else if (d.mode) {
-        switchMode(d.mode);
+        // switchMode(d.mode); // DISABLED - modul se schimba DOAR manual de user
       }
       if (d.btns && d.btns.length) {
         const bd = document.createElement('div');
@@ -1566,7 +1567,7 @@ function kiloIsConnected() {
 const kiloHistory = [];
 
 function kiloAddBubble(sender, text, type='assistant') {
-  const box = document.getElementById('kilo-messages');
+  const box = document.getElementById('kilo-xterm-container');
   if (!box) return;
   const div = document.createElement('div');
   div.className = 'kilo-msg ' + type;
@@ -1606,6 +1607,8 @@ async function kiloSendChat(msgOverride, fromBuddy=false) {
   if (ov && !ov.classList.contains('active')) ov.classList.add('active');
 
   // Trimite la server → GPT-4
+  const kiloThinking = document.getElementById('kilo-thinking-indicator');
+  if (kiloThinking) kiloThinking.style.display = 'flex';
   try {
     const res = await fetch('/api/kilo/chat', {
       method: 'POST',
@@ -1641,6 +1644,8 @@ async function kiloSendChat(msgOverride, fromBuddy=false) {
     }
   } catch(e) {
     kiloAddBubble('kilo', '❌ Eroare conexiune Kilo: ' + e.message, 'assistant');
+  } finally {
+    if (kiloThinking) kiloThinking.style.display = 'none';
   }
 }
 
@@ -2128,6 +2133,32 @@ function kiloClose() {
   if (kiloTerm) { kiloTerm.dispose(); kiloTerm = null; }
 }
 
+function kiloUnified(text) {
+  if (!text || !text.trim()) return;
+  text = text.trim();
+  // Daca incepe cu $ sau arata ca bash → executa direct in terminal
+  const isBash = text.startsWith('$') || /^(ls|cd|cat|grep|sed|awk|python|node|npm|pm2|cp|mv|rm|mkdir|echo|curl|wget|git|sudo|apt|systemctl|nginx|bash|sh|nano|vim|tail|head|ps|kill|chmod|chown|find|tar|zip|unzip|df|du|top|htop|ping|ssh|scp)/.test(text);
+  if (isBash) {
+    const cmd = text.startsWith('$') ? text.slice(1).trim() : text;
+    if (!kiloWS || kiloWS.readyState !== WebSocket.OPEN) {
+      kiloOpen('');
+      setTimeout(function() {
+        if (kiloWS && kiloWS.readyState === WebSocket.OPEN) {
+          kiloWS.send(JSON.stringify({type:'inject', data: cmd}));
+        }
+      }, 1500);
+    } else {
+      kiloWS.send(JSON.stringify({type:'inject', data: cmd}));
+    }
+    kiloAddBubble('kilo', '⚡ Terminal: ' + cmd.substring(0,80), 'assistant');
+  } else {
+    // Altfel → trimite la AI Kilo (GPT-4)
+    const input = document.getElementById('kilo-chat-input') || document.getElementById('kilo-inject-input');
+    if (input) input.value = text;
+    kiloSendChat(text, false);
+  }
+}
+
 function kiloInject() {
   const inp = document.getElementById('kilo-inject-input');
   const text = inp.value.trim();
@@ -2418,8 +2449,11 @@ function saveVpsAndClose() {
     btn.title = 'VPS conectat: ' + vpsConfig.host;
   }
   closeVpsModal();
+  // Reconecteaza Kilo la noul VPS automat
+  if (typeof kiloWS !== "undefined" && kiloWS && kiloWS.readyState === WebSocket.OPEN) { kiloWS.close(); kiloWS = null; }
+  setTimeout(function() { if (typeof openKiloTerminal === "function") openKiloTerminal(); }, 800);
   // Trimite mesaj in chat ca confirmare
-  appendMsg('assistant', '✅ VPS conectat: **' + vpsConfig.host + '**\nAcum pot executa comenzi direct pe serverul tău. Spune-mi ce vrei să construim!', null, currentMode, null, null);
+  appendMsg("assistant", "✅ VPS conectat: **" + vpsConfig.host + "**\nKilo reconectat automat la noul server!", null, currentMode, null, null);
 }
 
 // Override sendMessage sa injecteze vpsConfig in contextul Buddy
@@ -2626,3 +2660,22 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')PLclose();})
 </script>
 </body>
 </html>
+<script>
+(function(){
+  var resizer = document.getElementById('kilo-resizer');
+  var kilo = document.getElementById('kilo-overlay');
+  if (!resizer || !kilo) return;
+  var dragging = false, startX, startKiloW;
+  resizer.addEventListener('mousedown', function(e){
+    dragging=true; startX=e.clientX; startKiloW=kilo.offsetWidth;
+    document.body.style.userSelect='none';
+  });
+  document.addEventListener('mousemove', function(e){
+    if (!dragging) return;
+    var dx = e.clientX - startX;
+    var newW = Math.max(280, Math.min(window.innerWidth-300, startKiloW+dx));
+    kilo.style.width=newW+'px'; kilo.style.minWidth=newW+'px'; kilo.style.maxWidth=newW+'px';
+  });
+  document.addEventListener('mouseup', function(){ dragging=false; document.body.style.userSelect=''; });
+})();
+</script>
